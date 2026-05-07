@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CashPilot | AI credit-control copilot",
+  title: "Zentra Collect | Collections decisioning for bookkeepers",
   description:
-    "Know who to chase today, what to say, and when to escalate overdue invoices.",
+    "Upload overdue invoices. Get a ranked chase plan in minutes. Know who to chase, what to do, and why.",
 };
 
 export default function RootLayout({

@@ -1,3 +1,5 @@
+// TODO: Add rate limiting (e.g. per-IP or per-session token bucket) before public launch
+// to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import {
@@ -121,7 +123,11 @@ async function generateWithGemini(
 
 function parseDraftJson(text: string | null | undefined) {
   if (!text) return null;
-  return JSON.parse(text) as Partial<DraftGenerationResponse>;
+  try {
+    return JSON.parse(text) as Partial<DraftGenerationResponse>;
+  } catch {
+    return null;
+  }
 }
 
 function normaliseDraft(

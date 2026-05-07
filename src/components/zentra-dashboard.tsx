@@ -75,6 +75,8 @@ import type {
   Invoice,
 } from "@/types/zentra";
 
+// TODO: Replace with dynamic new Date().toISOString().slice(0,10) before live data launch.
+// Hardcoded to match demo invoice due dates so overdue calculations work in the demo.
 const referenceDate = "2026-05-07";
 
 const visibleGroups: Array<{
@@ -836,11 +838,7 @@ export function ZentraDashboard({
         onMarkPromised={() =>
           updateInvoiceStatus("promised", "Promise to pay recorded")
         }
-        onMarkDisputed={() =>
-          updateInvoiceStatus("disputed", "Dispute recorded")
-        }
         onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
-        onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
         onDoNotChase={() =>
           updateInvoiceStatus("do_not_chase", "Marked do not chase")
         }
@@ -1062,9 +1060,7 @@ function ActionDrawer({
   onCopy,
   onMarkSent,
   onMarkPromised,
-  onMarkDisputed,
   onMarkPaid,
-  onSnooze,
   onDoNotChase,
 }: {
   item: CollectionsPlanItem | null;
@@ -1105,9 +1101,7 @@ function ActionDrawer({
   onCopy: () => void;
   onMarkSent: () => void;
   onMarkPromised: () => void;
-  onMarkDisputed: () => void;
   onMarkPaid: () => void;
-  onSnooze: () => void;
   onDoNotChase: () => void;
 }) {
   const open = Boolean(item && invoice);

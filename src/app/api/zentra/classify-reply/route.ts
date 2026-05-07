@@ -1,3 +1,4 @@
+// TODO: Add rate limiting before public launch to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import {
@@ -117,7 +118,12 @@ function normaliseAiResult(text: string | null | undefined): ReplyClassification
     return classifyReplyWithRules({ replyText: "" });
   }
 
-  const parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
+  let parsed: Partial<ReplyClassificationResult>;
+  try {
+    parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
+  } catch {
+    return classifyReplyWithRules({ replyText: "" });
+  }
   return {
     classification: parsed.classification ?? "unclear",
     confidence:
