@@ -646,35 +646,35 @@ export function ZentraDashboard({
 
   return (
     <div className="space-y-8">
-      <section className="flex flex-col gap-5 border-b border-black/10 pb-7 lg:flex-row lg:items-end lg:justify-between">
+      <section className="flex flex-col gap-4 border-b border-black/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
             Zentra Collect
           </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-normal text-neutral-950 sm:text-5xl">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
             Today&apos;s collections plan
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
             Know who to chase, what to do, and why.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full border-black/10 bg-white/60"
-            onClick={() => setLoadState("loading")}
-          >
-            Preview loading
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full border-black/10 bg-white/60"
-            onClick={() => setLoadState("error")}
-          >
-            Preview error
-          </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="hidden gap-3 sm:flex">
+            <button
+              type="button"
+              className="text-xs text-neutral-400 transition-colors hover:text-neutral-600"
+              onClick={() => setLoadState("loading")}
+            >
+              Preview loading
+            </button>
+            <button
+              type="button"
+              className="text-xs text-neutral-400 transition-colors hover:text-neutral-600"
+              onClick={() => setLoadState("error")}
+            >
+              Preview error
+            </button>
+          </div>
           <Button asChild className="rounded-full bg-neutral-950 px-4 text-white hover:bg-neutral-800">
             <Link href="/import">Import invoices</Link>
           </Button>
@@ -698,29 +698,17 @@ export function ZentraDashboard({
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summary.map((item) => (
-          <Card
+          <div
             key={item.label}
-            className="rounded-2xl border border-black/5 bg-white/70 shadow-none ring-black/10"
+            className="rounded-2xl border border-black/8 bg-white/70 p-4"
           >
-            <CardHeader className="gap-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-                    {item.label}
-                  </CardDescription>
-                  <CardTitle className="mt-3 text-2xl font-semibold text-neutral-950">
-                    {item.value}
-                  </CardTitle>
-                </div>
-                <span className="rounded-full border border-black/10 bg-[#f7f2ea] p-2 text-neutral-700">
-                  <item.icon className="size-4" />
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-neutral-500">{item.detail}</p>
-            </CardContent>
-          </Card>
+            <div className="flex items-center gap-1.5">
+              <item.icon className="size-3.5 text-neutral-400" />
+              <p className="text-xs font-medium text-neutral-500">{item.label}</p>
+            </div>
+            <p className="mt-2.5 text-xl font-semibold text-neutral-950">{item.value}</p>
+            <p className="mt-1 text-xs text-neutral-500">{item.detail}</p>
+          </div>
         ))}
       </section>
 
@@ -993,13 +981,13 @@ function PlanGroup({
                   key={item.id}
                   type="button"
                   onClick={() => onReview(item)}
-                  className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-[#f7f2ea]/70 sm:px-5 lg:grid-cols-[minmax(190px,1.1fr)_120px_120px_minmax(220px,1.2fr)_180px]"
+                  className="grid w-full gap-x-5 gap-y-2 px-4 py-4 text-left transition-colors hover:bg-[#f7f2ea]/70 sm:px-5 lg:grid-cols-[minmax(160px,1fr)_100px_110px_minmax(180px,1.6fr)]"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-neutral-950">
                       {item.customerName}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-0.5 text-xs text-neutral-500">
                       {item.invoiceNumber || "Customer balance"}
                     </p>
                   </div>
@@ -1008,29 +996,18 @@ function PlanGroup({
                     value={formatCurrency(item.amountOutstanding)}
                   />
                   <Metric
-                    label="Due"
-                    value={invoice?.dueDate ? formatDate(invoice.dueDate) : "Missing"}
-                    detail={
-                      invoice?.daysOverdue
-                        ? `${invoice.daysOverdue} days overdue`
-                        : "Not overdue"
-                    }
+                    label="Overdue"
+                    value={invoice?.daysOverdue ? `${invoice.daysOverdue}d` : "Current"}
+                    detail={invoice?.dueDate ? formatDate(invoice.dueDate) : undefined}
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-neutral-950">
                       {humanAction(item.recommendedAction)}
                     </p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-neutral-600">
-                      {item.reason}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                    <StatusBadge value={item.urgencyLevel} />
-                    <StatusBadge value={item.confidenceLevel} prefix="confidence" />
-                    <SafetyBadge value={item.safetyStatus} />
-                    <span className="w-full text-xs font-medium text-neutral-950 lg:text-right">
-                      Review action
-                    </span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <StatusBadge value={item.urgencyLevel} />
+                      <SafetyBadge value={item.safetyStatus} />
+                    </div>
                   </div>
                 </button>
               );
@@ -1147,12 +1124,12 @@ function ActionDrawer({
       >
         {item && invoice ? (
           <>
-            <SheetHeader className="border-b border-black/10 p-5">
-              <SheetTitle className="text-2xl font-semibold text-neutral-950">
+            <SheetHeader className="border-b border-black/10 px-5 py-4">
+              <SheetTitle className="text-lg font-semibold text-neutral-950">
                 {invoice.customerName}
               </SheetTitle>
-              <SheetDescription className="text-neutral-600">
-                Invoice {invoice.invoiceNumber} ·{" "}
+              <SheetDescription className="text-sm text-neutral-500">
+                {invoice.invoiceNumber} &middot;{" "}
                 {formatCurrency(invoice.amountOutstanding)} outstanding
               </SheetDescription>
             </SheetHeader>
@@ -1396,45 +1373,43 @@ function ActionDrawer({
               </section>
             </div>
 
-            <div className="sticky bottom-0 grid gap-2 border-t border-black/10 bg-[#fbf8f1]/95 p-4 backdrop-blur sm:grid-cols-2">
-              <Button
-                className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
-                onClick={onGenerate}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <MailPlus className="size-4" />
-                )}
-                Generate draft
-              </Button>
-              <Button
-                variant="outline"
-                className="rounded-full border-black/10 bg-white/70"
-                onClick={onCopy}
-              >
-                <Copy className="size-4" />
-                {copied ? "Copied" : "Copy message"}
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onMarkSent}>
-                Mark as sent
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onMarkPromised}>
-                Mark promised
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onMarkDisputed}>
-                Mark disputed
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onMarkPaid}>
-                Mark paid
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onSnooze}>
-                Snooze
-              </Button>
-              <Button variant="outline" className="rounded-full bg-white/70" onClick={onDoNotChase}>
-                Do not chase
-              </Button>
+            <div className="sticky bottom-0 border-t border-black/10 bg-[#fbf8f1]/95 p-4 backdrop-blur">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+                  onClick={onGenerate}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <MailPlus className="size-4" />
+                  )}
+                  Generate draft
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full border-black/10 bg-white/70"
+                  onClick={onCopy}
+                >
+                  <Copy className="size-4" />
+                  {copied ? "Copied" : "Copy message"}
+                </Button>
+              </div>
+              <div className="mt-2 grid grid-cols-4 gap-1.5">
+                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkSent}>
+                  Mark sent
+                </Button>
+                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkPromised}>
+                  Promised
+                </Button>
+                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkPaid}>
+                  Mark paid
+                </Button>
+                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onDoNotChase}>
+                  Do not chase
+                </Button>
+              </div>
             </div>
           </>
         ) : null}
@@ -1560,12 +1535,11 @@ function CustomerBehaviourCard({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
           Customer behaviour
         </p>
-        <h3 className="mt-3 text-lg font-semibold text-neutral-950">
+        <p className="mt-2 text-sm font-semibold text-neutral-950">
           Not enough history yet.
-        </h3>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Based on previous imported data, Zentra needs more invoice history
-          before suggesting a customer pattern.
+        </p>
+        <p className="mt-1 text-sm leading-6 text-neutral-500">
+          Zentra needs more invoice history before suggesting a payment pattern.
         </p>
       </section>
     );
@@ -1578,10 +1552,10 @@ function CustomerBehaviourCard({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
             Customer behaviour
           </p>
-          <h3 className="mt-3 text-lg font-semibold text-neutral-950">
-            Based on previous imported data, this customer looks{" "}
-            {profile.riskLabel}.
-          </h3>
+          <p className="mt-2 text-sm font-semibold text-neutral-950">
+            Payment pattern:{" "}
+            <span className="capitalize">{profile.riskLabel}</span>
+          </p>
         </div>
         <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-[#f7f2ea]">
           {profile.riskLabel}
@@ -1800,6 +1774,12 @@ function StatusBadge({
   );
 }
 
+const safetyLabels: Record<string, string> = {
+  blocked: "Blocked",
+  needs_review: "Needs review",
+  safe_to_draft: "Safe to draft",
+};
+
 function SafetyBadge({ value }: { value: string }) {
   const tone =
     value === "blocked"
@@ -1810,7 +1790,7 @@ function SafetyBadge({ value }: { value: string }) {
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>
-      {humanLabel(value)}
+      {safetyLabels[value] ?? humanLabel(value)}
     </Badge>
   );
 }

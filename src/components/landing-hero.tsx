@@ -235,7 +235,7 @@ const questions = [
 
 export function WhatItAnswers() {
   return (
-    <section className="border-t border-black/10 bg-white">
+    <section className="border-t border-black/10">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
@@ -248,8 +248,8 @@ export function WhatItAnswers() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {questions.map(({ icon: Icon, q, a }) => (
-            <div key={q} className="rounded-2xl border border-black/8 bg-[#fbf8f1] p-5">
-              <div className="flex size-9 items-center justify-center rounded-xl border border-black/8 bg-white">
+            <div key={q} className="rounded-2xl border border-black/8 bg-white p-5">
+              <div className="flex size-9 items-center justify-center rounded-xl border border-black/8 bg-[#fbf8f1]">
                 <Icon className="size-4 text-neutral-600" />
               </div>
               <p className="mt-4 text-sm font-semibold leading-snug text-neutral-950">{q}</p>
@@ -348,7 +348,7 @@ const scenarios = [
 
 export function BuiltForMessyAR() {
   return (
-    <section className="border-t border-black/10 bg-white">
+    <section className="border-t border-black/10">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
@@ -366,9 +366,9 @@ export function BuiltForMessyAR() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {scenarios.map(({ icon: Icon, tag, body }) => (
-            <div key={tag} className="rounded-2xl border border-black/8 bg-[#fbf8f1] p-5">
+            <div key={tag} className="rounded-2xl border border-black/8 bg-white p-5">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-lg border border-black/8 bg-white">
+                <div className="flex size-8 items-center justify-center rounded-lg border border-black/8 bg-[#fbf8f1]">
                   <Icon className="size-3.5 text-neutral-600" />
                 </div>
                 <span className="text-sm font-semibold text-neutral-950">{tag}</span>
@@ -414,11 +414,11 @@ export function BookkeeperSection() {
   return (
     <section className="border-t border-black/10">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-[#f0f4ff] to-[#fbf8f1]">
+        <div className="overflow-hidden rounded-3xl border border-black/10 bg-white">
           <div className="grid lg:grid-cols-2">
             {/* Left: copy */}
             <div className="p-8 sm:p-10 lg:p-12">
-              <div className="inline-flex items-center rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-blue-700">
+              <div className="inline-flex items-center rounded-full border border-black/10 bg-[#fbf8f1] px-3 py-1 text-xs font-medium text-neutral-700">
                 For bookkeepers
               </div>
               <h2 className="mt-5 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
@@ -462,7 +462,7 @@ export function BookkeeperSection() {
             </div>
 
             {/* Right: mini portfolio mockup */}
-            <div className="flex items-center border-t border-blue-100 p-8 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
+            <div className="flex items-center border-t border-black/10 bg-[#fbf8f1] p-8 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
               <div className="w-full overflow-hidden rounded-2xl border border-black/8 bg-white shadow-sm">
                 <div className="border-b border-black/8 px-4 py-3">
                   <p className="text-xs font-semibold text-neutral-950">Portfolio overview</p>
@@ -530,7 +530,7 @@ const safetyPoints = [
 
 export function SafetySection() {
   return (
-    <section className="border-t border-black/10 bg-white">
+    <section className="border-t border-black/10">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mb-10 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
@@ -547,8 +547,8 @@ export function SafetySection() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {safetyPoints.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-2xl border border-black/8 bg-[#fbf8f1] p-5">
-              <div className="flex size-9 items-center justify-center rounded-xl border border-black/8 bg-white">
+            <div key={title} className="rounded-2xl border border-black/8 bg-white p-5">
+              <div className="flex size-9 items-center justify-center rounded-xl border border-black/8 bg-[#fbf8f1]">
                 <Icon className="size-4 text-neutral-600" />
               </div>
               <h3 className="mt-4 text-sm font-semibold text-neutral-950">{title}</h3>
@@ -557,7 +557,7 @@ export function SafetySection() {
           ))}
 
           {/* Disclaimer card */}
-          <div className="rounded-2xl border border-black/8 bg-[#fbf8f1] p-5 sm:col-span-2 lg:col-span-1">
+          <div className="rounded-2xl border border-black/8 bg-white p-5 sm:col-span-2 lg:col-span-1">
             <p className="text-sm font-semibold text-neutral-950">
               Zentra drafts and recommends.
             </p>
