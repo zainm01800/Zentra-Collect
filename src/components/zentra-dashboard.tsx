@@ -12,7 +12,6 @@ import {
   FileText,
   Loader2,
   MailPlus,
-  ShieldCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +62,8 @@ import {
   type ImportDiffOutput,
   type ImportSummary,
 } from "@/lib/import/zentra-import";
+import { ActivityTimeline } from "@/components/activity-timeline";
+import { SafetyPanel } from "@/components/safety-panel";
 import type {
   ActivityEvent,
   CollectionScenario,
@@ -298,6 +299,16 @@ export function ZentraDashboard({
     setReplyPromiseAmount(nextDetails.promisedAmount);
     setReplyDisputeReason(nextDetails.disputeReason);
     setCopied(false);
+
+    if (invoice) {
+      addActivityEvent(
+        invoice.id,
+        invoice.businessId,
+        "recommendation_created",
+        `Recommendation reviewed: ${humanAction(item.recommendedAction)}`,
+        `Zentra ranked this action with ${item.urgencyLevel} urgency. ${item.reason}`,
+      );
+    }
   }
 
   function updateInvoiceStatus(status: CollectionStatus, title: string) {
@@ -331,6 +342,37 @@ export function ZentraDashboard({
                             : "note_added",
                   title,
                   description: `${title} in demo mode. No outbound message was sent.`,
+                  createdAt: new Date().toISOString(),
+                  createdBy: "Alex Chen",
+                } satisfies ActivityEvent,
+                ...invoice.activityHistory,
+              ],
+            }
+          : invoice,
+      ),
+    );
+  }
+
+  function addActivityEvent(
+    invoiceId: string,
+    businessId: string,
+    type: ActivityEvent["type"],
+    title: string,
+    description: string,
+  ) {
+    setInvoices((current) =>
+      current.map((invoice) =>
+        invoice.id === invoiceId
+          ? {
+              ...invoice,
+              activityHistory: [
+                {
+                  id: `${invoiceId}-${type}-${Date.now()}`,
+                  invoiceId,
+                  businessId,
+                  type,
+                  title,
+                  description,
                   createdAt: new Date().toISOString(),
                   createdBy: "Alex Chen",
                 } satisfies ActivityEvent,
@@ -469,11 +511,18 @@ export function ZentraDashboard({
 
   async function copyMessage() {
     if (!draft && !subject) return;
+    if (!selectedInvoice) return;
     await navigator.clipboard.writeText(
       [`Subject: ${subject}`, "", draft].join("\n"),
     );
     setCopied(true);
-    updateInvoiceStatus("overdue", "Draft copied for review");
+    addActivityEvent(
+      selectedInvoice.id,
+      selectedInvoice.businessId,
+      "message_copied",
+      "Draft copied for review",
+      "A draft message was copied to clipboard. No outbound message was sent in demo mode.",
+    );
   }
 
   async function generateDraft() {
@@ -552,6 +601,15 @@ export function ZentraDashboard({
       setDraftRiskNotes(generated.riskNotes);
       setDraftConfidence(generated.confidence);
       setDraftSource(generated.source ?? "template");
+      if (selectedInvoice) {
+        addActivityEvent(
+          selectedInvoice.id,
+          selectedInvoice.businessId,
+          "message_drafted",
+          "Draft generated",
+          `${generated.source ?? "template"} draft created for ${actionScenario.toLowerCase().replace(/_/g, " ")}. Confidence: ${generated.confidence}.`,
+        );
+      }
     } catch {
       const fallback = buildActionDraftMessage(
         actionScenario,
@@ -1230,33 +1288,7 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-                  Safety checks
-                </p>
-                <div className="mt-3 space-y-3">
-                  {actionMeta?.safetyChecks.length ? (
-                    actionMeta.safetyChecks.map((check) => (
-                      <div
-                        key={check}
-                        className="rounded-xl border border-black/10 bg-[#fbf8f1] p-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-neutral-950">
-                            {check}
-                          </p>
-                          <SafetyBadge value={actionMeta.safetyStatus} />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#fbf8f1] p-3 text-sm text-neutral-700">
-                      <ShieldCheck className="size-4" />
-                      No blocking safety issues found.
-                    </div>
-                  )}
-                </div>
-              </section>
+              <SafetyPanel checks={item.safetyChecks} selectedTone={tone} />
 
               <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1357,27 +1389,10 @@ function ActionDrawer({
               </section>
 
               <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
                   Activity history
                 </p>
-                <div className="mt-3 space-y-3">
-                  {invoice.activityHistory.map((event) => (
-                    <div key={event.id} className="flex gap-3">
-                      <span className="mt-1 size-2 rounded-full bg-neutral-950" />
-                      <div>
-                        <p className="text-sm font-medium text-neutral-950">
-                          {event.title}
-                        </p>
-                        <p className="text-xs leading-5 text-neutral-600">
-                          {event.description}
-                        </p>
-                        <p className="mt-1 text-xs text-neutral-400">
-                          {formatDate(event.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ActivityTimeline items={invoice.activityHistory} />
               </section>
             </div>
 
