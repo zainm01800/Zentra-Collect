@@ -5,6 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  PortfolioPreviewBanner,
+} from "@/components/access/upgrade-screen";
+import {
+  requireFeature,
+  getRedirectOrUpgradePrompt,
+} from "@/lib/access/features";
+import { getUsageSnapshot, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
+import {
   groupActionsByCategory,
   rankCollectionActions,
 } from "@/lib/collections/decision-engine";
@@ -99,12 +107,22 @@ const riskOrder: Record<RiskLevel, number> = {
 function riskBadgeClass(risk: RiskLevel) {
   if (risk === "CRITICAL") return "border-red-200 bg-red-50 text-red-700";
   if (risk === "HIGH") return "border-orange-200 bg-orange-50 text-orange-700";
-  if (risk === "MEDIUM")
-    return "border-amber-200 bg-amber-50 text-amber-700";
+  if (risk === "MEDIUM") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
 export default function PortfolioPage() {
+  // TODO: Replace DEMO_ACCOUNT_ID with session.user.accountId once auth is live
+  const snapshot = getUsageSnapshot(DEMO_ACCOUNT_ID);
+  const access = requireFeature(snapshot, "bookkeeper_portfolio");
+
+  // Soft gate: non-bookkeeper plans see demo data with an upgrade banner.
+  // This lets them evaluate the feature before committing — per product spec.
+  const isPreviewMode = !access.allowed;
+  const previewConfig = isPreviewMode
+    ? getRedirectOrUpgradePrompt(snapshot, "bookkeeper_portfolio")!
+    : null;
+
   // TODO: Replace with DB query for the authenticated bookkeeper's clients
   const clientStats = demoBookkeeperClients
     .map(getClientStats)
@@ -129,35 +147,41 @@ export default function PortfolioPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Demo banner */}
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <strong>Demo mode</strong> — data is illustrative. This view shows{" "}
-          <strong>{demoBookkeeperBusiness.tradingName}</strong> managing{" "}
-          {demoBookkeeperClients.length} client businesses.
-        </div>
+        {/* Upgrade banner for non-bookkeeper plans (soft gate) */}
+        {isPreviewMode && previewConfig && (
+          <PortfolioPreviewBanner
+            config={previewConfig}
+            isSinglePlan={snapshot.planId === "single"}
+          />
+        )}
 
         {/* Header */}
-        <div className="flex flex-col gap-2 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-black/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
               Bookkeeper portfolio
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Portfolio Overview
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-neutral-950">
+              Portfolio overview
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-neutral-500">
               {demoBookkeeperBusiness.name} &middot;{" "}
               {demoBookkeeperClients.length} client businesses &middot;{" "}
               {REFERENCE_DATE}
+              {isPreviewMode && (
+                <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                  Demo data
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         {/* Summary stat cards */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Card>
+          <Card className="rounded-xl border-black/8">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-neutral-500">
                 Total overdue
               </CardTitle>
             </CardHeader>
@@ -165,15 +189,13 @@ export default function PortfolioPage() {
               <div className="text-2xl font-semibold tracking-tight text-red-600">
                 {formatCurrency(totalOverdue)}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Across all clients
-              </p>
+              <p className="mt-1 text-xs text-neutral-400">Across all clients</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl border-black/8">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-neutral-500">
                 Actions today
               </CardTitle>
             </CardHeader>
@@ -181,15 +203,13 @@ export default function PortfolioPage() {
               <div className="text-2xl font-semibold tracking-tight">
                 {totalActions}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Chase-now items
-              </p>
+              <p className="mt-1 text-xs text-neutral-400">Chase-now items</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl border-black/8">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-neutral-500">
                 Exceptions
               </CardTitle>
             </CardHeader>
@@ -197,15 +217,15 @@ export default function PortfolioPage() {
               <div className="text-2xl font-semibold tracking-tight">
                 {totalExceptions}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-neutral-400">
                 Disputes, remittance, missing contacts
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl border-black/8">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-neutral-500">
                 Promises to check
               </CardTitle>
             </CardHeader>
@@ -213,15 +233,15 @@ export default function PortfolioPage() {
               <div className="text-2xl font-semibold tracking-tight">
                 {totalPromises}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-neutral-400">
                 Open &amp; missed promises
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-red-100">
+          <Card className="rounded-xl border-red-100">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-neutral-500">
                 Highest risk
               </CardTitle>
             </CardHeader>
@@ -241,11 +261,13 @@ export default function PortfolioPage() {
 
         {/* Client ledger table */}
         <div>
-          <h2 className="mb-3 text-base font-semibold">Client ledgers</h2>
-          <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-            <table className="min-w-full divide-y divide-border bg-card text-sm">
+          <h2 className="mb-3 text-base font-semibold text-neutral-950">
+            Client ledgers
+          </h2>
+          <div className="overflow-x-auto rounded-xl border border-black/8 bg-white">
+            <table className="min-w-full divide-y divide-black/6 text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-muted-foreground">
+                <tr className="text-left text-xs font-medium text-neutral-400">
                   <th className="px-4 py-3">Business</th>
                   <th className="px-4 py-3 text-right">Overdue</th>
                   <th className="px-4 py-3 text-right">Actions today</th>
@@ -256,17 +278,17 @@ export default function PortfolioPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-black/6">
                 {clientStats.map((stats) => (
                   <tr
                     key={stats.client.id}
-                    className="transition-colors hover:bg-muted/30"
+                    className="transition-colors hover:bg-neutral-50"
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium">
+                      <div className="font-medium text-neutral-950">
                         {stats.client.business.name}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-neutral-400">
                         {stats.client.portfolioLabel} &middot;{" "}
                         {stats.client.primaryContactName}
                       </div>
@@ -278,11 +300,11 @@ export default function PortfolioPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {stats.actionsToday > 0 ? (
-                        <span className="font-semibold text-neutral-900">
+                        <span className="font-semibold text-neutral-950">
                           {stats.actionsToday}
                         </span>
                       ) : (
-                        "—"
+                        <span className="text-neutral-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -291,7 +313,7 @@ export default function PortfolioPage() {
                           {stats.exceptions}
                         </span>
                       ) : (
-                        "—"
+                        <span className="text-neutral-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -300,10 +322,10 @@ export default function PortfolioPage() {
                           {stats.missedPromises}
                         </span>
                       ) : (
-                        "—"
+                        <span className="text-neutral-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                    <td className="px-4 py-3 text-xs text-neutral-400">
                       {/* TODO: Replace with client.lastImportBatchId lookup from DB */}
                       7 May 2026
                     </td>
@@ -316,12 +338,22 @@ export default function PortfolioPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/portfolio/${stats.client.id}`}>
-                          Open plan
-                          <ArrowRight className="size-3" />
-                        </Link>
-                      </Button>
+                      {isPreviewMode ? (
+                        // In preview mode, link to upgrade instead of drilling into client
+                        <Button asChild variant="ghost" size="sm" className="text-neutral-400">
+                          <Link href="/request-access">
+                            Upgrade to open
+                            <ArrowRight className="size-3" />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/portfolio/${stats.client.id}`}>
+                            Open plan
+                            <ArrowRight className="size-3" />
+                          </Link>
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
