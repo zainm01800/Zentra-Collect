@@ -1767,11 +1767,11 @@ function Metric({
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-neutral-950">{value}</p>
+      <p className="mt-1 break-all text-sm font-medium text-neutral-950">{value}</p>
     </div>
   );
 }
