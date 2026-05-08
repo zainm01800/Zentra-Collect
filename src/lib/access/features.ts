@@ -117,16 +117,18 @@ export function requireFeature(
       return { ...base, allowed: true, upgradeTarget: null };
 
     case "weekly_digest":
-      // Digest is a paid-plan feature — demo and trial users are gated.
-      if (tier !== "paid") {
+      // Demo users can view the weekly digest with sample data — it helps
+      // them evaluate the feature before signing up.
+      // Trial users are gated — digest is a paid-plan feature.
+      if (tier === "free") {
+        return { ...base, allowed: true, upgradeTarget: null };
+      }
+      if (tier === "trial") {
         return {
           ...base,
           allowed: false,
           upgradeTarget: "single",
-          reason:
-            tier === "free"
-              ? "The weekly digest is not available in demo mode."
-              : "The weekly digest is included in Single Business and above.",
+          reason: "The weekly digest is included in Single Business and above.",
         };
       }
       return { ...base, allowed: true, upgradeTarget: null };
@@ -277,30 +279,14 @@ export function getRedirectOrUpgradePrompt(
       };
 
     case "weekly_digest":
-      if (tier === "free") {
-        return {
-          heading: "Weekly collections digest",
-          description:
-            "A Monday-ready brief covering overdue movements, top chase priorities, and promise tracking across all your invoices. Start a trial to unlock the demo digest.",
-          bullets: [
-            "What changed since your last import",
-            "Top priority actions for the week",
-            "Promise and dispute summary",
-            "Ready to review or share with the business owner",
-          ],
-          upgradeTarget: "single",
-          ctaPrimary: { text: "Start free trial", href: "/request-access" },
-          ctaSecondary: { text: "See all plans", href: "/pricing" },
-        };
-      }
-      // Trial
+      // Only trial users hit this path now (demo users are allowed through).
       return {
         heading: "Weekly collections digest",
         description:
-          "The digest is included in Single Business and above. It gives you a structured, Monday-ready summary of what to act on each week.",
+          "The weekly digest is included in Single Business and above. It gives you a structured Monday-ready summary: what changed, who to chase first, and what cash is expected.",
         bullets: [
           "Overdue movements week-on-week",
-          "Who to chase first and why",
+          "Top chase priorities with reasons",
           "Missed promises and pending disputes",
           "Ready to share with the business owner",
         ],

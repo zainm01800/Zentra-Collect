@@ -48,10 +48,10 @@ export function LandingHero() {
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href="/import"
+              href="/request-access"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-6 py-3 text-sm font-medium text-neutral-950 transition-colors hover:bg-neutral-50"
             >
-              Upload sample file
+              Request founding access
             </Link>
           </div>
         </div>

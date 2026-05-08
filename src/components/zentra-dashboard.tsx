@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { DemoDashboardBanner } from "@/components/demo-banner";
 import {
   AlertTriangle,
   CalendarCheck,
@@ -646,55 +647,56 @@ export function ZentraDashboard({
     return <DashboardEmptyState />;
   }
 
+  // Demo mode: no import has been done and this isn't a bookkeeper client view
+  const isDemoMode = !importSummary && !isBookkeeperMode;
+  const demoSummaryLine = isDemoMode
+    ? `We found ${summary[0]?.value ?? "–"} needing attention, ${groups.chase_now.length} recommended actions, ${groups.exceptions_to_resolve.length} exceptions, and ${groups.promises_to_check.length} promises to check.`
+    : null;
+
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-4 border-b border-black/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
             Zentra Collect
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-neutral-950 sm:text-5xl">
             Today&apos;s collections plan
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
             Know who to chase, what to do, and why.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="hidden gap-3 sm:flex">
-            <button
-              type="button"
-              className="text-xs text-neutral-400 transition-colors hover:text-neutral-600"
-              onClick={() => setLoadState("loading")}
-            >
-              Preview loading
-            </button>
-            <button
-              type="button"
-              className="text-xs text-neutral-400 transition-colors hover:text-neutral-600"
-              onClick={() => setLoadState("error")}
-            >
-              Preview error
-            </button>
-          </div>
-          <Button asChild className="rounded-full bg-neutral-950 px-4 text-white hover:bg-neutral-800">
-            <Link href="/import">Import invoices</Link>
-          </Button>
-        </div>
+        <Button
+          asChild
+          className="rounded-full bg-neutral-950 px-4 text-white hover:bg-neutral-800"
+        >
+          <Link href="/import">Import invoices</Link>
+        </Button>
       </section>
 
-      {importSummary ? (
+      {/* Demo mode: rich banner + summary spotlight */}
+      {isDemoMode && demoSummaryLine && (
+        <DemoDashboardBanner summaryLine={demoSummaryLine} />
+      )}
+
+      {/* Post-import success callout (real data) */}
+      {importSummary && (
         <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
           <span>
             We found {formatCurrency(importSummary.cashNeedingAttention)} needing
             attention, {importSummary.actionsRecommended} actions recommended,{" "}
             {importSummary.exceptions} exceptions.
           </span>
-          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-white/70">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full border-emerald-300 bg-white/70"
+          >
             <Link href="/import/summary">View import summary</Link>
           </Button>
         </div>
-      ) : null}
+      )}
 
       {importDiff ? <ImportDiffDashboard diff={importDiff} /> : null}
 
@@ -759,8 +761,36 @@ export function ZentraDashboard({
             <div className="mt-5 space-y-3 text-sm text-neutral-700">
               <InfoLine label="Blocked items" value="Need human review first" />
               <InfoLine label="Safe drafts" value="Copy-only, no auto-send" />
-              <InfoLine label="Demo mode" value={`${invoices.length} invoices`} />
+              <InfoLine
+                label={isDemoMode ? "Sample invoices" : "Invoices loaded"}
+                value={`${invoices.length} invoices`}
+              />
             </div>
+            {isDemoMode && (
+              <div className="mt-5 space-y-2 border-t border-black/8 pt-5">
+                <Link
+                  href="/request-access"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full bg-neutral-950 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
+                >
+                  Start 14-day trial
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+                    <path d="M2 5h6M5.5 2.5 8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </Link>
+                <Link
+                  href="/request-access?type=bookkeeper"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 px-3 py-2 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                >
+                  Request bookkeeper beta
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="flex w-full items-center justify-center text-xs font-medium text-neutral-400 underline underline-offset-2 hover:text-neutral-700"
+                >
+                  View pricing
+                </Link>
+              </div>
+            )}
           </div>
         </aside>
       </section>
