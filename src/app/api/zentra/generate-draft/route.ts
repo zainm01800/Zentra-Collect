@@ -2,7 +2,7 @@
 // to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
+import { canPerformUsage, recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildDraftPrompt,
   generateTemplateDraft,
@@ -46,6 +46,20 @@ export async function POST(request: Request) {
       ...fallback,
       riskNotes: safety.riskNotes.join(" "),
       confidence: safety.confidence,
+      source: "template",
+    });
+  }
+
+  // ── Quota gate ──────────────────────────────────────────────────────────────
+  // Return a template draft with an explanatory note rather than a hard 403,
+  // so the user still gets a usable draft even when AI quota is exhausted.
+  const quotaCheck = canPerformUsage(DEMO_ACCOUNT_ID, "aiAction");
+  if (!quotaCheck.allowed) {
+    return NextResponse.json({
+      ...fallback,
+      riskNotes:
+        quotaCheck.reason ??
+        "AI drafts are not available on your current plan. This is a template draft — review before sending.",
       source: "template",
     });
   }

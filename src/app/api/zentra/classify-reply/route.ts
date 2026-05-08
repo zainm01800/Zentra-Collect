@@ -1,7 +1,7 @@
 // TODO: Add rate limiting before public launch to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
+import { canPerformUsage, recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildReplyClassificationPrompt,
   classifyReplyWithRules,
@@ -40,6 +40,15 @@ export async function POST(request: Request) {
 
   const rulesResult = classifyReplyWithRules(input);
   if (rulesResult.classification !== "unclear") {
+    return NextResponse.json(rulesResult);
+  }
+
+  // ── Quota gate ──────────────────────────────────────────────────────────────
+  // If AI quota is exhausted, fall back to the rules-based result rather than
+  // calling AI. The rules result is already valid; the user sees it as "unclear"
+  // which prompts manual review — the safest outcome.
+  const quotaCheck = canPerformUsage(DEMO_ACCOUNT_ID, "aiAction");
+  if (!quotaCheck.allowed) {
     return NextResponse.json(rulesResult);
   }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CreditCard, FileText, FileUp, LayoutDashboard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ViewToggle } from "@/components/view-toggle";
+import { TrialStatusBanner } from "@/components/trial-banners";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -50,7 +51,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <TrialStatusBanner />
+        {children}
+      </main>
     </div>
   );
 }

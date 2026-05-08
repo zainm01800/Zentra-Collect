@@ -118,6 +118,24 @@ export interface UsageSnapshot {
   trialDaysRemaining: number | null;
   trialEndsAt: string | null;
   isExpired: boolean;
+  /**
+   * ISO date string (YYYY-MM-DD) 30 days after trialEndsAt.
+   * null when not a trial plan or trialEndsAt is null.
+   *
+   * TODO (production): override with a DB-stored value set when the user's
+   * trial is explicitly terminated early (e.g. by support or fraud review).
+   */
+  gracePeriodEndsAt: string | null;
+  /**
+   * True when the trial has expired AND the current date is still within the
+   * 30-day grace period. The user can view data but cannot perform new actions.
+   */
+  isInGracePeriod: boolean;
+  /**
+   * Days until the grace period ends. null when not in grace period.
+   * 0 means the grace period ends today.
+   */
+  gracePeriodDaysRemaining: number | null;
   periodKey: string;
   meters: {
     aiActions: UsageMeter;
@@ -144,6 +162,44 @@ export function computeTrialDaysRemaining(endsAt: string | null): number | null 
   if (!endsAt) return null;
   const ms = new Date(endsAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Compute the grace period end date: 30 days after the trial end date.
+ * Returns null if trialEndsAt is null.
+ *
+ * TODO (production): store this value in the database when a trial expires
+ * so it can be overridden (e.g. extended for support cases) rather than
+ * always being computed as trialEndsAt + 30 days.
+ */
+export function computeGracePeriodEndsAt(trialEndsAt: string | null): string | null {
+  if (!trialEndsAt) return null;
+  const d = new Date(trialEndsAt);
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+/**
+ * Days remaining in the grace period. Returns null when not in grace period.
+ * Returns 0 on the last day.
+ */
+export function computeGracePeriodDaysRemaining(
+  gracePeriodEndsAt: string | null,
+  isExpired: boolean,
+): number | null {
+  if (!isExpired || !gracePeriodEndsAt) return null;
+  const ms = new Date(gracePeriodEndsAt).getTime() - Date.now();
+  if (ms < 0) return null; // grace period already over
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+/** Format a date string as "30 May 2026" for display in banners. */
+export function formatGraceDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 /** Build a UsageMeter value object from raw numbers. */
@@ -330,6 +386,13 @@ export function computeUsageSnapshot(account: AccountUsage): UsageSnapshot {
   const canPerformAIAction = checkCanPerform(account, "aiAction", 1).allowed && !isExpired;
   const canPerformImport = checkCanPerform(account, "import", 1).allowed && !isExpired;
 
+  // Grace period: 30 days after trial ends. Stored field (gracePeriodEndsAt) can
+  // override the computed value in production once a DB is wired.
+  const gracePeriodEndsAt =
+    account.gracePeriodEndsAt ?? computeGracePeriodEndsAt(account.trialEndsAt);
+  const gracePeriodDaysRemaining = computeGracePeriodDaysRemaining(gracePeriodEndsAt, isExpired);
+  const isInGracePeriod = gracePeriodDaysRemaining !== null;
+
   return {
     accountId: account.id,
     planId: plan.id,
@@ -339,6 +402,9 @@ export function computeUsageSnapshot(account: AccountUsage): UsageSnapshot {
     trialDaysRemaining,
     trialEndsAt: account.trialEndsAt,
     isExpired,
+    gracePeriodEndsAt,
+    isInGracePeriod,
+    gracePeriodDaysRemaining,
     periodKey: account.monthlyPeriodKey,
     meters,
     canPerformAIAction,
