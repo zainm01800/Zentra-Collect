@@ -1,6 +1,7 @@
 // TODO: Add rate limiting before public launch to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildReplyClassificationPrompt,
   classifyReplyWithRules,
@@ -47,12 +48,14 @@ export async function POST(request: Request) {
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const aiResult = await classifyWithGemini(input, geminiKey);
+      recordAIAction(DEMO_ACCOUNT_ID, "reply_classification");
       return NextResponse.json(aiResult);
     }
 
     const client = getOpenAIClient();
     if (client) {
       const aiResult = await classifyWithOpenAI(input, client);
+      recordAIAction(DEMO_ACCOUNT_ID, "reply_classification");
       return NextResponse.json(aiResult);
     }
   } catch {

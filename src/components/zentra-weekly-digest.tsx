@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -49,6 +50,15 @@ export function ZentraWeeklyDigest() {
     profiles,
     importDiff,
   });
+
+  // Record digest generation — fire-and-forget, once on mount
+  useEffect(() => {
+    void fetch("/api/usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "recordWeeklyDigest" }),
+    });
+  }, []);
 
   return (
     <div className="space-y-8">

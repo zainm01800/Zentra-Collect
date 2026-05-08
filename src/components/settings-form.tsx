@@ -3,6 +3,7 @@
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UsageMeters } from "@/components/usage-meters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,8 +24,8 @@ export function SettingsForm() {
           <CardTitle>Business settings</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Business name" defaultValue="CashPilot Demo Agency" />
-          <Field label="Sender name" defaultValue="Zain from CashPilot Demo Agency" />
+          <Field label="Business name" defaultValue="Zentra Demo Agency" />
+          <Field label="Sender name" defaultValue="Zain from Zentra Demo Agency" />
           <Field label="Reply-to email" defaultValue="accounts@example.co.uk" />
           <div className="space-y-2">
             <Label>Default tone</Label>
@@ -68,6 +69,14 @@ export function SettingsForm() {
       <div className="space-y-5">
         <Card className="rounded-lg">
           <CardHeader>
+            <CardTitle>Plan &amp; usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UsageMeters />
+          </CardContent>
+        </Card>
+        <Card className="rounded-lg">
+          <CardHeader>
             <CardTitle>Xero connection</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -87,7 +96,7 @@ export function SettingsForm() {
           <CardContent>
             <p className="text-sm text-muted-foreground">
               OpenAI runs server-side when <span className="font-mono">OPENAI_API_KEY</span>{" "}
-              is present. Otherwise CashPilot uses template reminders.
+              is present. Otherwise Zentra Collect uses template reminders.
             </p>
           </CardContent>
         </Card>

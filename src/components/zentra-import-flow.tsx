@@ -165,6 +165,18 @@ export function ZentraImportFlow() {
       }),
     );
 
+    // Record the import usage — fire-and-forget, do not block the UI transition
+    void fetch("/api/usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "recordImport",
+        fileName,
+        invoiceCount: invoices.length,
+        activeInvoiceCount: invoices.filter((i) => i.status !== "paid").length,
+      }),
+    });
+
     window.setTimeout(() => {
       setIsImporting(false);
       setStep("complete");

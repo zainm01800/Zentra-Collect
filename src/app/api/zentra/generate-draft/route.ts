@@ -2,6 +2,7 @@
 // to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildDraftPrompt,
   generateTemplateDraft,
@@ -54,12 +55,14 @@ export async function POST(request: Request) {
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const gemini = await generateWithGemini(input, geminiKey);
+      recordAIAction(DEMO_ACCOUNT_ID, "draft_generation");
       return NextResponse.json(normaliseDraft(gemini, fallback, "gemini"));
     }
 
     const client = getOpenAIClient();
     if (client) {
       const openai = await generateWithOpenAI(input, client);
+      recordAIAction(DEMO_ACCOUNT_ID, "draft_generation");
       return NextResponse.json(normaliseDraft(openai, fallback, "openai"));
     }
   } catch {
