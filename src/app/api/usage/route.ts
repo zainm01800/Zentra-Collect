@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import {
   DEMO_ACCOUNT_ID,
   getUsageSnapshot,
+  recordAIAction,
   recordImport,
   incrementUsage,
 } from "@/lib/usage/store";
@@ -85,8 +86,10 @@ export async function POST(request: Request) {
       if (!body.actionType) {
         return NextResponse.json({ error: "actionType is required." }, { status: 400 });
       }
-      incrementUsage(accountId, "aiAction", 1);
-      return NextResponse.json({ recorded: true });
+      // Use recordAIAction() — not incrementUsage() directly — so the audit
+      // log and within-limit check are applied consistently.
+      const result = recordAIAction(accountId, body.actionType);
+      return NextResponse.json(result);
     }
 
     case "recordWeeklyDigest": {

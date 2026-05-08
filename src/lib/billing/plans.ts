@@ -293,8 +293,11 @@ export const COMPARISON_ROWS: readonly ComparisonRow[] = [
     values: { demo: false, trial: true, single: true, starter: true, pro: true },
   },
   {
+    // Demo users can view a sample digest to evaluate the feature before signing up.
+    // "Sample" renders as a text cell (not a checkmark) to distinguish it from
+    // full access. Trial users cannot access the digest — it's a paid-plan feature.
     label: "Weekly digest",
-    values: { demo: false, trial: false, single: true, starter: true, pro: true },
+    values: { demo: "Sample", trial: false, single: true, starter: true, pro: true },
   },
   {
     label: "Portfolio dashboard",
@@ -313,8 +316,10 @@ export const COMPARISON_ROWS: readonly ComparisonRow[] = [
     values: { demo: false, trial: false, single: false, starter: false, pro: true },
   },
   {
-    label: "Reusable import templates",
-    values: { demo: false, trial: false, single: false, starter: false, pro: true },
+    // Shows numeric limits that match the savedImportMappings plan limits.
+    // All paid plans can save templates; the limit increases with each tier.
+    label: "Saved import templates",
+    values: { demo: "—", trial: "1", single: "5", starter: "25", pro: "100" },
   },
 ];
 

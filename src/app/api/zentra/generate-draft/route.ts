@@ -79,7 +79,12 @@ export async function POST(request: Request) {
       recordAIAction(DEMO_ACCOUNT_ID, "draft_generation");
       return NextResponse.json(normaliseDraft(openai, fallback, "openai"));
     }
-  } catch {
+  } catch (err) {
+    // Log the failure so it appears in server logs / Vercel function output.
+    // TODO (production): Replace console.error with structured logging
+    //   (e.g. Sentry.captureException(err)) and include account ID + scenario
+    //   so silent degradation to template is visible in monitoring.
+    console.error("[generate-draft] AI provider error — falling back to template:", err);
     return NextResponse.json(fallback);
   }
 

@@ -2,7 +2,7 @@
 
 > **Status: Pre-alpha demo. Not production-ready. Real user data must not be stored or processed in the current build.**
 
-Last updated: 2026-05-07
+Last updated: 2026-05-08
 
 ---
 
@@ -61,7 +61,7 @@ These features look real but are entirely fake. Do not describe them as working 
 | **Reference date** | All overdue calculations use the hardcoded string `"2026-05-07"`. On any date other than 7 May 2026, all urgency levels, chase recommendations, and day counts will be wrong for real imported data. |
 | **Business ID** | All imported invoices are assigned `businessId = "biz-imported-demo"`. This means every import, from every browser, in every session, shares the same fake business context in memory. |
 | **Settings** | The settings form (brand voice, sender name, payment terms) saves to `localStorage` and is never read by the AI draft or decision engine in production paths. |
-| **Subscription enforcement** | The pricing page is purely marketing. No subscription check exists anywhere in the application. |
+| **Subscription enforcement** | Feature gates and trial expiry are now implemented in `src/lib/access/features.ts`, `src/lib/usage/store.ts`, and `src/components/trial-banners.tsx`. Gates are enforced at page level for import, digest, and portfolio routes. AI quota gates return template fallbacks instead of hard 403s. All enforcement is against the in-memory store and `DEMO_ACCOUNT_ID` — it does not persist across restarts and does not isolate real users. |
 | **Login page branding** | The login page still says "Sign in to CashPilot" and includes the text "Auth is mocked for the MVP." |
 
 ---

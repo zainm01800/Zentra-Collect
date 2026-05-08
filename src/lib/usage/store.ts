@@ -64,11 +64,42 @@ function createDemoAccount(): AccountUsage {
   };
 }
 
+/**
+ * Create a blank trial account for any account ID that is not the demo.
+ *
+ * TODO (production): Replace this with a Supabase SELECT on `account_usage`.
+ *   If no row exists the caller should redirect to onboarding / sign-up, not
+ *   silently seed an in-memory row. Creating a row here is acceptable for the
+ *   in-memory mock only.
+ */
+function createFreshAccount(accountId: string): AccountUsage {
+  const now = new Date();
+  const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return {
+    id: accountId,
+    planId: "trial",
+    monthlyPeriodKey: currentPeriodKey(),
+    importsThisMonth: 0,
+    aiActionsThisMonth: 0,
+    weeklyDigestsGenerated: 0,
+    activeInvoices: 0,
+    clientLedgers: 0,
+    savedImportMappings: 0,
+    trialImportsUsed: 0,
+    trialAIActionsUsed: 0,
+    trialStartedAt: now.toISOString().slice(0, 10),
+    trialEndsAt,
+    gracePeriodEndsAt: null,
+  };
+}
+
 function getOrCreate(accountId: string): AccountUsage {
   if (!accounts.has(accountId)) {
     accounts.set(
       accountId,
-      accountId === DEMO_ACCOUNT_ID ? createDemoAccount() : createDemoAccount(),
+      accountId === DEMO_ACCOUNT_ID ? createDemoAccount() : createFreshAccount(accountId),
     );
   }
   return accounts.get(accountId)!;

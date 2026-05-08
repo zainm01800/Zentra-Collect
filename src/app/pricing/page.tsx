@@ -206,9 +206,10 @@ export default function PricingPage() {
               </p>
             </div>
             <p className="text-sm leading-6 text-amber-800">
-              Founding users can get early access pricing from{" "}
-              <strong className="font-semibold">£29/month</strong> while the product
-              is in beta — with direct input on the roadmap.
+              No payment is taken during beta. Founding users will be offered a
+              locked rate from{" "}
+              <strong className="font-semibold">£29/month</strong> when billing
+              goes live — below standard pricing, guaranteed.
             </p>
             <Link
               href="/request-access"

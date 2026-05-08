@@ -67,7 +67,10 @@ export async function POST(request: Request) {
       recordAIAction(DEMO_ACCOUNT_ID, "reply_classification");
       return NextResponse.json(aiResult);
     }
-  } catch {
+  } catch (err) {
+    // Log the failure so it appears in server logs / Vercel function output.
+    // TODO (production): Replace with structured logging (e.g. Sentry.captureException(err)).
+    console.error("[classify-reply] AI provider error — falling back to rules result:", err);
     return NextResponse.json(rulesResult);
   }
 

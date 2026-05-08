@@ -553,24 +553,42 @@ export function AccountBilling() {
                 <p className="text-xs leading-5 text-neutral-500">
                   When your trial ends, your imported invoices and chase plan stay
                   visible for{" "}
-                  <span className="font-medium text-neutral-700">7 days</span>.
-                  New imports and AI actions pause until you upgrade. After 7 days,
+                  <span className="font-medium text-neutral-700">30 days</span>.
+                  New imports and AI actions pause until you upgrade. After 30 days,
                   data is queued for deletion.
                 </p>
               </div>
             )}
 
-            {/* Expired — deletion warning */}
-            {snapshot.isExpired && (
+            {/* Expired — within grace period */}
+            {snapshot.isExpired && snapshot.isInGracePeriod && (
               <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
                 <div>
                   <p className="text-sm font-semibold text-amber-800">
-                    Data deletion scheduled
+                    Data retained — upgrade to keep it
                   </p>
                   <p className="mt-0.5 text-xs leading-5 text-amber-700">
-                    Your account is in the 7-day grace period. Upgrade now to retain
-                    your imported invoices and chase history.
+                    {snapshot.gracePeriodDaysRemaining === 0
+                      ? "Your data is retained until the end of today."
+                      : `Your data is retained for ${snapshot.gracePeriodDaysRemaining} more day${snapshot.gracePeriodDaysRemaining === 1 ? "" : "s"}.`}{" "}
+                    Upgrade now to keep your imported invoices and chase history.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Expired — grace period over */}
+            {snapshot.isExpired && !snapshot.isInGracePeriod && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+                <div>
+                  <p className="text-sm font-semibold text-red-700">
+                    Grace period ended
+                  </p>
+                  <p className="mt-0.5 text-xs leading-5 text-red-600">
+                    Your 30-day retention window has closed. Upgrade now to
+                    recover your data before the scheduled deletion runs.
                   </p>
                 </div>
               </div>
