@@ -32,8 +32,8 @@ const plans = [
       "Per-client import history",
       "Weekly client briefs",
     ],
-    cta: "Get started",
-    href: "/dashboard",
+    cta: "Request founding access",
+    href: "/request-access",
     highlight: true,
   },
   {
@@ -49,8 +49,8 @@ const plans = [
       "Export audit logs",
       "API access (coming soon)",
     ],
-    cta: "Contact us",
-    href: "/dashboard",
+    cta: "Request founding access",
+    href: "/request-access",
     highlight: false,
   },
 ];

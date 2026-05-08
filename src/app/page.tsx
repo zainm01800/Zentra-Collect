@@ -40,10 +40,10 @@ export default function Home() {
           </nav>
 
           <Link
-            href="/dashboard"
+            href="/request-access"
             className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
           >
-            Try the demo
+            Request access
           </Link>
         </div>
       </header>

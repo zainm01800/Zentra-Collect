@@ -584,24 +584,29 @@ export function FinalCTA() {
             Turn overdue invoices into today&rsquo;s action plan.
           </h2>
           <p className="mt-5 text-lg leading-8 text-neutral-500">
-            No setup required. Upload a CSV export and get a ranked plan in
-            minutes.
+            We&rsquo;re onboarding a small founding group of bookkeepers and
+            service businesses. Apply for early access or try the demo first —
+            no sign-up required.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
-              href="/dashboard"
+              href="/request-access"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-950 px-7 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
             >
-              Try the demo
+              Request founding access
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href="/import"
+              href="/dashboard"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-7 py-3.5 text-sm font-medium text-neutral-950 transition-colors hover:bg-neutral-50"
             >
-              Upload sample file
+              Try the demo first
             </Link>
           </div>
+          <p className="mt-5 text-xs text-neutral-400">
+            Founding access is limited and granted individually.
+            No payment is taken during beta.
+          </p>
         </div>
       </div>
     </section>
