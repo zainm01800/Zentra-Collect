@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Button key={`${item.href}-${item.label}`} asChild variant="ghost" className="rounded-full">
                 <Link href={item.href}>
                   <item.icon className="size-4" />
-                  {item.label}
+                  <span className="hidden lg:inline">{item.label}</span>
                 </Link>
               </Button>
             ))}
