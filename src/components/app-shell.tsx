@@ -200,28 +200,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f7f4]">
-      {/* Left Sidebar */}
-      <aside className="hidden md:flex w-[230px] flex-shrink-0 flex-col border-r border-black/8 bg-white">
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-8">
+    <div className="flex h-dvh overflow-hidden bg-[#f8f7f4]">
+      {/* Left Sidebar — full at ≥1280px, icon-only at 1024–1279px, hidden on mobile */}
+      <aside className="hidden lg:flex flex-col border-r border-black/8 bg-white flex-shrink-0 transition-all duration-200"
+        style={{ width: 'clamp(72px, 15vw, 220px)', minWidth: '72px', maxWidth: '220px' }}
+      >
+        {/* Logo — hide text label when sidebar is narrow */}
+        <div className="flex items-center gap-3 px-3 py-6 xl:px-6">
           <div className="flex size-9 items-center justify-center rounded-[10px] bg-neutral-950 text-white font-black text-[15px] flex-shrink-0">
             Z
           </div>
-          <div className="leading-none min-w-0">
+          <div className="leading-none min-w-0 hidden xl:block">
             <p className="text-[14px] font-black tracking-[0.12em] text-neutral-950 uppercase">Zentra</p>
             <p className="text-[10px] font-bold tracking-[0.18em] text-neutral-400 uppercase mt-1">Collect</p>
           </div>
         </div>
 
         {/* Primary Nav */}
-        <nav className="flex flex-col gap-1 px-4 pt-2">
+        <nav className="flex flex-col gap-1 px-2 pt-2 xl:px-4">
           {primaryNav.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.label}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-all",
                   isActive
@@ -230,21 +233,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <item.icon className="size-4 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate hidden xl:block">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Divider + Secondary Nav */}
-        <div className="mx-6 my-4 border-t border-black/5" />
-        <nav className="flex flex-col gap-1 px-4">
+        <div className="mx-3 my-3 border-t border-black/5 xl:mx-6 xl:my-4" />
+        <nav className="flex flex-col gap-1 px-2 xl:px-4">
           {secondaryNav.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.label}
                 href={item.href}
+                title={item.label}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-all",
                   isActive
@@ -253,7 +257,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <item.icon className="size-4 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate hidden xl:block">{item.label}</span>
               </Link>
             );
           })}
@@ -263,50 +267,56 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex-1" />
 
         {/* Bottom Nav */}
-        <div className="px-4 pb-2">
+        <div className="px-2 pb-2 xl:px-4">
           <Link
             href="/settings"
+            title="Settings"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
           >
             <Settings className="size-4 flex-shrink-0" />
-            <span>Settings</span>
+            <span className="hidden xl:block">Settings</span>
           </Link>
           <Link
             href="/settings"
+            title="Help & support"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
           >
             <HelpCircle className="size-4 flex-shrink-0" />
-            <span>Help & support</span>
+            <span className="hidden xl:block">Help &amp; support</span>
           </Link>
         </div>
 
-        {/* Trial / Plan Info */}
+        {/* Trial / Plan Info — only show text when sidebar is wide enough */}
         {billingAccount && user?.planId !== "demo" && (
-          <div className="mx-4 mb-3 rounded-2xl border border-black/5 bg-transparent p-4">
-            {isTrialActive && trialDaysLeft !== null && (
-              <>
-                <p className="text-[13px] font-bold text-neutral-950">Trial</p>
-                <p className="text-[11px] font-medium text-neutral-500 mt-0.5">{trialDaysLeft} days left</p>
-                <div className="mt-3 h-[3px] w-full rounded-full bg-neutral-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-amber-400 transition-all"
-                    style={{ width: `${Math.max(5, (trialDaysLeft / 14) * 100)}%` }}
-                  />
-                </div>
-              </>
-            )}
-            <p className="mt-3 text-[11px] font-medium text-neutral-500">{aiUsed} / {aiLimit} AI actions used</p>
+          <div className="mx-2 mb-3 rounded-2xl border border-black/5 bg-transparent p-3 xl:mx-4 xl:p-4">
+            <div className="hidden xl:block">
+              {isTrialActive && trialDaysLeft !== null && (
+                <>
+                  <p className="text-[13px] font-bold text-neutral-950">Trial</p>
+                  <p className="text-[11px] font-medium text-neutral-500 mt-0.5">{trialDaysLeft} days left</p>
+                  <div className="mt-3 h-[3px] w-full rounded-full bg-neutral-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-400 transition-all"
+                      style={{ width: `${Math.max(5, (trialDaysLeft / 14) * 100)}%` }}
+                    />
+                  </div>
+                </>
+              )}
+              <p className="mt-3 text-[11px] font-medium text-neutral-500">{aiUsed} / {aiLimit} AI actions used</p>
+            </div>
             <Button
               onClick={() => router.push("/pricing")}
+              title="Upgrade"
               className="mt-3 w-full h-[30px] rounded-full bg-white border border-black/10 text-neutral-950 text-[11px] font-bold hover:bg-neutral-50 transition-all"
             >
-              Upgrade
+              <span className="hidden xl:inline">Upgrade</span>
+              <span className="xl:hidden">↑</span>
             </Button>
           </div>
         )}
 
         {/* User */}
-        <div className="mt-2 px-4 py-4 border-t border-black/5">
+        <div className="mt-2 px-2 py-4 border-t border-black/5 xl:px-4">
           <button
             type="button"
             onClick={signOut}
@@ -315,22 +325,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex size-9 items-center justify-center rounded-full bg-neutral-950 text-white text-[13px] font-black flex-shrink-0">
               {user.name?.charAt(0).toUpperCase() ?? "U"}
             </div>
-            <div className="min-w-0 text-left">
+            <div className="min-w-0 text-left hidden xl:block">
               <p className="truncate text-[13px] font-bold text-neutral-900 leading-tight">{user.name ?? "User"}</p>
               <p className="truncate text-[11px] font-medium text-neutral-400 leading-tight capitalize mt-0.5">{user.planId} account</p>
             </div>
-            <ChevronRight className="ml-auto size-4 text-neutral-400 flex-shrink-0 group-hover:text-neutral-600 transition-colors" />
+            <ChevronRight className="ml-auto size-4 text-neutral-400 flex-shrink-0 group-hover:text-neutral-600 transition-colors hidden xl:block" />
           </button>
         </div>
       </aside>
 
       {/* Main Area */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        {/* Removed Top Bar - it will be rendered per page to match the clean layout */}
-
         {/* Billing Banners */}
         {billingAccount && (
-          <div className="px-6 pt-4 space-y-2 flex-shrink-0">
+          <div className="px-4 pt-3 space-y-2 flex-shrink-0 sm:px-6">
             <TrialExpiredBanner account={billingAccount} />
             <GracePeriodWarning account={billingAccount} />
             {user.planId === "demo" && <DemoModeBanner />}
@@ -338,9 +346,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* Scrollable Page Content */}
+        {/* Scrollable Page Content — mobile has bottom padding for nav bar */}
         <main className="flex-1 overflow-y-auto">
-          <div className="px-6 py-6 lg:px-8 lg:py-8">
+          <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-24 lg:pb-8">
             {children}
           </div>
         </main>

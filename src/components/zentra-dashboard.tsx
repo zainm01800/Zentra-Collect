@@ -838,14 +838,11 @@ export function ZentraDashboard({
   const hasOpenReview = Boolean(selectedPlanId && selectedPlan && selectedInvoice);
 
   return (
-    <div className={cn(
-      "relative flex min-h-0",
-      hasOpenReview ? "gap-0" : ""
-    )}>
-      {/* Main content */}
+    <div className="relative flex min-h-0 gap-0">
+      {/* Main content — shrinks when right panel is open on large screens */}
       <div className={cn(
-        "flex-1 min-w-0 space-y-6 transition-all duration-300 w-full max-w-[1280px]",
-        hasOpenReview ? "mr-[420px]" : ""
+        "flex-1 min-w-0 space-y-6 transition-all duration-300",
+        hasOpenReview ? "xl:mr-[clamp(340px,28vw,460px)]" : ""
       )}>
         <UpgradePromptModal
           open={Boolean(upgradePrompt)}
@@ -897,8 +894,8 @@ export function ZentraDashboard({
           />
         ) : null}
 
-        {/* Metric bar — matches reference image horizontal layout */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {/* KPI cards — 2 cols mobile, 3 cols tablet, 5 cols desktop */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           {summary.map((item) => (
             <div
               key={item.label}
@@ -914,8 +911,8 @@ export function ZentraDashboard({
           ))}
         </div>
 
-        {/* Filter tabs row + Search + Sort */}
-        <div className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-black/8 bg-white p-2 shadow-sm">
+        {/* Filter tabs row + Search + Sort — responsive */}
+        <div className="flex flex-col gap-2 rounded-[1.25rem] border border-black/8 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1 overflow-x-auto">
             {planViewFilters.map((f) => {
               const count = f.id === "focus"
@@ -985,9 +982,11 @@ export function ZentraDashboard({
         </div>
       </div>
 
-      {/* Desktop Action Panel */}
+      {/* Desktop Action Panel — fixed, fluid width, only on xl+ */}
       {selectedPlanId && selectedPlan && selectedInvoice && (
-        <div className="fixed bottom-0 right-0 top-[57px] z-40 hidden w-[400px] flex-shrink-0 border-l border-black/8 bg-white shadow-xl overflow-hidden lg:flex lg:flex-col">
+        <div className="fixed bottom-0 right-0 top-0 z-40 hidden xl:flex xl:flex-col border-l border-black/8 bg-white shadow-xl overflow-hidden"
+          style={{ width: 'clamp(340px, 28vw, 460px)' }}
+        >
           <ActionDrawerContent
             item={selectedPlan}
             invoice={selectedInvoice}
@@ -1079,8 +1078,9 @@ export function ZentraDashboard({
         </div>
       )}
 
-      {/* Mobile/Tablet Drawer */}
-      {isMobile && selectedPlanId && (
+      {/* Mobile/Tablet Sheet Drawer — shown below xl breakpoint */}
+      {!hasOpenReview || isMobile ? null : null}
+      {selectedPlanId && (
         <ActionDrawer
           item={selectedPlan}
           invoice={selectedInvoice}
@@ -1168,7 +1168,7 @@ export function ZentraDashboard({
           onDoNotChase={() =>
             updateInvoiceStatus("do_not_chase", "Marked do not chase")
           }
-          open={Boolean(selectedPlanId) && isMobile}
+          open={Boolean(selectedPlanId) && (isMobile || typeof window !== 'undefined' && window.innerWidth < 1280)}
         />
       )}
 
@@ -1306,9 +1306,9 @@ function PlanGroup({
         </div>
         <p className="text-[13px] text-neutral-500 mb-6">{description}</p>
 
-        {/* Table header */}
+        {/* Table header — only on md+ screens, using minmax columns */}
         <div className="hidden md:grid items-center px-4 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
-          style={{ gridTemplateColumns: "48px minmax(140px, 3fr) minmax(100px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(180px, 2fr) 280px" }}
+          style={{ gridTemplateColumns: "40px minmax(120px, 2.5fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px minmax(160px, 2fr) minmax(200px, auto)" }}
         >
           <div className="text-center pr-4">#</div>
           <div className="pr-6">Customer</div>
@@ -1380,9 +1380,9 @@ function PlanGroup({
                       : "hover:bg-neutral-50/70"
                   )}
                 >
-                  {/* Desktop row */}
+                  {/* Desktop row — minmax grid so nothing overflows */}
                   <div className="hidden md:grid items-center px-4 py-2.5"
-                    style={{ gridTemplateColumns: "48px minmax(140px, 3fr) minmax(100px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(180px, 2fr) 280px" }}
+                    style={{ gridTemplateColumns: "40px minmax(120px, 2.5fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px minmax(160px, 2fr) minmax(200px, auto)" }}
                   >
                     {/* Col 0: Index */}
                     <div className="flex justify-center pr-4">
