@@ -854,8 +854,8 @@ export function ZentraDashboard({
         {/* Page header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-black tracking-tight text-neutral-950 leading-none">Today&apos;s collections plan</h1>
-            <p className="mt-2 text-[14px] text-neutral-500">Know who to chase, what to do, and why.</p>
+            <h1 className="text-[22px] font-black tracking-tight text-neutral-950 leading-none sm:text-[26px]">Today&apos;s collections plan</h1>
+            <p className="mt-1.5 text-[13px] text-neutral-400">Know who to chase, what to do, and why.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild className="hidden sm:flex h-9 rounded-full bg-neutral-950 px-5 text-[12px] font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95">
@@ -899,21 +899,21 @@ export function ZentraDashboard({
           {summary.map((item) => (
             <div
               key={item.label}
-              className="flex flex-col rounded-xl border border-black/8 bg-white p-4"
+              className="flex flex-col rounded-2xl border border-black/8 bg-white p-5"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{item.label}</p>
-                {item.icon && <item.icon className="size-4 text-neutral-300 flex-shrink-0" />}
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">{item.label}</p>
+                {item.icon && <item.icon className="size-3.5 text-neutral-300 flex-shrink-0" />}
               </div>
-              <p className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950 leading-none">{item.value}</p>
-              {item.detail && <p className="mt-0.5 text-[12px] text-neutral-400">{item.detail}</p>}
+              <p className="mt-3 text-[20px] font-bold tracking-tight text-neutral-950 leading-none">{item.value}</p>
+              {item.detail && <p className="mt-1 text-[11px] text-neutral-400">{item.detail}</p>}
             </div>
           ))}
         </div>
 
         {/* Filter tabs row + Search + Sort — responsive */}
         <div className="flex flex-col gap-2 rounded-[1.25rem] border border-black/8 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center gap-1 overflow-x-auto flex-shrink-0 pb-0.5">
             {planViewFilters.map((f) => {
               const count = f.id === "focus"
                 ? groups.chase_now.length + groups.promises_to_check.length + groups.exceptions_to_resolve.length
@@ -925,15 +925,15 @@ export function ZentraDashboard({
                   type="button"
                   onClick={() => setPlanViewFilter(f.id as PlanViewFilter)}
                   className={cn(
-                    "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-bold transition-all",
+                    "flex h-8 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[12px] font-semibold transition-all",
                     isActive
-                      ? "bg-neutral-950 text-white shadow-md"
-                      : "text-neutral-900 hover:bg-neutral-50"
+                      ? "bg-neutral-950 text-white"
+                      : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                   )}
                 >
                   {f.label}
                   <span className={cn(
-                    "inline-flex size-5 items-center justify-center rounded-full text-[10px] font-black",
+                    "inline-flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full text-[10px] font-bold",
                     isActive ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
                   )}>
                     {count}
@@ -1292,19 +1292,19 @@ function PlanGroup({
 
   return (
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-4 mb-1">
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-[20px] font-black tracking-tight text-neutral-950">{title}</h2>
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-neutral-100 text-[11px] font-bold text-neutral-600">
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="flex items-baseline gap-2.5">
+            <h2 className="text-[18px] font-bold tracking-tight text-neutral-950">{title}</h2>
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-bold text-neutral-500">
               {items.length}
             </span>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-[13px] font-bold text-neutral-950">Sort: Priority</span>
-            <ChevronDown className="size-3.5 text-neutral-500" />
+          <div className="hidden sm:flex items-center gap-1">
+            <span className="text-[12px] font-medium text-neutral-400">Sort: Priority</span>
+            <ChevronDown className="size-3 text-neutral-400" />
           </div>
         </div>
-        <p className="text-[13px] text-neutral-500 mb-6">{description}</p>
+        <p className="text-[12px] text-neutral-400 mb-5">{description}</p>
 
         {/* Table header — only on md+ screens, using minmax columns */}
         <div className="hidden md:grid items-center px-4 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
@@ -1381,7 +1381,7 @@ function PlanGroup({
                   )}
                 >
                   {/* Desktop row — minmax grid so nothing overflows */}
-                  <div className="hidden md:grid items-center px-4 py-2.5"
+                  <div className="hidden md:grid items-center px-4 py-3.5"
                     style={{ gridTemplateColumns: "40px minmax(120px, 2.5fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px minmax(160px, 2fr) minmax(200px, auto)" }}
                   >
                     {/* Col 0: Index */}
@@ -1435,51 +1435,51 @@ function PlanGroup({
                     </div>
 
                     {/* Col 6: Review Status & Actions */}
-                    <div className="flex items-center justify-end gap-3 flex-shrink-0">
+                    <div className="flex items-center justify-end gap-2 flex-shrink-0">
                       <div className="flex items-center gap-1.5">
-                        <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap", riskStyle)}>
+                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap", riskStyle)}>
                           {riskLabel}
                         </span>
-                        <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap", safetyStyle)}>
+                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap", safetyStyle)}>
                           {safetyLabel}
                         </span>
                       </div>
                       
-                      <div className="flex items-center gap-1 pl-2">
-                        <span className="inline-flex h-[28px] items-center justify-center rounded-full bg-neutral-950 px-4 text-[11px] font-bold text-white transition-all group-hover:bg-neutral-800">
+                      <div className="flex items-center gap-1 pl-1">
+                        <span className="inline-flex h-7 items-center justify-center rounded-full bg-neutral-950 px-4 text-[11px] font-semibold text-white transition-colors group-hover:bg-neutral-800">
                           Review
                         </span>
-                        <button type="button" className="flex size-7 items-center justify-center rounded-full hover:bg-neutral-200 text-neutral-500 transition-colors">
-                          <MoreVertical className="size-4" />
+                        <button type="button" className="flex size-7 items-center justify-center rounded-full hover:bg-neutral-100 text-neutral-400 transition-colors">
+                          <MoreVertical className="size-3.5" />
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Mobile row */}
-                  <div className="flex md:hidden items-start gap-3 px-4 py-4">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between gap-2">
+                  {/* Mobile card — clean, premium feel */}
+                  <div className="flex md:hidden items-center gap-3 px-4 py-3.5">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
                         <p className="truncate text-[14px] font-semibold text-neutral-950">{item.customerName}</p>
-                        <p className="text-[14px] font-bold text-neutral-950 flex-shrink-0">{formatCurrency(item.amountOutstanding)}</p>
+                        <p className="text-[14px] font-bold text-neutral-950 tabular-nums flex-shrink-0">{formatCurrency(item.amountOutstanding)}</p>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[12px] text-neutral-400">{item.invoiceNumber}</p>
+                        <p className="text-[11px] text-neutral-400">{item.invoiceNumber}</p>
                         {invoice?.daysOverdue ? (
-                          <p className="text-[12px] font-semibold text-rose-600 flex-shrink-0">{invoice.daysOverdue}d overdue</p>
+                          <p className="text-[11px] font-semibold text-red-600 flex-shrink-0">{invoice.daysOverdue}d overdue</p>
                         ) : null}
                       </div>
-                      <p className="text-[13px] font-semibold text-neutral-800">{humanAction(item.recommendedAction)}</p>
-                      <div className="flex flex-wrap gap-1 pt-0.5">
+                      <p className="text-[12px] font-semibold text-neutral-800 leading-snug">{humanAction(item.recommendedAction)}</p>
+                      <div className="flex flex-wrap gap-1">
                         <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", urgencyStyle)}>
                           {item.urgencyLevel === "critical" ? "Critical" : item.urgencyLevel === "high" ? "High" : "Medium"}
                         </span>
-                        <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", riskStyle)}>
-                          {riskLabel}
+                        <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", safetyStyle)}>
+                          {safetyLabel}
                         </span>
                       </div>
                     </div>
-                    <span className="inline-flex h-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-950 px-4 text-[12px] font-semibold text-white">
+                    <span className="inline-flex h-8 flex-shrink-0 items-center justify-center rounded-full bg-neutral-950 px-4 text-[11px] font-semibold text-white">
                       Review
                     </span>
                   </div>
@@ -1517,7 +1517,7 @@ function PlanGroup({
             ) : null}
           </>
         ) : (
-          <div className="py-10 text-center">
+          <div className="py-12 text-center">
             <p className="text-[13px] font-medium text-neutral-400">
               {title === "Wait / low priority"
                 ? "No low-priority items right now."

@@ -175,27 +175,22 @@ export function UpgradePromptCard({
 
 export function DemoModeBanner() {
   return (
-    <div className="rounded-2xl border border-black/10 bg-white/75 p-3 text-neutral-950 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white">
-            <BarChart3 className="size-4" />
+    <div className="rounded-xl border border-black/10 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white">
+            <BarChart3 className="size-3.5" />
           </span>
-          <div>
-            <p className="text-sm font-semibold">Demo workspace</p>
-            <p className="mt-1 text-sm leading-6 text-neutral-600">
-              You’re viewing sample data. Start a trial to upload your own invoices.
-            </p>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-neutral-950">Demo workspace</p>
+            <p className="hidden text-[12px] text-neutral-500 sm:block">You&apos;re viewing sample data. Start a trial to upload your own invoices.</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button asChild size="sm" className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild size="sm" className="h-8 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
             <Link href="/onboarding">Start 14-day trial</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="rounded-full border-black/10 bg-transparent">
-            <Link href="/beta-request">Request bookkeeper beta</Link>
-          </Button>
-          <Button asChild size="sm" variant="ghost" className="rounded-full text-neutral-600">
+          <Button asChild size="sm" variant="outline" className="hidden h-8 rounded-full border-black/10 bg-transparent px-4 text-[12px] font-semibold sm:flex">
             <Link href="/#pricing">View pricing</Link>
           </Button>
         </div>
@@ -212,20 +207,24 @@ export function ActiveTrialBanner({ account }: { account: AccountLike }) {
   const daysLeft = getTrialDaysRemaining(accountState);
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white/75 p-3 text-neutral-950 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
-            <Clock3 className="size-4" />
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+            <Clock3 className="size-3.5" />
           </span>
-          <div>
-            <p className="text-sm font-semibold">Trial: {daysLeft} days left</p>
-            <p className="mt-1 text-sm leading-6 text-neutral-600">
-              Imports and AI actions are limited during trial.
-            </p>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-amber-950">Trial: {daysLeft} days left</p>
+            <p className="hidden text-[12px] text-amber-800 sm:block">Imports and AI actions are limited during trial.</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <Button asChild size="sm" className="h-8 shrink-0 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
+          <Link href="/pricing">Upgrade</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
           <Button asChild size="sm" className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
             <Link href="/pricing">Upgrade</Link>
           </Button>
@@ -244,22 +243,20 @@ export function TrialExpiredBanner({ account }: { account: AccountLike }) {
   const afterGrace = trialState === "expired_after_grace";
 
   return (
-    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <Clock3 className="mt-0.5 size-4 shrink-0" />
-          <div>
-            <p className="font-semibold">
-              {afterGrace ? "Your trial data is scheduled for deletion." : "Your trial has ended."}
-            </p>
-            <p className="mt-1 text-sm leading-6 text-amber-900">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Clock3 className="size-4 shrink-0 text-amber-700" />
+          <p className="text-[13px] font-semibold text-amber-950">
+            {afterGrace ? "Your trial data is scheduled for deletion." : "Your trial has ended."}
+            <span className="ml-2 hidden font-normal text-amber-800 sm:inline">
               {afterGrace
-                ? "Export or upgrade to keep it. New imports and AI actions require an upgrade."
-                : "You can still view your data, but new imports and AI actions require an upgrade."}
-            </p>
-          </div>
+                ? "Export or upgrade to keep it."
+                : "You can still view your data, but new imports need an upgrade."}
+            </span>
+          </p>
         </div>
-        <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
+        <Button asChild size="sm" className="h-8 shrink-0 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
           <Link href="/#pricing">Upgrade</Link>
         </Button>
       </div>
@@ -280,10 +277,10 @@ export function GracePeriodWarning({ account }: { account: AccountLike }) {
     : "the end of your grace period";
 
   return (
-    <div className="rounded-3xl border border-black/10 bg-white/70 p-4">
-      <div className="flex gap-3">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />
-        <p className="text-sm leading-6 text-neutral-600">
+    <div className="rounded-xl border border-black/10 bg-white/80 px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+        <p className="text-[12px] text-neutral-600">
           Your trial data remains available until {date}. Export or upgrade to keep using Zentra.
         </p>
       </div>
