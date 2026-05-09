@@ -26,7 +26,8 @@ export async function createSupabaseAccountAction(data: {
     const { data: account, error: accountError } = await supabase
       .from('zentra_accounts')
       .insert({
-        plan_id: data.planId.toUpperCase(), // Match migration enum
+        owner_user_id: user.id,
+        plan_id: data.planId.toUpperCase().replace(/_SINGLE_BUSINESS$/, '_SINGLE'), // Map to migration enum
         status: data.planId === 'trial' ? 'trialing' : 'active',
         subscription_status: data.planId === 'trial' ? 'trialing' : 'demo',
         trial_started_at: data.planId === 'trial' ? new Date().toISOString() : null,

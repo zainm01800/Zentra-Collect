@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
-    const { priceId } = await request.json();
+    const { priceId, planId } = await request.json();
     if (!priceId) {
       return NextResponse.json({ error: 'Price ID is required' }, { status: 400 });
     }
@@ -64,8 +64,13 @@ export async function POST(request: Request) {
       subscription_data: {
         metadata: {
           accountId: accountId,
+          planId: planId?.toUpperCase().replace(/_SINGLE_BUSINESS$/, '_SINGLE') || 'SINGLE_BUSINESS',
         },
       },
+      metadata: {
+        accountId: accountId,
+        planId: planId?.toUpperCase().replace(/_SINGLE_BUSINESS$/, '_SINGLE') || 'SINGLE_BUSINESS',
+      }
     });
 
     return NextResponse.json({ url: session.url });

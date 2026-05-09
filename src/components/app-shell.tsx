@@ -33,6 +33,7 @@ import { getPlanConfig, getTrialState } from "@/lib/billing/plans";
 import {
   normaliseLocalAccount,
   demoUserStorageKey,
+  isDemoUserExpired,
   type DemoUser,
 } from "@/lib/demo-auth";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";

@@ -372,8 +372,11 @@ export function ZentraDashboard({
       fetchAccountFromDb().then(acc => {
         if (acc) {
           // Map DB account to BillingAccount type
+          let planId = acc.plan_id.toLowerCase();
+          if (planId === 'founding_single') planId = 'founding_single_business';
+          
           setSupabaseAccount({
-            planId: acc.plan_id.toLowerCase() as any,
+            planId: planId as any,
             accountType: acc.status === 'trialing' ? 'trial' : 'paid',
             subscriptionStatus: acc.status as any,
             createdAt: acc.created_at,
