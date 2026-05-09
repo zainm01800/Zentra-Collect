@@ -839,10 +839,10 @@ export function ZentraDashboard({
 
   return (
     <div className="relative flex min-h-0 gap-0">
-      {/* Main content — shrinks when right panel is open on large screens */}
+      {/* Main content — only pushed by right panel at 2xl+ (>=1536px) */}
       <div className={cn(
         "flex-1 min-w-0 space-y-6 transition-all duration-300",
-        hasOpenReview ? "xl:mr-[clamp(340px,28vw,460px)]" : ""
+        hasOpenReview ? "2xl:mr-[clamp(380px,25vw,440px)]" : ""
       )}>
         <UpgradePromptModal
           open={Boolean(upgradePrompt)}
@@ -854,8 +854,8 @@ export function ZentraDashboard({
         {/* Page header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-black tracking-tight text-neutral-950 leading-none sm:text-[26px]">Today&apos;s collections plan</h1>
-            <p className="mt-1.5 text-[13px] text-neutral-400">Know who to chase, what to do, and why.</p>
+            <h1 className="text-[26px] font-black tracking-tight text-neutral-950 leading-none lg:text-[32px]">Today&apos;s collections plan</h1>
+            <p className="mt-2 text-[14px] text-neutral-500 lg:text-[15px]">Know who to chase, what to do, and why.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild className="hidden sm:flex h-9 rounded-full bg-neutral-950 px-5 text-[12px] font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95">
@@ -894,26 +894,26 @@ export function ZentraDashboard({
           />
         ) : null}
 
-        {/* KPI cards — 2 cols mobile, 3 cols tablet, 5 cols desktop */}
+        {/* KPI cards — 2 cols mobile, 3 tablet, 5 desktop — strong readable scale */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           {summary.map((item) => (
             <div
               key={item.label}
-              className="flex flex-col rounded-2xl border border-black/8 bg-white p-5"
+              className="flex flex-col rounded-2xl border border-black/8 bg-white p-5 xl:p-6"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">{item.label}</p>
-                {item.icon && <item.icon className="size-3.5 text-neutral-300 flex-shrink-0" />}
+                {item.icon && <item.icon className="size-4 text-neutral-300 flex-shrink-0" />}
               </div>
-              <p className="mt-3 text-[20px] font-bold tracking-tight text-neutral-950 leading-none">{item.value}</p>
-              {item.detail && <p className="mt-1 text-[11px] text-neutral-400">{item.detail}</p>}
+              <p className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950 leading-none lg:text-[26px]">{item.value}</p>
+              {item.detail && <p className="mt-1.5 text-[12px] text-neutral-400">{item.detail}</p>}
             </div>
           ))}
         </div>
 
         {/* Filter tabs row + Search + Sort — responsive */}
         <div className="flex flex-col gap-2 rounded-[1.25rem] border border-black/8 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 overflow-x-auto flex-shrink-0 pb-0.5">
+          <div className="flex items-center gap-1 overflow-x-auto flex-shrink-0">
             {planViewFilters.map((f) => {
               const count = f.id === "focus"
                 ? groups.chase_now.length + groups.promises_to_check.length + groups.exceptions_to_resolve.length
@@ -925,7 +925,7 @@ export function ZentraDashboard({
                   type="button"
                   onClick={() => setPlanViewFilter(f.id as PlanViewFilter)}
                   className={cn(
-                    "flex h-8 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[12px] font-semibold transition-all",
+                    "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold transition-all",
                     isActive
                       ? "bg-neutral-950 text-white"
                       : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
@@ -933,7 +933,7 @@ export function ZentraDashboard({
                 >
                   {f.label}
                   <span className={cn(
-                    "inline-flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full text-[10px] font-bold",
+                    "inline-flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full text-[11px] font-bold",
                     isActive ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
                   )}>
                     {count}
@@ -951,7 +951,7 @@ export function ZentraDashboard({
                 placeholder="Search customer or invoice..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-[260px] rounded-full border border-black/10 bg-neutral-50 pl-9 pr-4 text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none focus:border-black/20 focus:bg-white transition-all"
+                className="h-9 w-[220px] xl:w-[280px] rounded-full border border-black/10 bg-neutral-50 pl-9 pr-4 text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none focus:border-black/20 focus:bg-white transition-all"
               />
             </div>
             <div className="h-5 w-px bg-black/10" />
@@ -982,10 +982,10 @@ export function ZentraDashboard({
         </div>
       </div>
 
-      {/* Desktop Action Panel — fixed, fluid width, only on xl+ */}
+      {/* Desktop Action Panel — fixed, fluid width, only on 2xl+ (>=1536px) */}
       {selectedPlanId && selectedPlan && selectedInvoice && (
-        <div className="fixed bottom-0 right-0 top-0 z-40 hidden xl:flex xl:flex-col border-l border-black/8 bg-white shadow-xl overflow-hidden"
-          style={{ width: 'clamp(340px, 28vw, 460px)' }}
+        <div className="fixed bottom-0 right-0 top-0 z-40 hidden 2xl:flex 2xl:flex-col border-l border-black/8 bg-white shadow-xl overflow-hidden"
+          style={{ width: 'clamp(380px, 25vw, 440px)' }}
         >
           <ActionDrawerContent
             item={selectedPlan}
@@ -1078,8 +1078,7 @@ export function ZentraDashboard({
         </div>
       )}
 
-      {/* Mobile/Tablet Sheet Drawer — shown below xl breakpoint */}
-      {!hasOpenReview || isMobile ? null : null}
+      {/* Mobile / Tablet Sheet Drawer — overlay below 2xl (1536px), full-screen on mobile */}
       {selectedPlanId && (
         <ActionDrawer
           item={selectedPlan}
@@ -1168,7 +1167,7 @@ export function ZentraDashboard({
           onDoNotChase={() =>
             updateInvoiceStatus("do_not_chase", "Marked do not chase")
           }
-          open={Boolean(selectedPlanId) && (isMobile || typeof window !== 'undefined' && window.innerWidth < 1280)}
+          open={Boolean(selectedPlanId)}
         />
       )}
 
@@ -1292,30 +1291,30 @@ function PlanGroup({
 
   return (
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-4 mb-2">
-          <div className="flex items-baseline gap-2.5">
-            <h2 className="text-[18px] font-bold tracking-tight text-neutral-950">{title}</h2>
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-[20px] font-bold tracking-tight text-neutral-950">{title}</h2>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-bold text-neutral-500">
               {items.length}
             </span>
           </div>
-          <div className="hidden sm:flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-1.5">
             <span className="text-[12px] font-medium text-neutral-400">Sort: Priority</span>
             <ChevronDown className="size-3 text-neutral-400" />
           </div>
         </div>
-        <p className="text-[12px] text-neutral-400 mb-5">{description}</p>
+        <p className="text-[13px] text-neutral-500 mb-5">{description}</p>
 
-        {/* Table header — only on md+ screens, using minmax columns */}
+        {/* Table header — desktop only, wider minmax columns */}
         <div className="hidden md:grid items-center px-4 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
-          style={{ gridTemplateColumns: "40px minmax(120px, 2.5fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px minmax(160px, 2fr) minmax(200px, auto)" }}
+          style={{ gridTemplateColumns: "44px minmax(160px, 2.5fr) minmax(100px, 1fr) minmax(95px, 0.9fr) 68px minmax(180px, 2fr) minmax(220px, auto)" }}
         >
           <div className="text-center pr-4">#</div>
-          <div className="pr-6">Customer</div>
+          <div className="pr-4">Customer</div>
           <div className="text-right pr-4">Amount</div>
           <div className="pr-4">Due Date</div>
-          <div className="text-right pr-4">Overdue</div>
-          <div className="pr-6 pl-4">Recommended Action</div>
+          <div className="text-right pr-2">Overdue</div>
+          <div className="pr-4 pl-4">Recommended Action</div>
           <div className="text-right">Review Status</div>
         </div>
 
@@ -1380,9 +1379,9 @@ function PlanGroup({
                       : "hover:bg-neutral-50/70"
                   )}
                 >
-                  {/* Desktop row — minmax grid so nothing overflows */}
-                  <div className="hidden md:grid items-center px-4 py-3.5"
-                    style={{ gridTemplateColumns: "40px minmax(120px, 2.5fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px minmax(160px, 2fr) minmax(200px, auto)" }}
+                  {/* Desktop row — wider, more readable, taller rows */}
+                  <div className="hidden md:grid items-center px-4 py-4"
+                    style={{ gridTemplateColumns: "44px minmax(160px, 2.5fr) minmax(100px, 1fr) minmax(95px, 0.9fr) 68px minmax(180px, 2fr) minmax(220px, auto)" }}
                   >
                     {/* Col 0: Index */}
                     <div className="flex justify-center pr-4">
@@ -1392,18 +1391,18 @@ function PlanGroup({
                     </div>
 
                     {/* Col 1: Company + Invoice */}
-                    <div className="min-w-0 pr-6">
-                      <p className="truncate text-[13px] font-bold text-neutral-950">
+                    <div className="min-w-0 pr-4">
+                      <p className="truncate text-[14px] font-semibold text-neutral-950">
                         {item.customerName}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-neutral-500 font-medium">
+                      <p className="mt-0.5 text-[12px] text-neutral-400 font-medium">
                         {item.invoiceNumber || "Balance Chase"}
                       </p>
                     </div>
 
                     {/* Col 2: Amount */}
                     <div className="min-w-0 pr-4 text-right">
-                      <p className="text-[13px] font-bold text-neutral-950">
+                      <p className="text-[14px] font-bold text-neutral-950 tabular-nums">
                         {formatCurrency(item.amountOutstanding)}
                       </p>
                     </div>
@@ -1425,11 +1424,11 @@ function PlanGroup({
                     </div>
 
                     {/* Col 5: Recommended Action + Context */}
-                    <div className="min-w-0 pr-6 pl-4">
-                      <p className="truncate text-[13px] font-bold text-neutral-950">
+                    <div className="min-w-0 pr-4 pl-4">
+                      <p className="truncate text-[13px] font-semibold text-neutral-950">
                         {humanAction(item.recommendedAction)}
                       </p>
-                      <p className="mt-0.5 truncate text-[11px] text-neutral-500 font-medium">
+                      <p className="mt-0.5 truncate text-[12px] text-neutral-400">
                         {item.reason.split(";")[0].trim().split("•").slice(0, 2).join(" •")}
                       </p>
                     </div>
