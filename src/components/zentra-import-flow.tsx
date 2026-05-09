@@ -185,7 +185,7 @@ export function ZentraImportFlow() {
     setMessage("Mapping template saved for future imports in this browser.");
   }
 
-  function importRows() {
+  async function importRows() {
     if (errors.length) return;
     const user = readLocalAccount();
     const account = user ? toBillingAccount(user) : null;
