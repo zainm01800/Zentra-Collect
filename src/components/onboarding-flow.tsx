@@ -1,0 +1,442 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  FileSpreadsheet,
+  LockKeyhole,
+  UsersRound,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  betaRequestStorageKey,
+  createLocalAccount,
+  readPendingIdentity,
+  writeLocalAccount,
+  writeOnboardingState,
+  type BetaAccessRequest,
+  type OnboardingAccountType,
+  type PendingIdentity,
+} from "@/lib/demo-auth";
+import type { PlanId } from "@/lib/billing/plans";
+import { createSupabaseAccountAction } from "@/actions/account";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
+
+type Option = {
+  type: OnboardingAccountType;
+  planId: PlanId;
+  title: string;
+  eyebrow: string;
+  description: string;
+  cta: string;
+  price?: React.ReactNode;
+  limited?: string;
+  icon: React.ReactNode;
+  points: string[];
+};
+
+const fallbackIdentity: PendingIdentity = {
+  name: "Alex Chen",
+  email: "alex@acmestudio.co.uk",
+  businessName: "Acme Studio Ltd",
+  createdAt: new Date().toISOString(),
+};
+
+export function OnboardingFlow() {
+  const router = useRouter();
+  const initialIdentity =
+    typeof window === "undefined" ? fallbackIdentity : readPendingIdentity() ?? fallbackIdentity;
+  const [identity] = useState<PendingIdentity>(initialIdentity);
+  const [businessName, setBusinessName] = useState(initialIdentity.businessName);
+  const [clientCountEstimate, setClientCountEstimate] = useState(5);
+  const [isBookkeeper, setIsBookkeeper] = useState(false);
+  const [accountingSoftware, setAccountingSoftware] = useState("Xero");
+  const [monthlyInvoiceVolume, setMonthlyInvoiceVolume] = useState("51-100");
+  const [mainArPainPoint, setMainArPainPoint] = useState("overdue invoices");
+  const [selectedType, setSelectedType] = useState<OnboardingAccountType>("trial");
+  const [error, setError] = useState("");
+
+  const options = useMemo<Option[]>(
+    () => [
+      {
+        type: "demo",
+        planId: "demo",
+        title: "Explore demo",
+        eyebrow: "Sample data",
+        description:
+          "Sample data only, immediate access.",
+        cta: "Explore demo",
+        icon: <Clock3 className="size-5" />,
+        points: [
+          "No real data required",
+          "Dashboard, chase plan, drawer, and digest preview",
+          "3 sample AI drafts",
+        ],
+      },
+      {
+        type: "trial",
+        planId: "trial",
+        title: "Start 14-day trial",
+        eyebrow: "No card required",
+        description:
+          "No card required. Upload your own AR ageing file.",
+        cta: "Start 14-day trial",
+        icon: <FileSpreadsheet className="size-5" />,
+        points: [
+          "1 business",
+          "100 active invoices",
+          "2 imports",
+          "25 AI actions",
+        ],
+      },
+      {
+        type: "founding_single_business",
+        planId: "founding_single_business",
+        title: "Founding single-business access",
+        eyebrow: "Owner approval",
+        description:
+          "Early beta for one business, locked for 12 months.",
+        cta: "Request founding access",
+        price: (
+          <>
+            {"\u00A3"}29<span className="text-base text-neutral-500">/month</span>
+          </>
+        ),
+        limited: "First 20-30 users",
+        icon: <Building2 className="size-5" />,
+        points: [
+          "1 business",
+          "Early beta",
+          "Founding price lock",
+          "Owner approval required",
+        ],
+      },
+      {
+        type: "founding_bookkeeper",
+        planId: "founding_bookkeeper",
+        title: "Bookkeeper beta",
+        eyebrow: "Bookkeeper beta",
+        description:
+          "Manage up to 5 client ledgers and shape portfolio features early.",
+        cta: "Request bookkeeper beta",
+        price: (
+          <>
+            {"\u00A3"}79<span className="text-base text-neutral-500">/month</span>
+          </>
+        ),
+        limited: "Limited beta places",
+        icon: <UsersRound className="size-5" />,
+        points: [
+          "Up to 5 client ledgers",
+          "Portfolio view",
+          "Weekly client summaries",
+          "Saved import templates",
+        ],
+      },
+    ],
+    [],
+  );
+
+  function persistOnboarding(option: Option) {
+    const now = new Date().toISOString();
+    writeOnboardingState({
+      selectedAccountType: option.type,
+      selectedPlan: option.planId,
+      trialStartedAt: option.type === "trial" ? now : undefined,
+      betaRequestedAt:
+        option.type === "founding_single_business" ||
+        option.type === "founding_bookkeeper"
+          ? now
+          : undefined,
+      businessName: businessName.trim() || identity.businessName,
+      isBookkeeper: option.type === "founding_bookkeeper",
+      accountingSoftware,
+      monthlyInvoiceVolume,
+      mainArPainPoint,
+      clientCountEstimate:
+        option.type === "founding_bookkeeper" ? clientCountEstimate : undefined,
+    });
+  }
+
+  function requestBeta(option: Option) {
+    const now = new Date().toISOString();
+    const request: BetaAccessRequest = {
+      name: identity.name,
+      email: identity.email,
+      businessName: businessName.trim() || identity.businessName,
+      role:
+        option.type === "founding_bookkeeper" || isBookkeeper
+          ? "Bookkeeper"
+          : "Single business owner",
+      reason:
+        option.type === "founding_bookkeeper"
+          ? `Requesting bookkeeper beta for about ${clientCountEstimate} client ledgers. Main AR pain: ${mainArPainPoint}. Uses ${accountingSoftware}.`
+          : `Requesting founding single-business access. Main AR pain: ${mainArPainPoint}. Uses ${accountingSoftware}.`,
+      isBookkeeper: option.type === "founding_bookkeeper" || isBookkeeper,
+      clientCountEstimate:
+        option.type === "founding_bookkeeper" || isBookkeeper
+          ? clientCountEstimate
+          : undefined,
+      accountingSoftware,
+      monthlyInvoiceVolume,
+      mainArPainPoint,
+      requestedAt: now,
+      status: "pending",
+    };
+    window.localStorage.setItem(betaRequestStorageKey, JSON.stringify(request));
+  }
+
+  function chooseOption(option: Option) {
+    setError("");
+    if (!businessName.trim()) {
+      setError("Add a business name before choosing an account type.");
+      return;
+    }
+
+    persistOnboarding(option);
+
+    if (option.type === "demo") {
+      window.open("/demo", "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (option.type === "trial") {
+      if (hasSupabaseBrowserConfig()) {
+        createSupabaseAccountAction({
+          businessName,
+          planId: option.planId,
+          accountingSoftware,
+          monthlyInvoiceVolume,
+          mainArPainPoint
+        }).then((res) => {
+          if (res.success) {
+            router.push("/import");
+          } else {
+            setError(res.error || "Failed to create production account. Please try again.");
+          }
+        });
+        return;
+      }
+
+      const account = createLocalAccount({
+        name: identity.name,
+        email: identity.email,
+        businessName,
+        planId: option.planId,
+      });
+      writeLocalAccount(account);
+      router.push("/import");
+      return;
+    }
+
+    requestBeta(option);
+    router.push(
+      option.type === "founding_bookkeeper"
+        ? "/beta-request?type=bookkeeper"
+        : "/beta-request?type=single",
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#fbf8f1] px-4 py-10 text-neutral-950">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-6 rounded-[2rem] border border-black/10 bg-white/70 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-8">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500">
+              Account setup
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight lg:text-5xl">
+              How do you want to start?
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
+              Choose the account type that matches your intent. Demo stays with
+              sample data, trial lets you upload live exports, and beta plans
+              require owner approval before access.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.85fr_0.85fr]">
+            <div className="space-y-2">
+              <Label htmlFor="businessName">Business name</Label>
+              <Input
+                id="businessName"
+                value={businessName}
+                onChange={(event) => setBusinessName(event.target.value)}
+                className="rounded-2xl border-black/10 bg-[#fbf8f1]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Are you a bookkeeper/accountant?</Label>
+              <Select
+                value={isBookkeeper ? "yes" : "no"}
+                onValueChange={(value) => setIsBookkeeper(value === "yes")}
+              >
+                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clientCountEstimate">Client ledgers</Label>
+              <Input
+                id="clientCountEstimate"
+                type="number"
+                min={1}
+                max={20}
+                value={clientCountEstimate}
+                onChange={(event) =>
+                  setClientCountEstimate(Number(event.target.value) || 1)
+                }
+                className="rounded-2xl border-black/10 bg-[#fbf8f1]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Accounting software</Label>
+              <Select value={accountingSoftware} onValueChange={setAccountingSoftware}>
+                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Xero">Xero</SelectItem>
+                  <SelectItem value="QuickBooks">QuickBooks</SelectItem>
+                  <SelectItem value="FreeAgent">FreeAgent</SelectItem>
+                  <SelectItem value="Sage">Sage</SelectItem>
+                  <SelectItem value="Stripe">Stripe</SelectItem>
+                  <SelectItem value="Excel/other">Excel/other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Approx monthly invoices</Label>
+              <Select
+                value={monthlyInvoiceVolume}
+                onValueChange={setMonthlyInvoiceVolume}
+              >
+                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1-25">1-25</SelectItem>
+                  <SelectItem value="26-50">26-50</SelectItem>
+                  <SelectItem value="51-100">51-100</SelectItem>
+                  <SelectItem value="101-250">101-250</SelectItem>
+                  <SelectItem value="250+">250+</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Main AR pain point</Label>
+              <Select value={mainArPainPoint} onValueChange={setMainArPainPoint}>
+                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overdue invoices">Overdue invoices</SelectItem>
+                  <SelectItem value="missed promises">Missed promises</SelectItem>
+                  <SelectItem value="disputes">Disputes</SelectItem>
+                  <SelectItem value="remittance matching">Remittance matching</SelectItem>
+                  <SelectItem value="statement requests">Statement requests</SelectItem>
+                  <SelectItem value="messy client files">Messy client files</SelectItem>
+                  <SelectItem value="not enough time">Not enough time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {error ? (
+          <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+          {options.map((option) => (
+            <Card
+              key={option.type}
+              className={`rounded-[1.75rem] border-black/10 bg-white/80 shadow-sm transition ${
+                selectedType === option.type ? "ring-2 ring-neutral-950" : ""
+              }`}
+              onMouseEnter={() => setSelectedType(option.type)}
+            >
+              <CardContent className="flex h-full flex-col p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fbf8f1] text-neutral-950">
+                    {option.icon}
+                  </div>
+                  {option.limited ? (
+                    <span className="rounded-full border border-black/10 bg-[#fbf8f1] px-3 py-1 text-xs font-medium text-neutral-600">
+                      {option.limited}
+                    </span>
+                  ) : null}
+                </div>
+
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                  {option.eyebrow}
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                  {option.title}
+                </h2>
+                {option.price ? (
+                  <p className="mt-2 text-3xl font-semibold">{option.price}</p>
+                ) : null}
+                <p className="mt-3 text-sm leading-6 text-neutral-600">
+                  {option.description}
+                </p>
+
+                <ul className="mt-5 space-y-3 text-sm text-neutral-700">
+                  {option.points.map((point) => (
+                    <li key={point} className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-neutral-950" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {option.type === "founding_single_business" ||
+                option.type === "founding_bookkeeper" ? (
+                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <LockKeyhole className="size-3.5" />
+                      Permission required
+                    </div>
+                    <p className="mt-1">
+                      This creates a beta request. The owner must approve access
+                      before the account can be used with beta features.
+                    </p>
+                  </div>
+                ) : null}
+
+                <Button
+                  className="mt-auto w-full rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+                  onClick={() => chooseOption(option)}
+                >
+                  {option.cta}
+                  <ArrowRight className="size-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
