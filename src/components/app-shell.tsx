@@ -30,8 +30,8 @@ import {
   UsageMeter,
 } from "@/components/account-plan-ui";
 import { getPlanConfig, getTrialState } from "@/lib/billing/plans";
-import {
   normaliseLocalAccount,
+  demoUserStorageKey,
   type DemoUser,
 } from "@/lib/demo-auth";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
