@@ -1,5 +1,5 @@
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
-import { Invoice, BillingAccount } from "@/types/zentra";
+import { Invoice } from "@/types/zentra";
 
 export async function fetchAccountFromDb(): Promise<any> {
   if (!hasSupabaseBrowserConfig()) return null;

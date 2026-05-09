@@ -5,10 +5,10 @@ import {
   Customer, 
   ActivityEvent,
   ImportBatch,
-  ImportSummary,
   ImportDiff
 } from "@/types/zentra";
-import { rankCollectionActions } from "@/lib/ranking/zentra-ranker";
+import { rankCollectionActions } from "@/lib/collections/decision-engine";
+import type { ImportSummary } from "@/lib/import/zentra-import";
 
 export async function getActiveAccount() {
   if (!hasSupabaseServerConfig()) return null;
@@ -81,8 +81,7 @@ export async function saveImportBatch(
   if (batchError) throw batchError;
   const batchId = batchData.id;
 
-  // 2. Map and insert customers (simplified upsert logic)
-  // In production, we'd do a more robust upsert by name/email
+  // 2. Map and insert customers
   const customersToInsert = Array.from(new Set(invoices.map(i => i.customerName))).map(name => {
     const inv = invoices.find(i => i.customerName === name)!;
     return {
@@ -166,7 +165,7 @@ function mapDbInvoiceToType(row: any): Invoice {
     relationshipType: customer?.relationship_type || 'regular customer',
     customerNotes: row.customer_notes,
     lineItems: row.line_items || [],
-    activityHistory: [], // Would fetch from zentra_activity_events in full impl
+    activityHistory: [],
     sourceBatchId: row.source_batch_id,
     importedRowNumber: row.imported_row_number
   };
