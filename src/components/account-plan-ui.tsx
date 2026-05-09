@@ -225,14 +225,6 @@ export function ActiveTrialBanner({ account }: { account: AccountLike }) {
     </div>
   );
 }
-          <Button asChild size="sm" className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
-            <Link href="/pricing">Upgrade</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function TrialExpiredBanner({ account }: { account: AccountLike }) {
   const accountState = toAccountState(account);
