@@ -1292,9 +1292,11 @@ function PlanGroup({
   const [showAll, setShowAll] = useState(false);
   const visibleItems = showAll ? items : items.slice(0, initialVisibleCount);
   const hiddenCount = Math.max(0, items.length - visibleItems.length);
+  const planGridColumns =
+    "36px minmax(150px,1.45fr) minmax(96px,0.75fr) minmax(112px,0.75fr) minmax(78px,0.65fr) minmax(190px,1.35fr) minmax(190px,1fr)";
 
   return (
-      <div className="mb-8">
+      <div className="mb-9">
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex items-baseline gap-3">
             <h2 className="text-[20px] font-bold tracking-tight text-neutral-950">{title}</h2>
@@ -1307,18 +1309,18 @@ function PlanGroup({
             <ChevronDown className="size-3 text-neutral-400" />
           </div>
         </div>
-        <p className="text-[13px] text-neutral-500 mb-5">{description}</p>
+        <p className="text-[13px] text-neutral-500 mb-6">{description}</p>
 
         {/* Table header — desktop only, wider minmax columns */}
-        <div className="hidden md:grid items-center px-4 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
-          style={{ gridTemplateColumns: "44px minmax(160px, 2.5fr) minmax(100px, 1fr) minmax(95px, 0.9fr) 68px minmax(180px, 2fr) minmax(220px, auto)" }}
+        <div className="hidden xl:grid items-center gap-x-4 px-5 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
+          style={{ gridTemplateColumns: planGridColumns }}
         >
-          <div className="text-center pr-4">#</div>
-          <div className="pr-4">Customer</div>
-          <div className="text-right pr-4">Amount</div>
-          <div className="pr-4">Due Date</div>
-          <div className="text-right pr-2">Overdue</div>
-          <div className="pr-4 pl-4">Recommended Action</div>
+          <div className="text-center">#</div>
+          <div>Customer</div>
+          <div>Amount</div>
+          <div>Due Date</div>
+          <div className="text-right">Overdue</div>
+          <div>Recommended Action</div>
           <div className="text-right">Review Status</div>
         </div>
 
@@ -1384,18 +1386,18 @@ function PlanGroup({
                   )}
                 >
                   {/* Desktop row — wider, more readable, taller rows */}
-                  <div className="hidden md:grid items-center px-4 py-4"
-                    style={{ gridTemplateColumns: "44px minmax(160px, 2.5fr) minmax(100px, 1fr) minmax(95px, 0.9fr) 68px minmax(180px, 2fr) minmax(220px, auto)" }}
+                  <div className="hidden xl:grid items-center gap-x-4 px-5 py-4"
+                    style={{ gridTemplateColumns: planGridColumns }}
                   >
                     {/* Col 0: Index */}
-                    <div className="flex justify-center pr-4">
+                    <div className="flex justify-center">
                       <span className="flex size-5 items-center justify-center rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-500">
                         {index + 1}
                       </span>
                     </div>
 
                     {/* Col 1: Company + Invoice */}
-                    <div className="min-w-0 pr-4">
+                    <div className="min-w-0">
                       <p className="truncate text-[14px] font-semibold text-neutral-950">
                         {item.customerName}
                       </p>
@@ -1405,21 +1407,21 @@ function PlanGroup({
                     </div>
 
                     {/* Col 2: Amount */}
-                    <div className="min-w-0 pr-4 text-right">
+                    <div className="min-w-0">
                       <p className="text-[14px] font-bold text-neutral-950 tabular-nums">
                         {formatCurrency(item.amountOutstanding)}
                       </p>
                     </div>
 
                     {/* Col 3: Due Date */}
-                    <div className="min-w-0 pr-4">
+                    <div className="min-w-0">
                       <p className="text-[12px] font-bold text-neutral-950">
                         {invoiceDueDate}
                       </p>
                     </div>
 
                     {/* Col 4: Overdue */}
-                    <div className="min-w-0 pr-4 text-right">
+                    <div className="min-w-0 text-right">
                       {invoice?.daysOverdue ? (
                         <p className="text-[12px] font-bold text-red-600">
                           {invoice.daysOverdue} days
@@ -1428,7 +1430,7 @@ function PlanGroup({
                     </div>
 
                     {/* Col 5: Recommended Action + Context */}
-                    <div className="min-w-0 pr-4 pl-4">
+                    <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold text-neutral-950">
                         {humanAction(item.recommendedAction)}
                       </p>
@@ -1438,8 +1440,8 @@ function PlanGroup({
                     </div>
 
                     {/* Col 6: Review Status & Actions */}
-                    <div className="flex items-center justify-end gap-2 flex-shrink-0">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex min-w-0 items-center justify-end gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                         <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap", riskStyle)}>
                           {riskLabel}
                         </span>
@@ -1460,7 +1462,7 @@ function PlanGroup({
                   </div>
 
                   {/* Mobile card — clean, premium feel */}
-                  <div className="flex md:hidden items-center gap-3 px-4 py-3.5">
+                  <div className="flex xl:hidden items-center gap-3 px-4 py-3.5">
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <p className="truncate text-[14px] font-semibold text-neutral-950">{item.customerName}</p>

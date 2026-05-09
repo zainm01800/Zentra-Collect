@@ -156,8 +156,8 @@ export function ActionDrawerContent({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-6 p-5">
-        <section className="grid gap-4 rounded-2xl border border-black/10 bg-white/70 p-4 grid-cols-1 sm:grid-cols-2">
+      <div className="flex-1 overflow-y-auto space-y-5 p-5">
+        <section className="grid grid-cols-1 gap-3 rounded-2xl border border-black/10 bg-white/70 p-4 sm:grid-cols-2">
           <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
           <InfoLine
             label="Days overdue"
@@ -471,11 +471,11 @@ export function ActionDrawerContent({
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 flex flex-col gap-1 overflow-hidden">
+    <div className="min-w-0 rounded-xl bg-white/60 px-3 py-2.5">
       <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
         {label}
       </p>
-      <p className="text-sm font-bold text-neutral-950 break-all leading-tight" title={value}>
+      <p className="mt-1 text-sm font-bold leading-tight text-neutral-950 break-words" title={value}>
         {value}
       </p>
     </div>
