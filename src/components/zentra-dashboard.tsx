@@ -331,8 +331,7 @@ export function ZentraDashboard({
     "ready",
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [hideSidebar, setHideSidebar] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [useInlineReviewPanel, setUseInlineReviewPanel] = useState(false);
   const account = useMemo<BillingAccount | null>(() => {
     if (supabaseAccount) return supabaseAccount;
     if (localAccount) return localAccount;
@@ -394,7 +393,7 @@ export function ZentraDashboard({
   }, [demoMode]);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
+    const check = () => setUseInlineReviewPanel(window.innerWidth >= 1800);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -838,11 +837,18 @@ export function ZentraDashboard({
   const hasOpenReview = Boolean(selectedPlanId && selectedPlan && selectedInvoice);
 
   return (
-    <div className="relative flex min-h-0 gap-0">
+    <div
+      className={cn(
+        "relative min-h-0",
+        hasOpenReview && useInlineReviewPanel
+          ? "grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)]"
+          : "flex gap-0",
+      )}
+    >
       {/* Main content — only pushed by right panel at 2xl+ (>=1536px) */}
       <div className={cn(
-        "flex-1 min-w-0 space-y-6 transition-all duration-300",
-        hasOpenReview ? "2xl:mr-[clamp(380px,25vw,440px)]" : ""
+        "min-w-0 space-y-6 transition-all duration-300",
+        hasOpenReview && useInlineReviewPanel ? "" : "flex-1"
       )}>
         <UpgradePromptModal
           open={Boolean(upgradePrompt)}
@@ -983,10 +989,8 @@ export function ZentraDashboard({
       </div>
 
       {/* Desktop Action Panel — fixed, fluid width, only on 2xl+ (>=1536px) */}
-      {selectedPlanId && selectedPlan && selectedInvoice && (
-        <div className="fixed bottom-0 right-0 top-0 z-40 hidden 2xl:flex 2xl:flex-col border-l border-black/8 bg-white shadow-xl overflow-hidden"
-          style={{ width: 'clamp(380px, 25vw, 440px)' }}
-        >
+      {selectedPlanId && selectedPlan && selectedInvoice && useInlineReviewPanel && (
+        <aside className="sticky top-0 hidden max-h-[calc(100dvh-2rem)] min-w-0 overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-xl 2xl:flex 2xl:flex-col">
           <ActionDrawerContent
             item={selectedPlan}
             invoice={selectedInvoice}
@@ -1075,11 +1079,11 @@ export function ZentraDashboard({
             actionMeta={actionScenarioMeta(actionScenario, selectedInvoice, invoices, scenarioDetails, selectedTone)}
             actionScenarioOptions={actionScenarioOptions}
           />
-        </div>
+        </aside>
       )}
 
       {/* Mobile / Tablet Sheet Drawer — overlay below 2xl (1536px), full-screen on mobile */}
-      {selectedPlanId && (
+      {selectedPlanId && !useInlineReviewPanel && (
         <ActionDrawer
           item={selectedPlan}
           invoice={selectedInvoice}
