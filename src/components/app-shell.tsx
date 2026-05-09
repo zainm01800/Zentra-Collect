@@ -34,6 +34,8 @@ import {
   normaliseLocalAccount,
   demoUserStorageKey,
   isDemoUserExpired,
+  createLocalAccount,
+  writeLocalAccount,
   type DemoUser,
 } from "@/lib/demo-auth";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
@@ -159,8 +161,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.setTimeout(() => {
         if (window.localStorage.getItem(demoUserStorageKey)) {
           window.dispatchEvent(new Event("zentra-account-change"));
+        } else if (pathname === "/demo" || pathname.startsWith("/demo/")) {
+          // Auto-provision a demo account so /demo works without login
+          const demoUser = createLocalAccount({
+            name: "Demo User",
+            email: "demo@zentracollect.co.uk",
+            businessName: "Demo Business",
+            planId: "demo",
+          });
+          writeLocalAccount(demoUser);
+          window.dispatchEvent(new Event("zentra-account-change"));
         } else {
-          router.replace(pathname === "/demo" ? "/demo" : "/login");
+          router.replace("/login");
         }
       }, 0);
       return;
