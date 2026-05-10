@@ -6,6 +6,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
+import { CheckoutButton } from "@/components/billing/checkout-button";
+
+// Base plan price IDs — set in env vars, passed to Stripe checkout
+const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
+  STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO ?? "",
+  SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE ?? "",
+  BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER ?? "",
+  BOOKKEEPER_PRO:      process.env.STRIPE_PRICE_ID_BOOKKEEPER_PRO ?? "",
+};
 
 const answers = [
   "Who should I chase today?",
@@ -30,9 +39,10 @@ const trustItems = [
   { label: "No legal or accounting advice",     Icon: ShieldCheck },
 ];
 
-// 3 plans on the marketing page (not 5) — keeps the upgrade story simple
+// 4 plans on the marketing page — trial entry, solo, single business, bookkeeper
 const pricingPlanIds: PlanId[] = [
   "TRIAL",
+  "STARTER_SOLO",
   "SINGLE_BUSINESS",
   "BOOKKEEPER_STARTER",
 ];
@@ -40,6 +50,7 @@ const pricingPlanIds: PlanId[] = [
 const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
   TRIAL:               "14 days, no card required. Upload your own AR exports.",
+  STARTER_SOLO:        "For sole traders and micro businesses with a small invoice book.",
   FOUNDING_SINGLE:     "Founding access for one business while we're in beta.",
   FOUNDING_BOOKKEEPER: "Founding access for bookkeepers shaping the workflow.",
   SINGLE_BUSINESS:     "For one small business running a practical chase process.",
@@ -309,7 +320,7 @@ export default function Home() {
           Start with the demo. Move to a 14-day trial when you&apos;re ready to
           import your own data. Upgrade to a paid plan to keep going.
         </p>
-        <div className="grid gap-3.5 md:grid-cols-3">
+        <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-4">
           {pricingPlanIds.map((planId) => {
             const plan = getPlanConfig(planId);
             const isFeatured = planId === "SINGLE_BUSINESS";
@@ -357,12 +368,29 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-                <Link
-                  href={planId === "TRIAL" ? "/login?mode=signup" : "/request-access"}
-                  className={isFeatured ? "zn-pill mt-5 w-full justify-center" : "zn-pill zn-pill-ghost mt-5 w-full justify-center"}
-                >
-                  {planId === "TRIAL" ? "Start free trial" : "Request access"}
-                </Link>
+                {planId === "TRIAL" ? (
+                  <Link
+                    href="/login?mode=signup"
+                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
+                  >
+                    Start free trial
+                  </Link>
+                ) : PLAN_PRICE_IDS[planId] ? (
+                  <CheckoutButton
+                    priceId={PLAN_PRICE_IDS[planId]!}
+                    planId={planId}
+                    cta="Get started"
+                    variant={isFeatured ? "primary" : "secondary"}
+                    className="mt-5"
+                  />
+                ) : (
+                  <Link
+                    href="/request-access"
+                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
+                  >
+                    Request access
+                  </Link>
+                )}
               </div>
             );
           })}

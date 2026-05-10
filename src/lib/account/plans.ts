@@ -1,6 +1,7 @@
 export type PlanId =
   | "DEMO"
   | "TRIAL"
+  | "STARTER_SOLO"
   | "FOUNDING_SINGLE"
   | "FOUNDING_BOOKKEEPER"
   | "SINGLE_BUSINESS"
@@ -32,7 +33,8 @@ export type FeatureKey =
   | "bookkeeperMode"
   | "priceLock"
   | "viewExistingDataAfterTrial"
-  | "emailSending";
+  | "emailSending"
+  | "emailSendingAddon";
 
 export type LimitValue = number | "unlimited";
 
@@ -98,6 +100,7 @@ const defaultFeatures: Record<FeatureKey, boolean> = {
   priceLock: false,
   viewExistingDataAfterTrial: false,
   emailSending: false,
+  emailSendingAddon: false,
 };
 
 const defaultLimits: Record<UsageType, LimitValue> = {
@@ -126,6 +129,29 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
     features: {
       ...defaultFeatures,
       sampleData: true,
+    },
+  },
+  STARTER_SOLO: {
+    id: "STARTER_SOLO",
+    name: "Starter",
+    priceMonthlyGbp: 13.99,
+    description: "For sole traders and micro businesses with a small invoice book.",
+    limits: {
+      ...defaultLimits,
+      importsUsedThisMonth: 2,
+      trialImportsUsed: "unlimited",
+      aiActionsUsedThisMonth: 10,
+      trialAiActionsUsed: "unlimited",
+      activeInvoiceCount: 50,
+      clientLedgerCount: 1,
+      savedImportMappingCount: 0,
+      weeklyDigestCountThisMonth: 0,
+    },
+    features: {
+      ...defaultFeatures,
+      realData: true,
+      persistentRealImports: true,
+      emailSendingAddon: true,
     },
   },
   TRIAL: {
@@ -198,6 +224,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       persistentRealImports: true,
       bookkeeperMode: true,
       priceLock: true,
+      emailSending: true,
     },
   },
   SINGLE_BUSINESS: {
@@ -220,6 +247,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       ...defaultFeatures,
       realData: true,
       persistentRealImports: true,
+      emailSendingAddon: true,
     },
   },
   BOOKKEEPER_STARTER: {
@@ -243,6 +271,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       realData: true,
       persistentRealImports: true,
       bookkeeperMode: true,
+      emailSending: true,
     },
   },
   BOOKKEEPER_PRO: {
@@ -266,6 +295,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       realData: true,
       persistentRealImports: true,
       bookkeeperMode: true,
+      emailSending: true,
     },
   },
 };
@@ -399,7 +429,8 @@ export function getRecommendedUpgrade(
   }
 
   if (account.planId === "DEMO") return "TRIAL";
-  if (account.planId === "TRIAL") return "SINGLE_BUSINESS";
+  if (account.planId === "TRIAL") return "STARTER_SOLO";
+  if (account.planId === "STARTER_SOLO") return "SINGLE_BUSINESS";
   if (account.planId === "FOUNDING_SINGLE") return "FOUNDING_BOOKKEEPER";
   if (account.planId === "SINGLE_BUSINESS") return "BOOKKEEPER_STARTER";
   if (account.planId === "BOOKKEEPER_STARTER") return "BOOKKEEPER_PRO";

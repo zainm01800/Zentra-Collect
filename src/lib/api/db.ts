@@ -28,13 +28,22 @@ export async function getActiveAccount() {
 }
 
 export async function getInvoices(): Promise<Invoice[]> {
-  if (!hasSupabaseServerConfig()) {
-    return []; // Fallback to empty if not configured
-  }
+  if (!hasSupabaseServerConfig()) return [];
 
   const supabase = await createSupabaseServerClient();
-  
-  // Fetch invoices with customer details
+
+  // Resolve the authenticated user's account_id first
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: member } = await supabase
+    .from('zentra_account_members')
+    .select('account_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!member) return [];
+
   const { data, error } = await supabase
     .from('zentra_invoices')
     .select(`
@@ -46,6 +55,7 @@ export async function getInvoices(): Promise<Invoice[]> {
         relationship_type
       )
     `)
+    .eq('account_id', member.account_id)
     .order('due_date', { ascending: true });
 
   if (error) {

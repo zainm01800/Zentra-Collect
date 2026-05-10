@@ -267,13 +267,20 @@ function persistInvoices(nextInvoices: Invoice[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(nextInvoices));
 }
 
-export function ZentraDashboard() {
+type ZentraDashboardProps = {
+  initialInvoices?: Invoice[];
+  demoMode?: boolean;
+};
+
+export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: ZentraDashboardProps = {}) {
   const { account } = useLocalAccount();
   const [upgradePrompt, setUpgradePrompt] = useState<{
     title: string;
     description: string;
   } | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>(readImportedInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    initialInvoices?.length ? initialInvoices : readImportedInvoices(),
+  );
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [planViewFilter, setPlanViewFilter] =
     useState<PlanViewFilter>("focus");

@@ -35,6 +35,7 @@ export type DemoUser = {
   graceEndsAt?: string;
   usage: UsageCounters;
   betaApprovedAt?: string;
+  emailAddon?: boolean;
 };
 
 export type BetaAccessRequest = {

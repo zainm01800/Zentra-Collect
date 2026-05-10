@@ -41,6 +41,7 @@ export type PlanAccessResult = {
 const legacyPlanMap: Record<LegacyPlanId, PlanId> = {
   demo: "DEMO",
   trial: "TRIAL",
+  starter_solo: "STARTER_SOLO",
   founding_single_business: "FOUNDING_SINGLE",
   founding_bookkeeper: "FOUNDING_BOOKKEEPER",
   single_business: "SINGLE_BUSINESS",

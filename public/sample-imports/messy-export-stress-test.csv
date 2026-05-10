@@ -1,0 +1,19 @@
+Organisation,Billing Email,Document Number,Tax Date,Payment Due,Gross,Remaining,Invoice Status,PO Number,Query
+"Whitstable Trading Co.",ap@whitstabletrading.co.uk,WT-0441,06/01/2026,05/02/2026,"£7,200.00","£7,200.00",Awaiting Payment,PO-771,
+"Whitstable Trading Co.",ap@whitstabletrading.co.uk,WT-0498,20/02/2026,21/03/2026,"£5,800.00","£5,800.00",Awaiting Payment,PO-812,
+"Adlington & Co Surveyors",accounts@adlingtonsurv.co.uk,ADL-2026-01,12/01/2026,11/02/2026,"£10,500.00","£10,500.00",Awaiting Payment,,
+"Adlington & Co Surveyors",accounts@adlingtonsurv.co.uk,ADL-2026-06,24/02/2026,25/03/2026,"£9,200.00","£4,600.00",Part Received,,Awaiting remainder
+Flintshire Brewing Co,finance@flintshirebrew.co.uk,FBC/Jan26/001,15/01/2026,14/02/2026,"£4,100.00","£4,100.00",Unpaid,,
+Flintshire Brewing Co,finance@flintshirebrew.co.uk,FBC/Feb26/001,28/02/2026,29/03/2026,"£3,700.00","£3,700.00",Unpaid,,
+"Apex Vehicle Rental Ltd",billing@apexvehicles.co.uk,AV-2025-409,09/12/2025,08/01/2026,"£33,000.00","£33,000.00",Overdue,,Chased 3 times — no response
+"Apex Vehicle Rental Ltd",billing@apexvehicles.co.uk,AV-2026-011,20/01/2026,19/02/2026,"£28,500.00","£28,500.00",Overdue,,
+Dorchester Landscaping,info@dorchesterlandscaping.co.uk,DL-0098,02/02/2026,03/03/2026,"£5,900.00","£5,900.00",Awaiting Payment,,
+Dorchester Landscaping,info@dorchesterlandscaping.co.uk,DL-0112,16/03/2026,15/04/2026,"£5,400.00","£5,400.00",Awaiting Payment,,
+"Stirling Communications",hello@stirlingcomms.co.uk,SC-2026-004,29/01/2026,28/02/2026,"£6,800.00","£6,800.00",Awaiting Payment,,
+"Stirling Communications",hello@stirlingcomms.co.uk,SC-2026-009,12/03/2026,11/04/2026,"£6,200.00","£6,200.00",Awaiting Payment,,
+Baxter Labs UK Ltd,ap@baxterlabs.co.uk,BL-2025-188,17/11/2025,17/12/2025,"£44,000.00","£44,000.00",Overdue,,Dispute raised by client — under review
+"Rowland's Bakery Supplies",accounts@rowlandsbakery.co.uk,RBS-0063,25/01/2026,24/02/2026,"£2,700.00","£2,700.00",Awaiting Payment,,
+"Rowland's Bakery Supplies",accounts@rowlandsbakery.co.uk,RBS-0071,10/03/2026,09/04/2026,"£2,400.00","£2,400.00",Awaiting Payment,,
+Kelvin Bridge Studios,billing@kelvinbridge.co.uk,KB-2026-012,08/02/2026,09/03/2026,"£7,600.00","£7,600.00",Awaiting Payment,,
+Northgate Fleet Management,finance@northgatefleet.co.uk,NGF-0299,31/01/2026,01/03/2026,"£18,200.00","£18,200.00",Awaiting Payment,,
+Northgate Fleet Management,finance@northgatefleet.co.uk,NGF-0314,14/03/2026,13/04/2026,"£16,800.00","£8,400.00",Part Received,,

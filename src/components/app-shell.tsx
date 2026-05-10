@@ -22,7 +22,12 @@ import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { TrialStatusBanner } from "@/components/trial-banners";
+import { QueueStatusBar } from "@/components/queue-status-bar";
+import { AutoSendToggle } from "@/components/auto-send-toggle";
+import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
+import { AccountSync } from "@/components/account-sync";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
+import { toAccountState } from "@/lib/account/access";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 type NavItem = {
@@ -128,6 +133,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             item={{ href: "/help", label: "Help & support", icon: HelpCircle }}
             active={isActive("/help")}
           />
+
+          {/* Auto-send toggle */}
+          <AutoSendToggleInSidebar />
 
           {/* Outcomes counter — small reward loop for working the queue */}
           <SessionCounter />
@@ -252,10 +260,17 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           </>
         ) : null}
 
+        {/* Syncs Supabase session → localStorage once per mount */}
+        <AccountSync />
+
+        {/* Arming banner — full width, above content */}
+        <AutoSendArmingBanner />
+
         {/* Page content — drawer always overlays, no shift needed */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 pb-24 md:pb-8">
           <div className="mx-auto w-full max-w-[1360px]">
             <TrialStatusBanner />
+            <QueueStatusBar />
             {children}
           </div>
         </main>
@@ -392,6 +407,31 @@ function SidebarAccountBadge() {
         </span>
       </span>
     </div>
+  );
+}
+
+/**
+ * Reads local account and passes the central PlanId to AutoSendToggle.
+ */
+function AutoSendToggleInSidebar() {
+  const { user } = useLocalAccount();
+  const isDemoMode = user?.planId === "demo";
+
+  let centralPlanId: Parameters<typeof AutoSendToggle>[0]["planId"] | undefined;
+  if (user) {
+    try {
+      centralPlanId = toAccountState(user as Parameters<typeof toAccountState>[0]).planId;
+    } catch {
+      centralPlanId = undefined;
+    }
+  }
+
+  return (
+    <AutoSendToggle
+      planId={centralPlanId}
+      isDemoMode={isDemoMode}
+      hasEmailAddon={user?.emailAddon === true}
+    />
   );
 }
 

@@ -11,6 +11,7 @@ import {
 const visiblePlans: PlanId[] = [
   "DEMO",
   "TRIAL",
+  "STARTER_SOLO",
   "SINGLE_BUSINESS",
   "BOOKKEEPER_STARTER",
   "BOOKKEEPER_PRO",
@@ -18,7 +19,7 @@ const visiblePlans: PlanId[] = [
 
 export function PricingCards() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
       {visiblePlans.map((planId) => {
         const plan = getPlanConfig(planId);
 

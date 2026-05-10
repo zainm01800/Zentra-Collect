@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { saveImportBatchAction } from "@/actions/import";
 import {
   buildInvoicesFromPreview,
   compareImportBatches,
@@ -49,6 +50,7 @@ import {
   type ImportDiffOutput,
   type ImportTargetField,
 } from "@/lib/import/zentra-import";
+import { applyQueueSplit } from "@/lib/collections/queue-engine";
 import { rankCollectionActions } from "@/lib/collections/decision-engine";
 import {
   canUseFeature,
@@ -199,26 +201,14 @@ export function ZentraImportFlow() {
 
     setIsImporting(true);
 
-    const { invoices, customers } = buildInvoicesFromPreview(validation.preview);
+    const { invoices: rawInvoices, customers } = buildInvoicesFromPreview(validation.preview);
     const accountState = toAccountState(account);
     const activeInvoiceLimit = getPlanLimit(accountState.planId, "activeInvoiceCount");
-    const activeInvoiceCount = invoices.filter(
-      (invoice) => invoice.amountOutstanding > 0,
-    ).length;
-    if (
-      activeInvoiceLimit !== "unlimited" &&
-      activeInvoiceCount > activeInvoiceLimit
-    ) {
-      setIsImporting(false);
-      setMessage(
-        `${getPlanConfig(account.planId).name} allows ${activeInvoiceLimit} active invoices. Upgrade before importing this file.`,
-      );
-      setUpgradePrompt({
-        title: "This file is over your active invoice limit.",
-        description: `${getPlanConfig(account.planId).name} allows ${activeInvoiceLimit} active invoices. This file contains ${activeInvoiceCount}.`,
-      });
-      return;
-    }
+
+    // Split into active/waiting rather than blocking the import.
+    // All invoices are ingested; only the top N (by amountOutstanding) become
+    // active immediately — the rest sit in the waiting queue.
+    const invoices = applyQueueSplit(rawInvoices, activeInvoiceLimit);
 
     const previousInvoices = readPreviousImportInvoices();
     const diff = compareImportBatches(previousInvoices, invoices);
@@ -243,12 +233,28 @@ export function ZentraImportFlow() {
         mappings,
       }),
     );
+
+    // Persist to Supabase in the background — does not block navigation.
+    // Silently ignored when Supabase is not configured or user is not authenticated.
+    saveImportBatchAction(
+      {
+        businessId: "default",
+        source: "csv",
+        fileName,
+        rowCount: validation.preview.length,
+        validInvoiceCount: invoices.length,
+        warningCount: 0,
+      },
+      invoices,
+    ).catch(() => null);
     incrementUsage("importBatches");
     incrementUsage("importsThisMonth");
     incrementImportUsage(accountState);
     setUsage(
       "activeInvoices",
-      invoices.filter((invoice) => invoice.amountOutstanding > 0).length,
+      invoices.filter(
+        (invoice) => invoice.amountOutstanding > 0 && (!invoice.queueStatus || invoice.queueStatus === "active"),
+      ).length,
     );
 
     window.setTimeout(() => {
