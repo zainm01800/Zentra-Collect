@@ -6,7 +6,6 @@ import {
   HandCoins,
   MessageSquareWarning,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/formatters";
 import type { Invoice } from "@/types/cashpilot";
 import { getDashboardStats } from "@/lib/invoice-logic";
@@ -19,6 +18,7 @@ export function DashboardStats({ invoices }: { invoices: Invoice[] }) {
       value: formatCurrency(stats.overdueAmount),
       detail: `${stats.overdueCount} overdue invoices`,
       icon: Banknote,
+      accent: true, // primary stat — highlighted
     },
     {
       label: "Due this week",
@@ -27,46 +27,52 @@ export function DashboardStats({ invoices }: { invoices: Invoice[] }) {
       icon: CalendarClock,
     },
     {
-      label: "Needs chasing today",
+      label: "Chase today",
       value: String(stats.needsActionToday),
-      detail: `${stats.averageDaysOverdue} average days overdue`,
+      detail: `${stats.averageDaysOverdue} avg days overdue`,
       icon: AlertTriangle,
     },
     {
-      label: "Promised payments",
+      label: "Promised",
       value: String(stats.promisedPayments),
       detail: "Confirm before re-chasing",
       icon: CheckCircle2,
     },
     {
-      label: "Disputed invoices",
+      label: "Disputed",
       value: String(stats.disputedInvoices),
       detail: "Resolve before reminding",
       icon: MessageSquareWarning,
     },
     {
-      label: "Recovered after chase",
+      label: "Recovered",
       value: formatCurrency(stats.recoveredAfterChase),
-      detail: `${stats.averageChasesToPayment} average chases to paid`,
+      detail: `${stats.averageChasesToPayment} avg chases to paid`,
       icon: HandCoins,
     },
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+    <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {cards.map((card) => (
-        <Card key={card.label} className="rounded-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {card.label}
-            </CardTitle>
-            <card.icon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tracking-tight">{card.value}</div>
-            <p className="mt-1 text-xs text-muted-foreground">{card.detail}</p>
-          </CardContent>
-        </Card>
+        <div key={card.label} className="zn-stat">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="zn-label">{card.label}</span>
+            <card.icon
+              className="size-3.5"
+              style={{ color: card.accent ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
+            />
+          </div>
+          <div
+            className="zn-stat-num"
+            style={{ color: card.accent ? "var(--zn-accent)" : "var(--zn-ink)" }}
+          >
+            {card.value}
+          </div>
+          <p className="text-[12px] mt-1" style={{ color: "var(--zn-ink-3)" }}>
+            {card.detail}
+          </p>
+        </div>
       ))}
     </div>
   );

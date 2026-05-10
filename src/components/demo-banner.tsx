@@ -34,45 +34,35 @@ const PRICING_CTA = {
 
 // ── Dashboard variant ─────────────────────────────────────────────────────────
 
-interface DashboardBannerProps {
-  /**
-   * Computed summary string shown below the heading.
-   * e.g. "We found £18,420 needing attention, 7 recommended actions,
-   *       3 exceptions, and 2 promises to check."
-   */
-  summaryLine: string;
-}
-
-export function DemoDashboardBanner({ summaryLine }: DashboardBannerProps) {
+export function DemoDashboardBanner() {
   return (
-    <div className="rounded-2xl border border-black/8 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100">
-            <DatabaseZap className="size-4 text-neutral-600" />
+    <div className="rounded-2xl border border-black/8 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#f3ecd8]">
+            <DatabaseZap className="size-3.5 text-[#6b6253]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-neutral-950">
+              <p className="text-sm font-semibold text-[#1d1813]">
                 Sample data — Acme Studio Ltd
               </p>
-              <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white">
+              <span className="rounded-full bg-[#1d1813] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white">
                 Demo
               </span>
             </div>
-            <p className="mt-0.5 text-sm leading-6 text-neutral-500">
-              You&apos;re viewing realistic sample invoices. Status changes stay
-              in your browser session. No real data is saved.
+            <p className="text-xs leading-5 text-[#8d8472]">
+              Realistic sample invoices. Status changes persist in this session. No real data is saved.
             </p>
           </div>
         </div>
 
-        {/* CTAs — always visible on desktop, stacked on mobile */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-12 sm:pl-0">
+        {/* CTAs */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-11 sm:pl-0">
           <Button
             asChild
             size="sm"
-            className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+            className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
           >
             <Link href={TRIAL_CTA.href}>
               {TRIAL_CTA.label}
@@ -83,7 +73,7 @@ export function DemoDashboardBanner({ summaryLine }: DashboardBannerProps) {
             asChild
             size="sm"
             variant="outline"
-            className="rounded-full border-black/15 hover:bg-neutral-50"
+            className="rounded-full border-black/15 hover:bg-[#faf5e8]"
           >
             <Link href={BOOKKEEPER_CTA.href}>
               <Users className="size-3.5" />
@@ -92,19 +82,11 @@ export function DemoDashboardBanner({ summaryLine }: DashboardBannerProps) {
           </Button>
           <Link
             href={PRICING_CTA.href}
-            className="text-xs font-medium text-neutral-400 underline underline-offset-2 hover:text-neutral-700"
+            className="text-xs font-medium text-[#a09885] underline underline-offset-2 hover:text-[#3d3428]"
           >
             {PRICING_CTA.label}
           </Link>
         </div>
-      </div>
-
-      {/* Summary spotlight */}
-      <div className="mt-4 rounded-xl border border-black/6 bg-[#fbf8f1] px-4 py-3">
-        <p className="text-sm leading-6 text-neutral-700">
-          <span className="font-medium text-neutral-950">What we found: </span>
-          {summaryLine}
-        </p>
       </div>
     </div>
   );
@@ -123,21 +105,21 @@ export function DemoCompactBanner({
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-black/8 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2.5">
-        <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-neutral-100">
-          <DatabaseZap className="size-3.5 text-neutral-500" />
+        <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f3ecd8]">
+          <DatabaseZap className="size-3.5 text-[#8d8472]" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white">
+          <span className="rounded-full bg-[#1d1813] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white">
             Demo
           </span>
-          <p className="text-sm text-neutral-600">{message}</p>
+          <p className="text-sm text-[#6b6253]">{message}</p>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 pl-9 sm:pl-0">
         <Button
           asChild
           size="sm"
-          className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+          className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
         >
           <Link href={TRIAL_CTA.href}>
             Start free trial
@@ -146,7 +128,7 @@ export function DemoCompactBanner({
         </Button>
         <Link
           href={PRICING_CTA.href}
-          className="text-xs font-medium text-neutral-400 underline underline-offset-2 hover:text-neutral-700"
+          className="text-xs font-medium text-[#a09885] underline underline-offset-2 hover:text-[#3d3428]"
         >
           View pricing
         </Link>

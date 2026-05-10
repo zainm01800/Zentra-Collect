@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowUpRight, Calendar, Mail, Phone, TrendingUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Phone,
+  Mail,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge, UrgencyBadge } from "@/components/status-badge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   getCustomerProfile,
@@ -13,6 +13,13 @@ import {
   getSuggestedAction,
 } from "@/lib/invoice-logic";
 import type { Invoice } from "@/types/cashpilot";
+
+const urgencyColour: Record<string, string> = {
+  Critical: "border-rose-200 bg-rose-50 text-rose-700",
+  High: "border-amber-200 bg-amber-50 text-amber-700",
+  Medium: "border-yellow-200 bg-yellow-50 text-yellow-700",
+  Low: "border-[#d4c9ae] bg-[#f3ecd8] text-[#6b6253]",
+};
 
 export function InvoiceCard({
   invoice,
@@ -32,78 +39,80 @@ export function InvoiceCard({
   const customerProfile = getCustomerProfile(invoices, invoice);
 
   return (
-    <Card className="rounded-lg transition-colors hover:border-foreground/20">
-      <CardContent className="p-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onOpenCustomer(invoice.customerName)}
-                className="truncate text-left text-base font-semibold underline-offset-4 hover:underline"
-              >
-                {invoice.customerName}
-              </button>
-              <StatusBadge status={invoice.status} />
-              <UrgencyBadge urgency={urgency} />
-            </div>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
-              <span className="font-mono">{invoice.invoiceNumber}</span>
-              <span className="font-medium text-foreground">
-                {formatCurrency(invoice.amount)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="size-3.5" />
-                Due {formatDate(invoice.dueDate)}
-              </span>
-              <span>
-                {invoice.daysOverdue > 0
-                  ? `${invoice.daysOverdue} days overdue`
-                  : "Not overdue"}
-              </span>
-              <span>Last chased: {formatDate(invoice.lastChasedAt)}</span>
-              {invoice.followUpDate ? (
-                <span>Follow up: {formatDate(invoice.followUpDate)}</span>
-              ) : null}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {riskLabels.slice(0, 3).map((label) => (
-                <Badge key={label} variant="secondary" className="rounded-md">
-                  {label}
-                </Badge>
-              ))}
-            </div>
-          </div>
+    <button
+      type="button"
+      onClick={() => onOpen(invoice)}
+      className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
+    >
+      {/* Left: customer + amounts */}
+      <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCustomer(invoice.customerName);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              onOpenCustomer(invoice.customerName);
+            }
+          }}
+          className="block truncate text-left text-base font-semibold text-[#1d1813] underline-offset-4 hover:underline cursor-pointer"
+        >
+          {invoice.customerName}
+        </span>
+        <p className="mt-1 text-sm text-[#8d8472]">{invoice.invoiceNumber}</p>
 
-          <div className="flex flex-col gap-3 xl:w-80">
-            <div className="rounded-md bg-muted/60 px-3 py-2 text-sm">
-              <div className="flex items-center gap-2 font-medium">
-                <ActionIcon className="size-4" />
-                {suggestedAction}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {invoice.chaseCount} previous chase
-                {invoice.chaseCount === 1 ? "" : "s"}
-              </p>
-            </div>
-            <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => onOpenCustomer(invoice.customerName)}
-                className="mb-1 flex items-center gap-1.5 text-left font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                <TrendingUp className="size-3.5" />
-                Customer pattern
-              </button>
-              {customerProfile.summary}
-            </div>
-            <Button onClick={() => onOpen(invoice)} className="h-9 w-full">
-              Review invoice
-              <ArrowUpRight className="size-4" />
-            </Button>
-          </div>
+        <div className="mt-4 space-y-2">
+          <p className="text-base font-semibold text-[#1d1813]">
+            {formatCurrency(invoice.amount)}
+          </p>
+          {invoice.daysOverdue > 0 ? (
+            <p className="text-sm font-medium text-rose-600">
+              {invoice.daysOverdue}d overdue
+              <span className="ml-1.5 font-normal text-[#a09885]">
+                · due {formatDate(invoice.dueDate)}
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-[#8d8472]">
+              Due {formatDate(invoice.dueDate)}
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-base font-semibold text-[#1d1813]">{suggestedAction}</p>
+        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+          {customerProfile.summary.split(".")[0].trim()}.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {riskLabels.slice(0, 2).map((label) => (
+            <Badge
+              key={label}
+              variant="outline"
+              className="rounded-full border-[#d4c9ae] bg-[#f3ecd8] text-[10px] uppercase tracking-wider text-[#8d8472]"
+            >
+              {label}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: meta + CTA */}
+      <div className="flex min-w-0 flex-wrap items-start gap-2 md:max-w-48 md:justify-end">
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${urgencyColour[urgency] ?? urgencyColour.Low}`}
+        >
+          {urgency}
+        </span>
+        <span className="mt-1 w-full rounded-full bg-[#1d1813] px-3 py-2 text-center text-xs font-semibold text-[#faf5e8] transition hover:bg-[#3d3428]">
+          Review action
+        </span>
+      </div>
+    </button>
   );
 }

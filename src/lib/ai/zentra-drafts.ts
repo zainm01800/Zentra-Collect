@@ -1,4 +1,8 @@
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import {
+  buildDraftInputSafetyResult,
+  type UnifiedSafetyResult,
+} from "@/lib/collections/safety";
 
 export type DraftTone = "friendly" | "neutral" | "firm" | "final";
 
@@ -43,6 +47,11 @@ export type DraftGenerationInput = {
   reason: string;
   selectedTone: DraftTone;
   lateFeesEnabled?: boolean;
+
+  // Who the email is from. Templates and AI prompt use these to sign correctly.
+  // If absent, the signoff falls back to a neutral "Thanks," (never "Zentra Collect").
+  senderName?: string;
+  senderBusinessName?: string;
 };
 
 export type DraftGenerationResponse = {
@@ -59,37 +68,25 @@ export type DraftSafetyResult = {
   allowed: boolean;
   riskNotes: string[];
   confidence: "high" | "medium" | "low";
+  result: UnifiedSafetyResult;
 };
 
 export function getDraftSafety(input: DraftGenerationInput): DraftSafetyResult {
-  const riskNotes: string[] = [
-    "Human review is required before sending.",
-  ];
-  let confidence: DraftSafetyResult["confidence"] = "high";
-  let allowed = true;
+  const result = buildDraftInputSafetyResult(input);
+  const riskNotes = result.checks.map((check) => check.message);
+  const confidence =
+    result.status === "blocked"
+      ? "low"
+      : result.status === "review"
+        ? "medium"
+        : "high";
 
-  if (!input.customerEmail && input.scenario !== "ASK_FOR_AP_CONTACT") {
-    riskNotes.push("No customer email is present. Confirm the right AP contact before using this message.");
-    confidence = "medium";
-  }
-
-  if (input.disputeReason && input.scenario === "PAYMENT_REMINDER") {
-    riskNotes.push("This invoice has a dispute, so Zentra will not generate a normal payment reminder.");
-    confidence = "low";
-    allowed = false;
-  }
-
-  if (input.selectedTone === "final") {
-    riskNotes.push("Final tone should stay professional and cautious. This is not legal advice.");
-    confidence = confidence === "high" ? "medium" : confidence;
-  }
-
-  if (input.lateFeesEnabled) {
-    riskNotes.push("Late fees should only be mentioned if the user has checked the contract and applicable rules.");
-    confidence = confidence === "high" ? "medium" : confidence;
-  }
-
-  return { allowed, riskNotes, confidence };
+  return {
+    allowed: result.status !== "blocked",
+    riskNotes,
+    confidence,
+    result,
+  };
 }
 
 export function generateTemplateDraft(
@@ -110,8 +107,7 @@ export function generateTemplateDraft(
         "",
         "Could you share any details that would help us resolve this quickly?",
         "",
-        "Thanks,",
-        "Zentra Collect",
+        buildSignoff(input),
       ].join("\n"),
       suggestedNextStep: "Resolve the dispute before sending a payment reminder.",
       riskNotes: safety.riskNotes.join(" "),
@@ -151,6 +147,8 @@ Return only valid JSON matching this exact shape:
 Context:
 - Scenario: ${input.scenario}
 - Tone: ${input.selectedTone}
+- Sender (the person sending this email): ${input.senderName ?? "the user"}
+- Sender business: ${input.senderBusinessName ?? "the user's business"}
 - Customer name: ${input.customerName}
 - Customer email: ${input.customerEmail ?? "missing"}
 - Invoice number: ${input.invoiceNumber}
@@ -168,6 +166,7 @@ Context:
 - Late fees enabled: ${input.lateFeesEnabled === true}
 
 Rules:
+- Sign the email as the sender (and their business if provided). NEVER sign as "Zentra", "Zentra Collect", or any third party — this email comes from the sender's own inbox.
 - Never claim to be a solicitor or debt collector.
 - Never give legal, accounting, or tax advice.
 - Avoid aggressive, threatening, or intimidating wording.
@@ -176,7 +175,7 @@ Rules:
 - Always include riskNotes that remind the user to review before sending.
 - Mention late fees only if late fees are explicitly enabled, and still warn the user to review contract/rules first.
 - Use British English.
-- Keep the body practical and human.`;
+- Keep the body practical and human. Aim for 80-160 words in the body.`;
 }
 
 function subjectFor(input: DraftGenerationInput) {
@@ -197,6 +196,15 @@ function subjectFor(input: DraftGenerationInput) {
   return `${prefixes[input.scenario]}: invoice ${input.invoiceNumber}`;
 }
 
+function buildSignoff(input: DraftGenerationInput): string {
+  // Sign as the user, not Zentra. If we have no sender info, sign neutrally
+  // — never sign as "Zentra Collect" because the email goes from the user's inbox.
+  const lines: string[] = ["Thanks,"];
+  if (input.senderName?.trim()) lines.push(input.senderName.trim());
+  if (input.senderBusinessName?.trim()) lines.push(input.senderBusinessName.trim());
+  return lines.join("\n");
+}
+
 function bodyFor(
   input: DraftGenerationInput,
   name: string,
@@ -204,7 +212,7 @@ function bodyFor(
   dueDate: string,
 ) {
   const greeting = `Hi ${name},`;
-  const signoff = "Thanks,\nZentra Collect";
+  const signoff = buildSignoff(input);
 
   if (input.scenario === "PROMISE_TO_PAY_FOLLOW_UP") {
     return `${greeting}\n\nI am following up on invoice ${input.invoiceNumber}. We had a payment date noted for ${input.promisedPaymentDate ? formatDate(input.promisedPaymentDate) : "earlier this week"}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\n${signoff}`;

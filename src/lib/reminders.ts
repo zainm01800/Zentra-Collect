@@ -28,7 +28,7 @@ export function generateTemplateReminder(
   if (invoice.status === "Disputed") {
     return {
       subject: `Invoice ${invoice.invoiceNumber} - dispute follow-up`,
-      body: `Hi ${invoice.customerName},\n\nI wanted to follow up on invoice ${invoice.invoiceNumber} for ${formatCurrency(invoice.amount)}. I can see this is currently marked as disputed, so rather than sending a payment reminder, could you please confirm what needs resolving from your side?\n\nOnce we understand the issue, we can help get this moving again.\n\nKind regards,\nCashPilot Demo Agency`,
+      body: `Hi ${invoice.customerName},\n\nI wanted to follow up on invoice ${invoice.invoiceNumber} for ${formatCurrency(invoice.amount)}. I can see this is currently marked as disputed, so rather than sending a payment reminder, could you please confirm what needs resolving from your side?\n\nOnce we understand the issue, we can help get this moving again.\n\nKind regards,\nZentra Demo Studio`,
     };
   }
 
@@ -60,7 +60,7 @@ export function generateTemplateReminder(
 
   return {
     subject: `${tone === "Friendly" ? "Quick reminder" : "Payment reminder"}: invoice ${invoice.invoiceNumber}`,
-    body: `Hi ${invoice.customerName},\n\n${intro[tone]}\n\n${context}${previousReminder}${paymentDateAsk}${relationshipLine}\n\n${closings[tone]}${paymentLink}\n\nKind regards,\nCashPilot Demo Agency`,
+    body: `Hi ${invoice.customerName},\n\n${intro[tone]}\n\n${context}${previousReminder}${paymentDateAsk}${relationshipLine}\n\n${closings[tone]}${paymentLink}\n\nKind regards,\nZentra Demo Studio`,
   };
 }
 

@@ -135,7 +135,7 @@ export function ReminderGenerator({
 
       <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
         <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-        Drafts are review-first. CashPilot avoids aggressive legal threats and
+              Drafts are review-first. Zentra avoids aggressive legal threats and
         keeps late-fee wording out unless you deliberately add it.
       </div>
 

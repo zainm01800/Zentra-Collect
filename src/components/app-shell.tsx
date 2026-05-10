@@ -1,60 +1,345 @@
-import Link from "next/link";
-import { CreditCard, FileText, FileUp, LayoutDashboard, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ViewToggle } from "@/components/view-toggle";
-import { TrialStatusBanner } from "@/components/trial-banners";
+"use client";
 
-const nav = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  AlertTriangle,
+  ArrowUpFromLine,
+  BarChart3,
+  CreditCard,
+  FileText,
+  HelpCircle,
+  LayoutDashboard,
+  Menu,
+  ShieldAlert,
+  Settings,
+  Users,
+  Wallet,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ReviewProvider, useReview } from "@/components/review-context";
+import { ReviewDrawer } from "@/components/review-drawer";
+import { TrialStatusBanner } from "@/components/trial-banners";
+import { demoInvoices } from "@/data/demo-invoices";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const workspaceNav: NavItem[] = [
+  { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
   { href: "/chase-today", label: "Collections", icon: CreditCard },
-  { href: "/import", label: "Import", icon: FileUp },
-  { href: "/digest", label: "Digest", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/import",      label: "Import",      icon: ArrowUpFromLine },
+  { href: "/portfolio",   label: "Portfolio",   icon: Wallet },
+  { href: "/digest",      label: "Digest",      icon: FileText },
 ];
+
+const contextNav: NavItem[] = [
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/promises",  label: "Promises",  icon: AlertTriangle },
+  { href: "/disputes",  label: "Disputes",  icon: ShieldAlert },
+  { href: "/reports",   label: "Reports",   icon: BarChart3 },
+];
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      className={cn("zn-nav-item", active && "active")}
+    >
+      <item.icon className="zn-nav-icon size-4" />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#fbf8f1] text-neutral-950">
-      <header className="sticky top-0 z-20 border-b border-black/10 bg-[#fbf8f1]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/dashboard" className="flex items-center gap-3 font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-base font-bold text-white">
-              Z
+    <ReviewProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </ReviewProvider>
+  );
+}
+
+function AppShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "";
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+  const { isOpen: reviewOpen, close: closeReview } = useReview();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  return (
+    <div className="grid min-h-screen relative z-[1] md:grid-cols-[232px_1fr]">
+
+      {/* ── Sidebar ── */}
+      <aside
+        className="hidden md:flex md:flex-col sticky top-0 h-screen z-10 border-r"
+        style={{
+          background: "var(--zn-bg-2)",
+          borderColor: "var(--zn-line)",
+          padding: "20px 14px",
+        }}
+      >
+        {/* Brand */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 mb-[22px] px-1.5"
+        >
+          <span className="zn-brand-mark">Z</span>
+          <span className="flex flex-col leading-[1.1]">
+            <span className="text-[14px] font-semibold tracking-[-0.01em] text-[#1d1813]">Zentra</span>
+            <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+          </span>
+        </Link>
+
+        {/* Workspace */}
+        <div className="zn-section-label">Workspace</div>
+        <div className="flex flex-col gap-1 mb-[14px]">
+          {workspaceNav.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+        </div>
+
+        {/* Context */}
+        <div className="zn-section-label">Context</div>
+        <div className="flex flex-col gap-1">
+          {contextNav.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Bottom: settings, help, demo badge */}
+        <div
+          className="flex flex-col gap-1 pt-[14px] border-t"
+          style={{ borderColor: "var(--zn-line-soft)" }}
+        >
+          <NavLink
+            item={{ href: "/settings", label: "Settings", icon: Settings }}
+            active={isActive("/settings")}
+          />
+          <NavLink
+            item={{ href: "/help", label: "Help & support", icon: HelpCircle }}
+            active={isActive("/help")}
+          />
+
+          {/* Outcomes counter — small reward loop for working the queue */}
+          <SessionCounter />
+
+          {/* Demo badge — replaces the user profile in this demo build */}
+          <div
+            className="flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
+            style={{
+              background: "var(--zn-warn-soft)",
+              border: "1px solid var(--zn-warn-soft)",
+            }}
+          >
+            <span
+              className="size-7 rounded-md inline-flex items-center justify-center text-[10px] font-bold tracking-[0.06em] flex-shrink-0"
+              style={{
+                background: "var(--zn-warn)",
+                color: "var(--zn-surface)",
+                fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+              }}
+            >
+              DEMO
             </span>
-            <span className="leading-tight">
-              <span className="block tracking-[0.18em]">ZENTRA</span>
-              <span className="block text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500">
-                Collect
+            <span className="flex flex-col leading-[1.2] min-w-0">
+              <span
+                className="text-[12px] font-semibold truncate"
+                style={{ color: "var(--zn-warn)" }}
+              >
+                Demo workspace
+              </span>
+              <span
+                className="text-[10.5px] truncate"
+                style={{ color: "var(--zn-warn)" }}
+              >
+                Sample data only
               </span>
             </span>
-          </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {nav.map((item) => (
-              <Button key={`${item.href}-${item.label}`} asChild variant="ghost" className="rounded-full">
-                <Link href={item.href}>
-                  <item.icon className="size-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
-                </Link>
-              </Button>
-            ))}
-          </nav>
-          <ViewToggle />
+          </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto border-t border-black/10 px-4 py-2 md:hidden">
-          {nav.map((item) => (
-            <Button key={`${item.href}-${item.label}`} asChild variant="ghost" className="shrink-0 rounded-full">
-              <Link href={item.href}>
-                <item.icon className="size-4" />
-                {item.label}
+      </aside>
+
+      {/* ── Main ── */}
+      <div className="flex flex-col min-w-0">
+
+        {/* Mobile top bar (sm only) */}
+        <header
+          className="md:hidden sticky top-0 z-20 flex items-center justify-between border-b backdrop-blur px-4 py-3"
+          style={{
+            background: "rgba(233,223,201,0.95)",
+            borderColor: "var(--zn-line)",
+          }}
+        >
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
+            <span className="text-[13px] font-semibold text-[#1d1813]">Zentra Collect</span>
+          </Link>
+          <span
+            className="text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md"
+            style={{
+              background: "var(--zn-warn)",
+              color: "var(--zn-surface)",
+              fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+            }}
+          >
+            DEMO
+          </span>
+        </header>
+
+        {/* Mobile bottom nav — first 4 items + a real "More" sheet trigger */}
+        <nav
+          className="md:hidden fixed bottom-0 inset-x-0 z-20 flex border-t backdrop-blur"
+          style={{
+            background: "rgba(250,245,232,0.95)",
+            borderColor: "var(--zn-line)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          {workspaceNav.slice(0, 4).map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+                  active ? "text-[#b8481f]" : "text-[#8d8472]"
+                )}
+              >
+                <item.icon className="size-5" />
+                <span>{item.label}</span>
               </Link>
-            </Button>
-          ))}
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+              moreOpen ? "text-[#b8481f]" : "text-[#8d8472]"
+            )}
+          >
+            <Menu className="size-5" />
+            <span>More</span>
+          </button>
         </nav>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <TrialStatusBanner />
-        {children}
-      </main>
+
+        {/* Mobile "More" sheet */}
+        {moreOpen ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(false)}
+              aria-label="Close menu"
+              className="md:hidden fixed inset-0 z-30 backdrop-blur-[2px]"
+              style={{ background: "rgba(29,24,19,0.32)", animation: "fadeIn 200ms ease" }}
+            />
+            <div
+              className="md:hidden fixed bottom-0 inset-x-0 z-40 rounded-t-[18px]"
+              style={{
+                background: "var(--zn-surface)",
+                borderTop: "1px solid var(--zn-line)",
+                paddingBottom: "env(safe-area-inset-bottom)",
+                animation: "slideUp 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+              }}
+            >
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <div className="zn-label !p-0">More</div>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(false)}
+                  className="size-8 inline-flex items-center justify-center rounded-md"
+                  style={{ color: "var(--zn-ink-3)" }}
+                  aria-label="Close menu"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+                {[...contextNav,
+                  { href: "/settings", label: "Settings", icon: Settings },
+                  { href: "/help",     label: "Help & support", icon: HelpCircle }
+                ].map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMoreOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-[10px] px-3 py-3 text-[13px] font-medium transition-colors",
+                        active
+                          ? "bg-[#f0d3c2] text-[#b8481f]"
+                          : "bg-[#f3ecd8] text-[#3d3428]"
+                      )}
+                    >
+                      <item.icon className={cn("size-4", active ? "text-[#b8481f]" : "text-[#6b6253]")} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {/* Page content — drawer always overlays, no shift needed */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-7 pt-6 pb-24 md:pb-6">
+          <TrialStatusBanner />
+          {children}
+        </main>
+      </div>
+
+      {/* Backdrop — drawer always overlays */}
+      {reviewOpen ? (
+        <button
+          type="button"
+          onClick={closeReview}
+          aria-label="Close review"
+          className="fixed inset-0 z-20 backdrop-blur-[2px]"
+          style={{
+            background: "rgba(29,24,19,0.32)",
+            animation: "fadeIn 200ms ease",
+          }}
+        />
+      ) : null}
+
+      {/* Review drawer (fixed-position, overlays page) */}
+      <ReviewDrawer allInvoices={demoInvoices} />
+    </div>
+  );
+}
+
+/**
+ * Quiet session counter — shows how many outcomes the user has logged in this
+ * browser session. Small dopamine loop for working the queue.
+ */
+function SessionCounter() {
+  const { outcomesLogged } = useReview();
+  if (outcomesLogged === 0) return null;
+  return (
+    <div
+      className="mt-1 flex items-center gap-2 px-3 py-2 rounded-lg"
+      style={{
+        background: "var(--zn-surface)",
+        border: "1px solid var(--zn-line-soft)",
+      }}
+    >
+      <span
+        className="zn-pulse"
+        style={{ width: 6, height: 6, background: "var(--zn-accent)" }}
+      />
+      <span className="text-[11.5px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+        {outcomesLogged} outcome{outcomesLogged === 1 ? "" : "s"} logged today
+      </span>
     </div>
   );
 }

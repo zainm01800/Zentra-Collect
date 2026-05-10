@@ -1,17 +1,10 @@
 "use client";
 
-import { AlertTriangle, ExternalLink, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ExternalLink, ShieldCheck, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { ReminderGenerator } from "@/components/reminder-generator";
@@ -40,7 +33,7 @@ export function InvoiceDetailDrawer({
 }) {
   const [promiseDate, setPromiseDate] = useState("2026-05-09");
 
-  if (!invoice) return null;
+  if (!invoice || !open) return null;
 
   const customerProfile = getCustomerProfile(invoices, invoice);
   const riskLabels = getRiskLabels(invoice);
@@ -85,22 +78,36 @@ export function InvoiceDetailDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-3xl">
-        <div className="p-5 sm:p-6">
-          <SheetHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={invoice.status} />
-              <UrgencyBadge urgency={getInvoiceUrgency(invoice)} />
-            </div>
-            <SheetTitle className="text-2xl">{invoice.customerName}</SheetTitle>
-            <SheetDescription>
-              {invoice.invoiceNumber} - {formatCurrency(invoice.amount)} - due{" "}
-              {formatDate(invoice.dueDate)}
-            </SheetDescription>
-          </SheetHeader>
+    <>
+      {/* Header */}
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#d4c9ae] px-5 py-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={invoice.status} />
+            <UrgencyBadge urgency={getInvoiceUrgency(invoice)} />
+          </div>
+          <p className="mt-2 text-base font-semibold text-[#1d1813]">
+            {invoice.customerName}
+          </p>
+          <p className="mt-0.5 text-sm text-[#8d8472]">
+            {invoice.invoiceNumber} &middot; {formatCurrency(invoice.amount)} &middot; due{" "}
+            {formatDate(invoice.dueDate)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#a09885] transition-colors hover:bg-[#f3ecd8] hover:text-[#3d3428]"
+          aria-label="Close"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-4 p-5">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Info label="Customer email" value={invoice.customerEmail} />
             <Info label="Relationship" value={invoice.relationshipType} />
             <Info
@@ -109,61 +116,41 @@ export function InvoiceDetailDrawer({
             />
             <Info
               label="Days overdue"
-              value={
-                invoice.daysOverdue > 0
-                  ? `${invoice.daysOverdue} days`
-                  : "Not overdue"
-              }
+              value={invoice.daysOverdue > 0 ? `${invoice.daysOverdue} days` : "Not overdue"}
             />
             <Info label="Last chased" value={formatDate(invoice.lastChasedAt)} />
             <Info label="Follow-up" value={formatDate(invoice.followUpDate ?? null)} />
-            <Info
-              label="Promise date"
-              value={formatDate(invoice.promisedPaymentDate ?? null)}
-            />
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <p className="text-sm font-medium">Customer context</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {customerProfile.summary}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {riskLabels.length ? (
-                  riskLabels.map((label) => (
-                    <span
-                      key={label}
-                      className="rounded-md border bg-background px-2 py-1 text-xs"
-                    >
-                      {label}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    No risk labels for this invoice.
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="text-sm font-medium">Customer context</p>
+            <p className="mt-1 text-sm text-muted-foreground">{customerProfile.summary}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {riskLabels.length ? (
+                riskLabels.map((label) => (
+                  <span key={label} className="rounded-md border bg-background px-2 py-1 text-xs">
+                    {label}
                   </span>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-lg border bg-zinc-950 p-4 text-white">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ShieldCheck className="size-4 text-emerald-300" />
-                Suggested next action
-              </div>
-              <p className="mt-2 text-lg font-semibold">
-                {getSuggestedAction(invoice)}
-              </p>
-              <p className="mt-2 text-sm text-zinc-300">
-                Keep the wording professional. Do not add late fees, statutory
-                interest, or legal language unless you have checked the contract
-                and policy.
-              </p>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">No risk labels.</span>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="rounded-lg border bg-zinc-950 p-4 text-white">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <ShieldCheck className="size-4 text-emerald-300" />
+              Suggested next action
+            </div>
+            <p className="mt-2 text-lg font-semibold">{getSuggestedAction(invoice)}</p>
+            <p className="mt-2 text-sm text-zinc-300">
+              Keep the wording professional. Do not add late fees, statutory interest, or legal
+              language unless you have checked the contract and policy.
+            </p>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="space-y-2">
               <Label htmlFor="promise-date">Promised payment or follow-up date</Label>
               <Input
@@ -179,11 +166,8 @@ export function InvoiceDetailDrawer({
                 updateStatus(
                   "Promised payment",
                   "Payment promised",
-                  `Customer promised payment or follow-up for ${formatDate(promiseDate)}.`,
-                  {
-                    promisedPaymentDate: promiseDate,
-                    followUpDate: promiseDate,
-                  },
+                  `Customer promised payment for ${formatDate(promiseDate)}.`,
+                  { promisedPaymentDate: promiseDate, followUpDate: promiseDate },
                 )
               }
             >
@@ -191,93 +175,46 @@ export function InvoiceDetailDrawer({
             </Button>
           </div>
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-5">
             <Button
-              onClick={() =>
-                updateStatus(
-                  "Reminder sent",
-                  "Reminder marked as sent",
-                  "User marked the reviewed reminder as sent.",
-                )
-              }
+              className="sm:col-span-1"
+              onClick={() => updateStatus("Reminder sent", "Reminder marked as sent", "User marked the reviewed reminder as sent.")}
             >
               Mark sent
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                updateStatus(
-                  "Promised payment",
-                  "Payment promised",
-                  "Customer has promised payment. Follow up on the agreed date.",
-                  {
-                    promisedPaymentDate: promiseDate,
-                    followUpDate: promiseDate,
-                  },
-                )
-              }
-            >
+            <Button variant="outline" onClick={() => updateStatus("Promised payment", "Payment promised", "Customer has promised payment.", { promisedPaymentDate: promiseDate, followUpDate: promiseDate })}>
               Promised
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                updateStatus(
-                  "Disputed",
-                  "Dispute logged",
-                  "Invoice marked as disputed; resolve before chasing.",
-                )
-              }
-            >
+            <Button variant="outline" onClick={() => updateStatus("Disputed", "Dispute logged", "Invoice marked as disputed.")}>
               Disputed
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                updateStatus(
-                  "Needs call",
-                  "Call required",
-                  "Invoice needs a direct customer call.",
-                )
-              }
-            >
-              Needs call
+            <Button variant="outline" onClick={() => updateStatus("Needs call", "Call required", "Invoice needs a direct customer call.")}>
+              Call
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                updateStatus("Paid", "Invoice paid", "Invoice marked as paid in demo mode.")
-              }
-            >
+            <Button variant="outline" onClick={() => updateStatus("Paid", "Invoice paid", "Invoice marked as paid.")}>
               Paid
             </Button>
           </div>
 
-          <Separator className="my-6" />
+          <Separator />
 
           <section className="space-y-3">
             <div>
               <h3 className="font-semibold">Reminder draft</h3>
               <p className="text-sm text-muted-foreground">
-                Generate a draft, review it, then copy or mark as sent. CashPilot
-                never sends a reminder automatically.
+                Generate a draft, review it, then copy or mark as sent.
               </p>
             </div>
             {invoice.status === "Disputed" ? (
               <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                This invoice is disputed. The draft should ask what needs
-                resolving, not demand payment.
+                This invoice is disputed. Ask what needs resolving, not demand payment.
               </div>
             ) : null}
-            <ReminderGenerator
-              key={invoice.id}
-              invoice={invoice}
-              onStatusChange={updateStatus}
-            />
+            <ReminderGenerator key={invoice.id} invoice={invoice} onStatusChange={updateStatus} />
           </section>
 
-          <Separator className="my-6" />
+          <Separator />
 
           <section className="space-y-3">
             <h3 className="font-semibold">Invoice details</h3>
@@ -302,15 +239,15 @@ export function InvoiceDetailDrawer({
             </Button>
           </section>
 
-          <Separator className="my-6" />
+          <Separator />
 
-          <section className="space-y-3">
+          <section className="space-y-3 pb-4">
             <h3 className="font-semibold">Activity history</h3>
             <ActivityTimeline items={invoice.activityHistory} />
           </section>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   );
 }
 

@@ -440,8 +440,6 @@ export function validateImport(
   return { issues, preview };
 }
 
-// TODO: businessId should come from the authenticated user's account once auth is added.
-// "biz-imported-demo" default is intentional for the demo-only MVP.
 export function buildInvoicesFromPreview(
   preview: ImportPreviewInvoice[],
   businessId = "biz-imported-demo",
@@ -750,9 +748,7 @@ export function parseMoney(value: string | undefined) {
   if (!value) return null;
   const trimmed = value.trim();
   const negative = /^\(.*\)$/.test(trimmed) || trimmed.startsWith("-");
-  // Strip currency symbols, parentheses, spaces, and thousands-separator commas.
-  // UK invoices use period as decimal separator, so commas are always thousands separators here.
-  const numeric = Number(trimmed.replace(/[(),£$€\s,]/g, ""));
+  const numeric = Number(trimmed.replace(/[(),£$€\s]/g, ""));
   if (Number.isNaN(numeric)) return null;
   return negative ? -Math.abs(numeric) : numeric;
 }
@@ -779,10 +775,6 @@ export function parseDate(value: string | undefined) {
       : parsed.toISOString().slice(0, 10);
   }
 
-  // TODO: This generic fallback is locale-dependent and may silently misparse
-  // ambiguous date strings (e.g. "01/02/2025" could be Jan 2 or Feb 1 in some
-  // environments). Add explicit format detection for common UK exports (e.g.
-  // "1 Jan 2025", "Jan-2025") before relying on this path.
   const parsed = new Date(trimmed);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
 }

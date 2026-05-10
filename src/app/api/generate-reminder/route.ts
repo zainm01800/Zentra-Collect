@@ -1,6 +1,3 @@
-// TODO: This route uses legacy CashPilot types (Invoice, ReminderOptions, ReminderTone from
-// @/types/cashpilot) and the old reminders.ts lib. Migrate to Zentra types and the
-// /api/zentra/generate-draft route when retiring the legacy dashboard.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { buildReminderPrompt, generateTemplateReminder } from "@/lib/reminders";
@@ -17,12 +14,11 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
-  let body: { invoice?: Invoice; tone?: ReminderTone; options?: ReminderOptions };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
-  }
+  const body = (await request.json()) as {
+    invoice?: Invoice;
+    tone?: ReminderTone;
+    options?: ReminderOptions;
+  };
 
   if (!body.invoice || !body.tone) {
     return NextResponse.json(

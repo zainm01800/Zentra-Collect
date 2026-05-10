@@ -1,13 +1,12 @@
-// TODO: Add rate limiting before public launch to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { canPerformUsage, recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildReplyClassificationPrompt,
   classifyReplyWithRules,
   type ReplyClassificationInput,
   type ReplyClassificationResult,
 } from "@/lib/ai/reply-classifier";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 
 let openaiClient: OpenAI | null = null;
 
@@ -20,6 +19,18 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request, {
+    namespace: "zentra-classify-reply",
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many classification requests. Please wait a minute and try again." },
+      { status: 429 },
+    );
+  }
+
   let input: ReplyClassificationInput;
 
   try {
@@ -43,34 +54,20 @@ export async function POST(request: Request) {
     return NextResponse.json(rulesResult);
   }
 
-  // ── Quota gate ──────────────────────────────────────────────────────────────
-  // If AI quota is exhausted, fall back to the rules-based result rather than
-  // calling AI. The rules result is already valid; the user sees it as "unclear"
-  // which prompts manual review — the safest outcome.
-  const quotaCheck = canPerformUsage(DEMO_ACCOUNT_ID, "aiAction");
-  if (!quotaCheck.allowed) {
-    return NextResponse.json(rulesResult);
-  }
-
   try {
     const geminiKey =
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const aiResult = await classifyWithGemini(input, geminiKey);
-      recordAIAction(DEMO_ACCOUNT_ID, "reply_classification");
       return NextResponse.json(aiResult);
     }
 
     const client = getOpenAIClient();
     if (client) {
       const aiResult = await classifyWithOpenAI(input, client);
-      recordAIAction(DEMO_ACCOUNT_ID, "reply_classification");
       return NextResponse.json(aiResult);
     }
-  } catch (err) {
-    // Log the failure so it appears in server logs / Vercel function output.
-    // TODO (production): Replace with structured logging (e.g. Sentry.captureException(err)).
-    console.error("[classify-reply] AI provider error — falling back to rules result:", err);
+  } catch {
     return NextResponse.json(rulesResult);
   }
 
@@ -133,12 +130,7 @@ function normaliseAiResult(text: string | null | undefined): ReplyClassification
     return classifyReplyWithRules({ replyText: "" });
   }
 
-  let parsed: Partial<ReplyClassificationResult>;
-  try {
-    parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
-  } catch {
-    return classifyReplyWithRules({ replyText: "" });
-  }
+  const parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
   return {
     classification: parsed.classification ?? "unclear",
     confidence:

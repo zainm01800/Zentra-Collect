@@ -15,7 +15,7 @@ export async function fetchInvoices() {
 }
 
 export async function fetchContacts() {
-  // TODO: Replace with Xero contacts endpoint and map to CashPilot customers.
+// TODO: Replace with Xero contacts endpoint and map to Zentra customers.
   return Array.from(
     new Map(
       demoInvoices.map((invoice) => [

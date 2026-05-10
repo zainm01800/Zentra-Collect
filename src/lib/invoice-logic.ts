@@ -97,7 +97,7 @@ export function getRiskLabels(invoice: Invoice) {
   if (invoice.chaseCount >= 3) labels.push("No response");
   if (invoice.status === "Promised payment") labels.push("Promise to check");
   if (invoice.status === "Disputed") labels.push("Disputed");
-  if (invoice.daysOverdue >= 46) labels.push("Final notice candidate");
+  if (invoice.daysOverdue >= 46) labels.push("Escalation candidate");
   if (!invoice.lastChasedAt && invoice.daysOverdue > 0) labels.push("First chase");
 
   return labels;

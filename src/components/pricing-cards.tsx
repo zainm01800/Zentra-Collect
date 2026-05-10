@@ -1,106 +1,117 @@
-import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
-import { getLandingPlans, type Plan } from "@/lib/billing/plans";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  getPlanConfig,
+  getPlanLimit,
+  type LimitValue,
+  type PlanId,
+} from "@/lib/account/plans";
 
-// Landing page pricing cards — shows only the three paid tiers.
-// All plan data (names, prices, features, limits, CTAs) is sourced from
-// src/lib/billing/plans.ts. Do not hardcode plan values here.
+const visiblePlans: PlanId[] = [
+  "DEMO",
+  "TRIAL",
+  "SINGLE_BUSINESS",
+  "BOOKKEEPER_STARTER",
+  "BOOKKEEPER_PRO",
+];
 
-function PlanCard({ plan }: { plan: Plan }) {
+export function PricingCards() {
   return (
-    <div
-      className={`flex flex-col rounded-2xl border p-6 ${
-        plan.landingHighlight
-          ? "border-neutral-950 bg-white shadow-[0_4px_28px_rgba(0,0,0,0.09)]"
-          : "border-black/8 bg-[#fbf8f1]"
-      }`}
-    >
-      {plan.landingHighlight && plan.highlightLabel && (
-        <div className="mb-4 inline-flex w-fit rounded-full bg-neutral-950 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
-          {plan.highlightLabel ?? "Most popular"}
-        </div>
-      )}
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      {visiblePlans.map((planId) => {
+        const plan = getPlanConfig(planId);
 
-      <p className="text-sm font-semibold text-neutral-950">{plan.name}</p>
-
-      <div className="mt-3 flex items-end gap-1">
-        <span className="text-4xl font-semibold tracking-tight text-neutral-950">
-          {plan.priceDisplay}
-        </span>
-        {plan.periodDisplay && (
-          <span className="mb-1 text-sm text-neutral-400">{plan.periodDisplay}</span>
-        )}
-      </div>
-
-      <p className="mt-3 text-sm leading-6 text-neutral-500">{plan.tagline}</p>
-
-      <ul className="mt-6 flex-1 space-y-2.5">
-        {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2.5">
-            <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-            <span className="text-sm text-neutral-700">{feature}</span>
-          </li>
-        ))}
-      </ul>
-
-      <Link
-        href={plan.href}
-        className={`mt-8 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
-          plan.landingHighlight
-            ? "bg-neutral-950 text-white hover:bg-neutral-800"
-            : "border border-black/15 bg-white text-neutral-950 hover:bg-neutral-50"
-        }`}
-      >
-        {plan.cta}
-        <ArrowRight className="size-3.5" />
-      </Link>
+        return (
+          <Card
+            key={plan.id}
+            className={
+              plan.id === "SINGLE_BUSINESS"
+                ? "rounded-3xl border-zinc-950 bg-white"
+                : "rounded-3xl border-black/10 bg-white/75"
+            }
+          >
+            <CardHeader>
+              <CardTitle>{plan.name}</CardTitle>
+              <div className="mt-2">
+                <span className="text-4xl font-semibold tracking-tight">
+                  {formatPrice(plan.id)}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">{plan.description}</p>
+              <div className="space-y-2 text-sm">
+                {getPlanBullets(plan.id).map((feature) => (
+                  <div key={feature} className="flex items-center gap-2">
+                    <Check className="size-4 text-emerald-600" />
+                    {feature}
+                  </div>
+                ))}
+              </div>
+              <Button
+                className="w-full rounded-full"
+                variant={plan.id === "SINGLE_BUSINESS" ? "default" : "outline"}
+              >
+                {plan.id === "DEMO"
+                  ? "Try demo"
+                  : plan.id === "TRIAL"
+                    ? "Start trial"
+                    : "View plan"}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
 
-export function PricingSection() {
-  const plans = getLandingPlans();
-
-  return (
-    <section id="pricing" className="border-t border-black/10">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mb-10 max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-            Pricing
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
-            Simple plans. No per-invoice charges.
-          </h2>
-          <p className="mt-4 text-base leading-7 text-neutral-500">
-            Try the demo with no sign-up. Start a 14-day free trial with your own data.
-            Pricing applies when you move to a paid plan.
-          </p>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} />
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-neutral-400">
-            All prices exclude VAT · Billed monthly · No contract required
-          </p>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-950"
-          >
-            See full comparison and free tiers
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
+function formatPrice(planId: PlanId) {
+  const plan = getPlanConfig(planId);
+  if (plan.priceMonthlyGbp === 0) return "\u00a30";
+  return `\u00a3${plan.priceMonthlyGbp}/month`;
 }
 
-// Keep named export for legacy compatibility
-export function PricingCards() {
-  return <PricingSection />;
+function formatLimit(value: LimitValue) {
+  return value === "unlimited" ? "unlimited" : value.toLocaleString("en-GB");
+}
+
+function getPlanBullets(planId: PlanId) {
+  const clientLedgers = getPlanLimit(planId, "clientLedgerCount");
+  const activeInvoices = getPlanLimit(planId, "activeInvoiceCount");
+  const imports =
+    planId === "TRIAL"
+      ? getPlanLimit(planId, "trialImportsUsed")
+      : getPlanLimit(planId, "importsUsedThisMonth");
+  const aiActions =
+    planId === "TRIAL"
+      ? getPlanLimit(planId, "trialAiActionsUsed")
+      : getPlanLimit(planId, "aiActionsUsedThisMonth");
+
+  if (planId === "DEMO") {
+    return [
+      "sample data only",
+      `${formatLimit(aiActions)} sample AI drafts`,
+    ];
+  }
+
+  if (planId === "TRIAL") {
+    return [
+      "no card required",
+      `${formatLimit(clientLedgers)} business`,
+      `${formatLimit(activeInvoices)} active invoices`,
+      `${formatLimit(imports)} imports`,
+      `${formatLimit(aiActions)} AI actions`,
+    ];
+  }
+
+  return [
+    getPlanConfig(planId).features.bookkeeperMode
+      ? `up to ${formatLimit(clientLedgers)} client ledgers`
+      : `${formatLimit(clientLedgers)} business`,
+    `${formatLimit(activeInvoices)} active invoices`,
+    `${formatLimit(imports)} imports/month`,
+    `${formatLimit(aiActions)} AI actions/month`,
+  ];
 }

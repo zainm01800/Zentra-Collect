@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#1d1813"/>
+  <text x="32" y="46"
+        font-family="'Newsreader', 'Times New Roman', serif"
+        font-size="44"
+        font-style="italic"
+        font-weight="600"
+        text-anchor="middle"
+        fill="#faf5e8">Z</text>
+</svg>

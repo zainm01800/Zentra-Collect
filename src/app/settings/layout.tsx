@@ -1,20 +1,18 @@
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { SettingsTabNav } from "@/components/settings-tab-nav";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppShell>
-      <div className="space-y-0">
-        <div className="pb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-            Configuration
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-neutral-950">
-            Settings
-          </h1>
-        </div>
+      <div className="flex flex-col gap-5">
+        <PageHeader
+          kicker="Workspace configuration"
+          title="Settings"
+          sub="Tone defaults, integrations, plan, and account preferences."
+        />
         <SettingsTabNav />
-        <div className="pt-6">{children}</div>
+        <div>{children}</div>
       </div>
     </AppShell>
   );

@@ -3,19 +3,28 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { DemoDashboardBanner } from "@/components/demo-banner";
 import {
   AlertTriangle,
+  ArrowRight,
   CalendarCheck,
   CheckCircle2,
+  ChevronRight,
   Clipboard,
   Copy,
   FileText,
+  Flag,
   Loader2,
   MailPlus,
+  ShieldCheck,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  LockedFeatureCard,
+  UpgradePromptModal,
+} from "@/components/billing-gates";
 import {
   Card,
   CardContent,
@@ -51,6 +60,21 @@ import {
 } from "@/lib/collections/decision-engine";
 import { buildCustomerBehaviourProfile } from "@/lib/collections/customer-behaviour";
 import {
+  buildInvoiceMessageSafetyResult,
+  type UnifiedSafetyCheck,
+  type UnifiedSafetyResult,
+} from "@/lib/collections/safety";
+import {
+  canUseFeature,
+} from "@/lib/billing/plans";
+import { useLocalAccount } from "@/lib/billing/use-local-account";
+import { requirePlanAccess, toAccountState } from "@/lib/account/access";
+import { incrementAIUsage } from "@/lib/account/usage";
+import {
+  incrementUsage,
+  readLocalAccount,
+} from "@/lib/demo-auth";
+import {
   demoCustomerBehaviourProfiles,
   demoCustomers,
   demoInvoices,
@@ -63,8 +87,6 @@ import {
   type ImportDiffOutput,
   type ImportSummary,
 } from "@/lib/import/zentra-import";
-import { ActivityTimeline } from "@/components/activity-timeline";
-import { SafetyPanel } from "@/components/safety-panel";
 import type {
   ActivityEvent,
   CollectionScenario,
@@ -76,9 +98,8 @@ import type {
   Invoice,
 } from "@/types/zentra";
 
-// TODO: Replace with dynamic new Date().toISOString().slice(0,10) before live data launch.
-// Hardcoded to match demo invoice due dates so overdue calculations work in the demo.
 const referenceDate = "2026-05-07";
+const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
 
 const visibleGroups: Array<{
   id: CollectionsDashboardGroup;
@@ -104,6 +125,40 @@ const visibleGroups: Array<{
     id: "wait_low_priority",
     title: "Wait / low priority",
     description: "Recent chases, future promises, or low-value items.",
+  },
+];
+
+type PlanViewFilter = "focus" | CollectionsDashboardGroup;
+
+const planViewFilters: Array<{
+  id: PlanViewFilter;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "focus",
+    label: "Focus",
+    description: "Chase, promises, and exceptions",
+  },
+  {
+    id: "chase_now",
+    label: "Chase now",
+    description: "Ready to review",
+  },
+  {
+    id: "promises_to_check",
+    label: "Promises",
+    description: "Payment dates to check",
+  },
+  {
+    id: "exceptions_to_resolve",
+    label: "Exceptions",
+    description: "Blocked or unsafe to chase",
+  },
+  {
+    id: "wait_low_priority",
+    label: "Waiting",
+    description: "Low priority",
   },
 ];
 
@@ -155,7 +210,12 @@ const actionScenarioOptions: Array<{ value: ActionScenario; label: string }> = [
 function readImportedInvoices() {
   if (typeof window === "undefined") return demoInvoices;
 
-  const storedInvoices = window.localStorage.getItem(importedInvoicesStorageKey);
+  const localAccount = readLocalAccount();
+  const storageKey =
+    localAccount?.planId === "demo"
+      ? demoInvoiceStateStorageKey
+      : importedInvoicesStorageKey;
+  const storedInvoices = window.localStorage.getItem(storageKey);
   if (!storedInvoices) return demoInvoices;
 
   try {
@@ -164,7 +224,7 @@ function readImportedInvoices() {
       ? parsedInvoices
       : demoInvoices;
   } catch {
-    window.localStorage.removeItem(importedInvoicesStorageKey);
+    window.localStorage.removeItem(storageKey);
     return demoInvoices;
   }
 }
@@ -197,14 +257,26 @@ function readImportDiff() {
   }
 }
 
-export function ZentraDashboard({
-  initialInvoices,
-}: { initialInvoices?: Invoice[] } = {}) {
-  const isBookkeeperMode = Boolean(initialInvoices);
-  const [invoices, setInvoices] = useState<Invoice[]>(
-    () => initialInvoices ?? readImportedInvoices(),
-  );
+function persistInvoices(nextInvoices: Invoice[]) {
+  if (typeof window === "undefined") return;
+  const localAccount = readLocalAccount();
+  const storageKey =
+    localAccount?.planId === "demo"
+      ? demoInvoiceStateStorageKey
+      : importedInvoicesStorageKey;
+  window.localStorage.setItem(storageKey, JSON.stringify(nextInvoices));
+}
+
+export function ZentraDashboard() {
+  const { account } = useLocalAccount();
+  const [upgradePrompt, setUpgradePrompt] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>(readImportedInvoices);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [planViewFilter, setPlanViewFilter] =
+    useState<PlanViewFilter>("focus");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [subject, setSubject] = useState("");
@@ -231,15 +303,13 @@ export function ZentraDashboard({
   const [replyPromiseDate, setReplyPromiseDate] = useState("");
   const [replyPromiseAmount, setReplyPromiseAmount] = useState("");
   const [replyDisputeReason, setReplyDisputeReason] = useState("");
-  const [importSummary] = useState<ImportSummary | null>(
-    isBookkeeperMode ? null : readImportSummary,
-  );
-  const [importDiff] = useState<ImportDiffOutput | null>(
-    isBookkeeperMode ? null : readImportDiff,
-  );
+  const [importSummary] = useState<ImportSummary | null>(readImportSummary);
+  const [importDiff] = useState<ImportDiffOutput | null>(readImportDiff);
   const [loadState, setLoadState] = useState<"ready" | "loading" | "error">(
     "ready",
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hideSidebar, setHideSidebar] = useState(false);
 
   const customers = useMemo(
     () => (importSummary ? inferCustomersFromInvoices(invoices) : demoCustomers),
@@ -254,16 +324,29 @@ export function ZentraDashboard({
   );
 
   const plan = useMemo(
-    () =>
-      rankCollectionActions({
+    () => {
+      const basePlan = rankCollectionActions({
         invoices,
         customers,
         customerBehaviourProfiles: behaviourProfiles,
         referenceDate,
-      }),
-    [behaviourProfiles, customers, invoices],
+      });
+      if (!searchQuery.trim()) return basePlan;
+      const lowerQuery = searchQuery.toLowerCase();
+      return basePlan.filter(item => 
+        item.customerName.toLowerCase().includes(lowerQuery) || 
+        (item.invoiceNumber && item.invoiceNumber.toLowerCase().includes(lowerQuery))
+      );
+    },
+    [behaviourProfiles, customers, invoices, searchQuery],
   );
   const groups = useMemo(() => groupActionsByCategory(plan), [plan]);
+  const filteredVisibleGroups = useMemo(() => {
+    if (planViewFilter === "focus") {
+      return visibleGroups.filter((group) => group.id !== "wait_low_priority");
+    }
+    return visibleGroups.filter((group) => group.id === planViewFilter);
+  }, [planViewFilter]);
   const selectedPlan = plan.find((item) => item.id === selectedPlanId) ?? null;
   const selectedInvoice = selectedPlan
     ? invoices.find((invoice) => invoice.id === selectedPlan.invoiceId) ?? null
@@ -289,8 +372,10 @@ export function ZentraDashboard({
     setDraft(initialDraft);
     setSelectedTone(recommendedToneFor(item));
     setDraftRiskNotes(
-      item.safetyChecks.length
-        ? item.safetyChecks.map((check) => check.explanation).join(" ")
+      invoice
+        ? formatSafetyRiskNotes(
+            buildDrawerSafetyResult(item, invoice, undefined, []),
+          )
         : "Human review is required before sending.",
     );
     setDraftNextStep("Review before copying into your email client.");
@@ -302,23 +387,13 @@ export function ZentraDashboard({
     setReplyPromiseAmount(nextDetails.promisedAmount);
     setReplyDisputeReason(nextDetails.disputeReason);
     setCopied(false);
-
-    if (invoice) {
-      addActivityEvent(
-        invoice.id,
-        invoice.businessId,
-        "recommendation_created",
-        `Recommendation reviewed: ${humanAction(item.recommendedAction)}`,
-        `Zentra ranked this action with ${item.urgencyLevel} urgency. ${item.reason}`,
-      );
-    }
   }
 
   function updateInvoiceStatus(status: CollectionStatus, title: string) {
     if (!selectedInvoice) return;
 
-    setInvoices((current) =>
-      current.map((invoice) =>
+    setInvoices((current) => {
+      const next = current.map((invoice) =>
         invoice.id === selectedInvoice.id
           ? {
               ...invoice,
@@ -352,39 +427,10 @@ export function ZentraDashboard({
               ],
             }
           : invoice,
-      ),
-    );
-  }
-
-  function addActivityEvent(
-    invoiceId: string,
-    businessId: string,
-    type: ActivityEvent["type"],
-    title: string,
-    description: string,
-  ) {
-    setInvoices((current) =>
-      current.map((invoice) =>
-        invoice.id === invoiceId
-          ? {
-              ...invoice,
-              activityHistory: [
-                {
-                  id: `${invoiceId}-${type}-${Date.now()}`,
-                  invoiceId,
-                  businessId,
-                  type,
-                  title,
-                  description,
-                  createdAt: new Date().toISOString(),
-                  createdBy: "Alex Chen",
-                } satisfies ActivityEvent,
-                ...invoice.activityHistory,
-              ],
-            }
-          : invoice,
-      ),
-    );
+      );
+      persistInvoices(next);
+      return next;
+    });
   }
 
   function applyReplyClassification() {
@@ -407,8 +453,8 @@ export function ZentraDashboard({
     const nextStatus =
       statusByClassification[replyClassification.classification] ?? "overdue";
 
-    setInvoices((current) =>
-      current.map((invoice) =>
+    setInvoices((current) => {
+      const next = current.map((invoice) =>
         invoice.id === selectedInvoice.id
           ? {
               ...invoice,
@@ -448,8 +494,10 @@ export function ZentraDashboard({
               ],
             }
           : invoice,
-      ),
-    );
+      );
+      persistInvoices(next);
+      return next;
+    });
 
     if (replyClassification.classification === "promise_to_pay") {
       setActionScenario("PROMISE_FOLLOW_UP");
@@ -473,6 +521,25 @@ export function ZentraDashboard({
 
   async function classifyReply() {
     if (!selectedInvoice || !replyText.trim()) return;
+    const access = requirePlanAccess(account, "reply_classification");
+    if (!access.allowed) {
+      setUpgradePrompt({
+        title: "Reply classification is not available.",
+        description:
+          access.reason ?? "Upgrade or wait for your usage to reset before using AI actions.",
+      });
+      setReplyClassification({
+        classification: "unclear",
+        confidence: "low",
+        reason:
+          access.reason ?? "Upgrade or wait for your usage to reset before using AI actions.",
+        suggestedStatusUpdate: "Manual review",
+        suggestedNextAction: "Upgrade or continue manually.",
+        requiresManualReview: true,
+        source: "manual_review",
+      });
+      return;
+    }
     setIsClassifyingReply(true);
 
     try {
@@ -490,6 +557,8 @@ export function ZentraDashboard({
       if (!response.ok) throw new Error("Reply classification failed.");
       const result = (await response.json()) as ReplyClassificationResult;
       setReplyClassification(result);
+      if (account) incrementAIUsage(toAccountState(account), "classify_reply");
+      incrementUsage("aiActionsThisMonth");
       setReplyPromiseDate(result.extractedPromiseDate ?? "");
       setReplyPromiseAmount(
         result.extractedPromiseAmount
@@ -514,28 +583,36 @@ export function ZentraDashboard({
 
   async function copyMessage() {
     if (!draft && !subject) return;
-    if (!selectedInvoice) return;
     await navigator.clipboard.writeText(
       [`Subject: ${subject}`, "", draft].join("\n"),
     );
     setCopied(true);
-    addActivityEvent(
-      selectedInvoice.id,
-      selectedInvoice.businessId,
-      "message_copied",
-      "Draft copied for review",
-      "A draft message was copied to clipboard. No outbound message was sent in demo mode.",
-    );
+    updateInvoiceStatus("overdue", "Draft copied for review");
   }
 
   async function generateDraft() {
     if (!selectedPlan || !selectedInvoice) return;
+    const access = requirePlanAccess(account, "ai_draft_generation");
+    if (!access.allowed) {
+      setUpgradePrompt({
+        title: "Draft generation is not available.",
+        description:
+          access.reason ?? "Upgrade or wait for your usage to reset before using AI actions.",
+      });
+      setDraftRiskNotes(
+        access.reason ?? "Upgrade or wait for your usage to reset before using AI actions.",
+      );
+      setDraftNextStep("Upgrade or continue with the current template manually.");
+      setDraftConfidence("low");
+      return;
+    }
     setIsGenerating(true);
     const actionMeta = actionScenarioMeta(
       actionScenario,
       selectedInvoice,
       invoices,
       scenarioDetails,
+      selectedTone,
     );
     const scenario = draftScenarioForAction(actionScenario);
 
@@ -549,7 +626,7 @@ export function ZentraDashboard({
       );
       setSubject(defaultSubjectForAction(actionScenario, selectedPlan, selectedInvoice));
       setDraft(fallback);
-      setDraftRiskNotes(actionMeta.safetyChecks.join(" "));
+      setDraftRiskNotes(formatSafetyRiskNotes(actionMeta.safetyResult));
       setDraftConfidence("low");
       setIsGenerating(false);
       return;
@@ -604,15 +681,11 @@ export function ZentraDashboard({
       setDraftRiskNotes(generated.riskNotes);
       setDraftConfidence(generated.confidence);
       setDraftSource(generated.source ?? "template");
-      if (selectedInvoice) {
-        addActivityEvent(
-          selectedInvoice.id,
-          selectedInvoice.businessId,
-          "message_drafted",
-          "Draft generated",
-          `${generated.source ?? "template"} draft created for ${actionScenario.toLowerCase().replace(/_/g, " ")}. Confidence: ${generated.confidence}.`,
-        );
-      }
+      if (account) incrementAIUsage(toAccountState(account), "draft_generation");
+      incrementUsage("aiActionsThisMonth");
+      setTimeout(() => {
+        document.getElementById("draft-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
     } catch {
       const fallback = buildActionDraftMessage(
         actionScenario,
@@ -647,152 +720,469 @@ export function ZentraDashboard({
     return <DashboardEmptyState />;
   }
 
-  // Demo mode: no import has been done and this isn't a bookkeeper client view
-  const isDemoMode = !importSummary && !isBookkeeperMode;
-  const demoSummaryLine = isDemoMode
-    ? `We found ${summary[0]?.value ?? "–"} needing attention, ${groups.chase_now.length} recommended actions, ${groups.exceptions_to_resolve.length} exceptions, and ${groups.promises_to_check.length} promises to check.`
-    : null;
-
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-4 border-b border-black/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex flex-col gap-6">
+      <UpgradePromptModal
+        open={Boolean(upgradePrompt)}
+        title={upgradePrompt?.title ?? ""}
+        description={upgradePrompt?.description ?? ""}
+        onClose={() => setUpgradePrompt(null)}
+      />
+
+      {/* Onboarding hero — only shown in demo mode, closes the "what is this?" gap */}
+      {account?.planId === "demo" ? (
+        <section
+          className="zn-card overflow-hidden p-0 flex flex-col md:flex-row"
+          style={{ background: "var(--zn-ink)", borderColor: "var(--zn-ink)" }}
+        >
+          <div className="flex-1 p-6 md:p-7" style={{ color: "var(--zn-surface)" }}>
+            <div
+              className="zn-label !p-0 mb-2"
+              style={{ color: "rgba(250,245,232,0.55)" }}
+            >
+              Welcome to Zentra Collect
+            </div>
+            <h2
+              className="text-[22px] md:text-[26px] leading-[1.15] mb-3"
+              style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+            >
+              Upload overdue invoices. Get a ranked chase plan in minutes.
+            </h2>
+            <p className="text-[13.5px] leading-relaxed" style={{ color: "rgba(250,245,232,0.7)" }}>
+              You&apos;re looking at sample data. Every recommendation shows{" "}
+              <span style={{ color: "var(--zn-surface)" }}>action + reason + draft message</span>{" "}
+              — and nothing goes out without you reviewing it first.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              <Link
+                href="/chase-today"
+                className="zn-pill"
+                style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+              >
+                Try the demo data <ArrowRight className="size-3.5" />
+              </Link>
+              <Link
+                href="/import"
+                className="zn-pill"
+                style={{
+                  background: "transparent",
+                  color: "var(--zn-surface)",
+                  border: "1px solid rgba(250,245,232,0.25)",
+                }}
+              >
+                Import your own CSV
+              </Link>
+            </div>
+          </div>
+          <div
+            className="hidden md:flex items-end justify-end px-7 pb-6 pt-8 flex-shrink-0"
+            style={{
+              width: 220,
+              background: "linear-gradient(180deg, rgba(184,72,31,0.08) 0%, rgba(184,72,31,0.18) 100%)",
+              borderLeft: "1px solid rgba(250,245,232,0.08)",
+            }}
+          >
+            <span
+              className="text-[64px] leading-none italic"
+              style={{
+                fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                color: "var(--zn-accent)",
+                opacity: 0.85,
+              }}
+            >
+              Z
+            </span>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-            Zentra Collect
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-neutral-950 sm:text-5xl">
-            Today&apos;s collections plan
+          <div className="zn-label mb-1.5">
+            Overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          </div>
+          <h1 className="zn-page-h1 zn-page-h1-lg">
+            {account?.planId === "demo" ? "Today's collections plan." : "Good morning."}
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
-            Know who to chase, what to do, and why.
+          <p className="mt-1.5 max-w-[580px] text-[14px] text-[#6b6253]">
+            Your collections position at a glance — what&apos;s changed, what needs you today, and what you should chase this week.
           </p>
         </div>
-        <Button
-          asChild
-          className="rounded-full bg-neutral-950 px-4 text-white hover:bg-neutral-800"
-        >
-          <Link href="/import">Import invoices</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/digest" className="zn-pill zn-pill-ghost">Open weekly brief</Link>
+          <Link href="/chase-today" className="zn-pill">Open queue</Link>
+        </div>
       </section>
 
-      {/* Demo mode: rich banner + summary spotlight */}
-      {isDemoMode && demoSummaryLine && (
-        <DemoDashboardBanner summaryLine={demoSummaryLine} />
-      )}
-
-      {/* Post-import success callout (real data) */}
-      {importSummary && (
+      {importSummary ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
           <span>
             We found {formatCurrency(importSummary.cashNeedingAttention)} needing
             attention, {importSummary.actionsRecommended} actions recommended,{" "}
             {importSummary.exceptions} exceptions.
           </span>
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-full border-emerald-300 bg-white/70"
-          >
+          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-[#faf5e8]">
             <Link href="/import/summary">View import summary</Link>
           </Button>
         </div>
-      )}
+      ) : null}
 
-      {importDiff ? <ImportDiffDashboard diff={importDiff} /> : null}
+      {importDiff && account && canUseFeature(account.planId, "reimportComparison") ? (
+        <ImportDiffDashboard diff={importDiff} />
+      ) : importDiff ? (
+        <LockedFeatureCard
+          title="Re-import comparison is locked on this plan."
+          description="Upgrade to compare this file with the previous import and see what changed."
+          feature="reimportComparison"
+        />
+      ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {summary.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-2xl border border-black/8 bg-white/70 p-4"
-          >
-            <div className="flex items-center gap-1.5">
-              <item.icon className="size-3.5 text-neutral-400" />
-              <p className="text-xs font-medium text-neutral-500">{item.label}</p>
+      {/* 5-stat row */}
+      <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+        {summary.map((item, index) => (
+          <div key={item.label} className="zn-stat">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="zn-label">{item.label}</span>
+              <item.icon className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
             </div>
-            <p className="mt-2.5 text-xl font-semibold text-neutral-950">{item.value}</p>
-            <p className="mt-1 text-xs text-neutral-500">{item.detail}</p>
+            <div
+              className="zn-stat-num"
+              style={{ color: index === 0 ? "var(--zn-accent)" : "var(--zn-ink)" }}
+            >
+              {item.value}
+            </div>
+            <p className="text-[12px] mt-1" style={{ color: "var(--zn-ink-3)" }}>
+              {item.detail}
+            </p>
           </div>
         ))}
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-neutral-950">
-                Ranked plan
-              </h2>
-              <p className="text-sm text-neutral-600">
-                Rules decide the order. Drafting only happens after review.
+      {/* Two-column body: focus & changes  ·  risk & weekly brief */}
+      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+
+        {/* LEFT */}
+        <div className="flex flex-col gap-5">
+
+          {/* Today's focus — Top 5 actions */}
+          <div className="zn-card p-[22px]">
+            <div className="flex flex-wrap items-end justify-between gap-3 mb-3.5">
+              <div>
+                <div className="zn-label !p-0 mb-1">Today&apos;s focus</div>
+                <h2 className="text-[18px] font-semibold text-[#1d1813]">
+                  Top 5 actions Zentra recommends
+                </h2>
+                <p className="text-[12.5px] text-[#6b6253] mt-1">
+                  Sorted by impact, confidence, and urgency. You decide if and when to send.
+                </p>
+              </div>
+              <Link
+                href="/chase-today"
+                className="zn-pill zn-pill-ghost"
+                style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+              >
+                View full queue <ChevronRight className="size-3" />
+              </Link>
+            </div>
+            <div className="flex flex-col" style={{ borderTop: "1px solid var(--zn-line-soft)" }}>
+              {plan
+                .filter((item) => item.dashboardGroup !== "do_not_chase")
+                .slice(0, 5)
+                .map((item, idx, arr) => {
+                  const inv = invoices.find((i) => i.id === item.invoiceId);
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 py-3.5"
+                      style={{
+                        borderBottom:
+                          idx === arr.length - 1 ? "none" : "1px solid var(--zn-line-soft)",
+                      }}
+                    >
+                      <div
+                        className="w-[36px] flex flex-col items-center flex-shrink-0"
+                      >
+                        <div
+                          className="text-[18px] italic leading-none"
+                          style={{
+                            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                            color: "var(--zn-ink-3)",
+                          }}
+                        >
+                          {idx + 1}
+                        </div>
+                        <div
+                          className="text-[9px] tabular-nums mt-1"
+                          title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
+                          style={{
+                            color: "var(--zn-accent)",
+                            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {Math.round(item.priorityScore)}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="text-[14px] font-semibold text-[#1d1813] truncate">
+                            {item.customerName}
+                          </div>
+                          {item.invoiceNumber ? (
+                            <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                              {item.invoiceNumber}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-[12.5px] text-[#6b6253] mt-0.5 line-clamp-1" title={item.reason}>
+                          {item.reason}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 whitespace-nowrap">
+                        <div className="text-[13px] font-semibold tabular-nums text-[#1d1813]">
+                          {formatCurrency(item.amountOutstanding)}
+                        </div>
+                        {inv && inv.daysOverdue ? (
+                          <div
+                            className="text-[11px] tabular-nums"
+                            style={{ color: "var(--zn-risk)" }}
+                          >
+                            {inv.daysOverdue}d overdue
+                          </div>
+                        ) : null}
+                      </div>
+                      <div
+                        className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
+                        style={{ color: "var(--zn-ink-2)" }}
+                      >
+                        {humanAction(item.recommendedAction)}
+                      </div>
+                      <Link
+                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                        className="zn-pill flex-shrink-0"
+                        style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                      >
+                        Review
+                      </Link>
+                    </div>
+                  );
+                })}
+              {plan.filter((item) => item.dashboardGroup !== "do_not_chase").length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-[#6b6253]">
+                  Nothing flagged for action right now.
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* What changed since last import */}
+          <div className="zn-card p-[22px]">
+            <div className="mb-3.5">
+              <div className="zn-label !p-0 mb-1">Since last import</div>
+              <h2 className="text-[18px] font-semibold text-[#1d1813]">What changed</h2>
+              <p className="text-[12.5px] text-[#6b6253] mt-1">
+                {importDiff
+                  ? "Compared with your snapshot from your previous import."
+                  : "Re-import your latest export to see what shifted."}
               </p>
             </div>
-            <Badge
-              variant="outline"
-              className="h-7 rounded-full border-black/10 bg-white/70 px-3 text-neutral-700"
+            <div
+              className="grid grid-cols-3 gap-px rounded-xl overflow-hidden"
+              style={{ background: "var(--zn-line-soft)", border: "1px solid var(--zn-line-soft)" }}
             >
-              {plan.filter((item) => item.dashboardGroup !== "do_not_chase")
-                .length}{" "}
-              active recommendations
-            </Badge>
+              {(importDiff
+                ? [
+                    {
+                      label: "Recovered cash",
+                      value: formatCurrency(importDiff.totalPaidAmount ?? 0),
+                      tone: "var(--zn-safe)",
+                    },
+                    {
+                      label: "Newly overdue",
+                      value: `${importDiff.newlyOverdue?.length ?? 0} invoices`,
+                      tone: "var(--zn-risk)",
+                    },
+                    {
+                      label: "Missed promises",
+                      value: String(importDiff.promisesMissed?.length ?? 0),
+                      tone: "var(--zn-ink-2)",
+                    },
+                  ]
+                : [
+                    {
+                      label: "Recovered cash",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                    {
+                      label: "Newly overdue",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                    {
+                      label: "Missed promises",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                  ]
+              ).map((c) => (
+                <div key={c.label} className="bg-[#faf5e8] p-4">
+                  <div className="zn-label !p-0">{c.label}</div>
+                  <div
+                    className="text-[18px] font-semibold tabular-nums mt-1.5"
+                    style={{ color: c.tone }}
+                  >
+                    {c.value}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {visibleGroups.map((group) => (
-            <PlanGroup
-              key={group.id}
-              title={group.title}
-              description={group.description}
-              items={groups[group.id]}
-              invoices={invoices}
-              onReview={openReview}
-            />
-          ))}
         </div>
 
-        <aside className="hidden xl:block">
-          <div className="sticky top-24 rounded-2xl border border-black/10 bg-white/65 p-5">
-            <p className="text-sm font-medium text-neutral-950">
-              Action + reason + message
-            </p>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Zentra ranks the work, explains the recommendation, and prepares a
-              safe draft. The user still reviews and sends outside the MVP.
-            </p>
-            <div className="mt-5 space-y-3 text-sm text-neutral-700">
-              <InfoLine label="Blocked items" value="Need human review first" />
-              <InfoLine label="Safe drafts" value="Copy-only, no auto-send" />
-              <InfoLine
-                label={isDemoMode ? "Sample invoices" : "Invoices loaded"}
-                value={`${invoices.length} invoices`}
-              />
+        {/* RIGHT */}
+        <div className="flex flex-col gap-5">
+
+          {/* Risk insights */}
+          <div className="zn-card p-5">
+            <div className="mb-3.5">
+              <div className="zn-label !p-0 mb-1">Risk insights</div>
+              <h2 className="text-[18px] font-semibold text-[#1d1813]">Where the risk sits</h2>
             </div>
-            {isDemoMode && (
-              <div className="mt-5 space-y-2 border-t border-black/8 pt-5">
-                <Link
-                  href="/request-access"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-full bg-neutral-950 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
-                >
-                  Start 14-day trial
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-                    <path d="M2 5h6M5.5 2.5 8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </Link>
-                <Link
-                  href="/request-access?type=bookkeeper"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 px-3 py-2 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
-                >
-                  Request bookkeeper beta
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="flex w-full items-center justify-center text-xs font-medium text-neutral-400 underline underline-offset-2 hover:text-neutral-700"
-                >
-                  View pricing
-                </Link>
-              </div>
-            )}
+            <div className="flex flex-col gap-4">
+              {(() => {
+                const overdue = invoices.filter((i) => i.daysOverdue > 0);
+                const byCustomer = new Map<string, { count: number; total: number; oldest: number }>();
+                overdue.forEach((i) => {
+                  const c = byCustomer.get(i.customerName) ?? { count: 0, total: 0, oldest: 0 };
+                  c.count += 1;
+                  c.total += i.amountOutstanding;
+                  c.oldest = Math.max(c.oldest, i.daysOverdue);
+                  byCustomer.set(i.customerName, c);
+                });
+                const ranked = Array.from(byCustomer.entries()).sort(
+                  (a, b) => b[1].total - a[1].total,
+                );
+                const top = ranked[0];
+                const repeatLate = ranked.filter(([, v]) => v.oldest > 30).length;
+                const missedPromises = invoices.filter((i) => i.status === "promised").length;
+
+                return [
+                  {
+                    Icon: AlertTriangle,
+                    kicker: "Highest exposure",
+                    name: top ? top[0] : "—",
+                    sub: top
+                      ? `${formatCurrency(top[1].total)} · ${top[1].count} invoices`
+                      : "No customers above threshold",
+                  },
+                  {
+                    Icon: TrendingUp,
+                    kicker: "Oldest overdue",
+                    name: top ? `${top[1].oldest} days` : "—",
+                    sub: top ? `${top[0]}` : "Nothing critical",
+                  },
+                  {
+                    Icon: Users,
+                    kicker: "Repeat late payers",
+                    name: `${repeatLate} customer${repeatLate === 1 ? "" : "s"}`,
+                    sub: ranked
+                      .slice(0, 4)
+                      .map(([n]) => n.split(" ")[0])
+                      .join(", "),
+                  },
+                  {
+                    Icon: Flag,
+                    kicker: "Promises to check",
+                    name: `${missedPromises} open`,
+                    sub: "Confirm dates before re-chasing",
+                  },
+                ].map((r, i) => {
+                  const Ico = r.Icon;
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <div
+                        className="size-7 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: "var(--zn-surface-2)",
+                          border: "1px solid var(--zn-line-soft)",
+                          color: "var(--zn-accent)",
+                        }}
+                      >
+                        <Ico className="size-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="zn-label !p-0 mb-0.5">{r.kicker}</div>
+                        <div className="text-[13.5px] font-semibold text-[#1d1813] truncate">
+                          {r.name}
+                        </div>
+                        <div className="text-[12px] text-[#6b6253] truncate">{r.sub}</div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
-        </aside>
+
+          {/* Weekly brief — ink black header card */}
+          <div className="zn-card overflow-hidden p-0">
+            <div
+              className="p-[18px]"
+              style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+            >
+              <div className="zn-label !p-0" style={{ color: "rgba(250,245,232,0.55)" }}>
+                Focus for this week
+              </div>
+              <p
+                className="mt-1.5 text-[17px] leading-[1.4] italic"
+                style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif" }}
+              >
+                Recover{" "}
+                {formatCurrency(
+                  plan
+                    .filter((item) => item.dashboardGroup !== "do_not_chase")
+                    .reduce((s, item) => s + item.amountOutstanding, 0),
+                )}{" "}
+                sitting overdue. The top calls likely move the needle most — aim for a
+                date, not a payment.
+              </p>
+            </div>
+            <div className="p-[18px]">
+              <div className="zn-label !p-0 mb-2.5">Top 3 attention needed</div>
+              <div className="flex flex-col gap-2">
+                {plan
+                  .filter((item) => item.dashboardGroup !== "do_not_chase")
+                  .slice(0, 3)
+                  .map((item) => {
+                    const inv = invoices.find((i) => i.id === item.invoiceId);
+                    return (
+                      <Link
+                        key={item.id}
+                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-[10px] text-left transition-colors hover:brightness-[0.98]"
+                        style={{
+                          background: "var(--zn-surface-2)",
+                          border: "1px solid var(--zn-line-soft)",
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold text-[#1d1813] truncate">
+                            {item.customerName}
+                          </div>
+                          <div className="text-[11.5px] text-[#6b6253]">
+                            {formatCurrency(item.amountOutstanding)}
+                            {inv?.daysOverdue ? ` · ${inv.daysOverdue}d` : ""}
+                          </div>
+                        </div>
+                        <ChevronRight className="size-4 text-[#6b6253] flex-shrink-0" />
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <ActionDrawer
@@ -806,6 +1196,11 @@ export function ZentraDashboard({
               ) ?? null
             : null
         }
+        canViewCustomerBehaviour={Boolean(
+          account &&
+            (account.planId === "demo" ||
+              canUseFeature(account.planId, "customerBehaviourNotes")),
+        )}
         subject={subject}
         draft={draft}
         actionScenario={actionScenario}
@@ -835,6 +1230,7 @@ export function ZentraDashboard({
             selectedInvoice,
             invoices,
             scenarioDetails,
+            selectedTone,
           );
           setSubject(defaultSubjectForAction(nextScenario, selectedPlan, selectedInvoice));
           setDraft(
@@ -846,7 +1242,7 @@ export function ZentraDashboard({
               scenarioDetails,
             ),
           );
-          setDraftRiskNotes(nextMeta.safetyChecks.join(" "));
+          setDraftRiskNotes(formatSafetyRiskNotes(nextMeta.safetyResult));
           setDraftNextStep(nextMeta.nextStep);
           setDraftConfidence(nextMeta.confidence);
         }}
@@ -868,7 +1264,11 @@ export function ZentraDashboard({
         onMarkPromised={() =>
           updateInvoiceStatus("promised", "Promise to pay recorded")
         }
+        onMarkDisputed={() =>
+          updateInvoiceStatus("disputed", "Dispute recorded")
+        }
         onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
+        onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
         onDoNotChase={() =>
           updateInvoiceStatus("do_not_chase", "Marked do not chase")
         }
@@ -879,17 +1279,20 @@ export function ZentraDashboard({
 
 function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-5">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
             What changed since last import
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-neutral-950">
+          <h2
+            className="mt-2 text-2xl text-[#1d1813]"
+            style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+          >
             Import movement summary
           </h2>
         </div>
-        <Button asChild variant="outline" className="rounded-full border-black/10 bg-[#fbf8f1]">
+        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-[#faf5e8]">
           <Link href="/import/summary">View import summary</Link>
         </Button>
       </div>
@@ -905,9 +1308,9 @@ function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
           {diff.topChanges.map((change) => (
             <div
               key={change.id}
-              className="rounded-xl border border-black/10 bg-[#fbf8f1] p-3 text-sm leading-6 text-neutral-700"
+              className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]"
             >
-              <span className="font-medium text-neutral-950">
+              <span className="font-medium text-[#1d1813]">
                 {change.customerName} · {change.invoiceNumber}
               </span>{" "}
               {change.message}
@@ -929,12 +1332,12 @@ function DiffCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border border-black/10 bg-[#fbf8f1] p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+    <div className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472]">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-semibold text-neutral-950">{value}</p>
-      <p className="mt-1 text-sm text-neutral-500">{detail}</p>
+      <p className="mt-3 text-2xl text-[#1d1813] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>{value}</p>
+      <p className="mt-1 text-sm text-[#8d8472]">{detail}</p>
     </div>
   );
 }
@@ -972,25 +1375,31 @@ function PlanGroup({
   items,
   invoices,
   onReview,
+  initialVisibleCount,
 }: {
   title: string;
   description: string;
   items: CollectionsPlanItem[];
   invoices: Invoice[];
   onReview: (item: CollectionsPlanItem) => void;
+  initialVisibleCount: number;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleItems = showAll ? items : items.slice(0, initialVisibleCount);
+  const hiddenCount = Math.max(0, items.length - visibleItems.length);
+
   return (
-    <Card className="rounded-2xl border border-black/10 bg-white/70 py-0 shadow-none ring-0">
-      <CardHeader className="border-b border-black/10 p-4 sm:p-5">
+    <Card className="rounded-[1.75rem] border border-[#d4c9ae] bg-[#faf5e8] py-0 shadow-none ring-0">
+      <CardHeader className="border-b border-[#d4c9ae] p-4 sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-neutral-950">
+            <CardTitle className="text-lg text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
               {title}
-              <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
+              <span className="ml-2 rounded-full bg-[#f3ecd8] px-2 py-0.5 text-xs text-[#6b6253]">
                 {items.length}
               </span>
             </CardTitle>
-            <CardDescription className="mt-1 text-neutral-600">
+            <CardDescription className="mt-1 text-[#6b6253]">
               {description}
             </CardDescription>
           </div>
@@ -998,8 +1407,9 @@ function PlanGroup({
       </CardHeader>
       <CardContent className="p-0">
         {items.length ? (
-          <div className="divide-y divide-black/10">
-            {items.map((item) => {
+          <>
+          <div className="space-y-3 p-3 sm:p-4">
+            {visibleItems.map((item) => {
               const invoice = invoices.find(
                 (current) => current.id === item.invoiceId,
               );
@@ -1009,41 +1419,85 @@ function PlanGroup({
                   key={item.id}
                   type="button"
                   onClick={() => onReview(item)}
-                  className="grid w-full gap-x-5 gap-y-2 px-4 py-4 text-left transition-colors hover:bg-[#f7f2ea]/70 sm:px-5 lg:grid-cols-[minmax(160px,1fr)_100px_110px_minmax(180px,1.6fr)]"
+                  className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-neutral-950">
+                  <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+                    <p className="truncate text-base font-semibold text-[#1d1813]">
                       {item.customerName}
                     </p>
-                    <p className="mt-0.5 text-xs text-neutral-500">
+                    <p className="mt-1 text-sm text-[#8d8472]">
                       {item.invoiceNumber || "Customer balance"}
                     </p>
+                    <div className="mt-4 space-y-2">
+                      <p className="text-base font-semibold text-[#1d1813]">
+                        {formatCurrency(item.amountOutstanding)}
+                      </p>
+                      {invoice?.daysOverdue ? (
+                        <p className="text-sm font-medium text-rose-600">
+                          {invoice.daysOverdue}d overdue
+                          <span className="ml-1.5 font-normal text-[#a09885]">
+                            · due {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-[#8d8472]">
+                          {invoice?.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "Not overdue"}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Metric
-                    label="Outstanding"
-                    value={formatCurrency(item.amountOutstanding)}
-                  />
-                  <Metric
-                    label="Overdue"
-                    value={invoice?.daysOverdue ? `${invoice.daysOverdue}d` : "Current"}
-                    detail={invoice?.dueDate ? formatDate(invoice.dueDate) : undefined}
-                  />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-neutral-950">
+                    <p className="text-base font-semibold text-[#1d1813]">
                       {humanAction(item.recommendedAction)}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <StatusBadge value={item.urgencyLevel} />
-                      <SafetyBadge value={item.safetyStatus} />
-                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                      {item.reason.split(";")[0].trim()}
+                    </p>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-start gap-2 md:max-w-48 md:justify-end">
+                    <StatusBadge value={item.urgencyLevel} />
+                    <SafetyBadge value={item.safetyStatus} />
+                    <span className="mt-1 w-full rounded-full bg-[#1d1813] px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-[#3d3428]">
+                      Review action
+                    </span>
                   </div>
                 </button>
               );
             })}
           </div>
+          {hiddenCount ? (
+            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={() => setShowAll(true)}
+              >
+                Show {hiddenCount} more in {title.toLowerCase()}
+              </Button>
+            </div>
+          ) : showAll && items.length > initialVisibleCount ? (
+            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={() => setShowAll(false)}
+              >
+                Show fewer
+              </Button>
+            </div>
+          ) : null}
+          </>
         ) : (
-          <div className="p-5 text-sm text-neutral-600">
-            Nothing in this group right now.
+          <div className="flex flex-col items-center gap-2 p-6 text-center">
+            <p className="text-sm font-medium text-[#6b6253]">
+              {title === "Wait / low priority"
+                ? "No low-priority items right now."
+                : title === "Do not chase"
+                ? "No invoices are set to 'do not chase'. Items marked here are hidden from the ranked plan."
+                : `Nothing in ${title.toLowerCase()} right now.`}
+            </p>
           </div>
         )}
       </CardContent>
@@ -1056,6 +1510,7 @@ function ActionDrawer({
   invoice,
   customer,
   behaviourProfile,
+  canViewCustomerBehaviour,
   subject,
   draft,
   actionScenario,
@@ -1090,13 +1545,16 @@ function ActionDrawer({
   onCopy,
   onMarkSent,
   onMarkPromised,
+  onMarkDisputed,
   onMarkPaid,
+  onSnooze,
   onDoNotChase,
 }: {
   item: CollectionsPlanItem | null;
   invoice: Invoice | null;
   customer: Customer | null;
   behaviourProfile: CustomerBehaviourProfile | null;
+  canViewCustomerBehaviour: boolean;
   subject: string;
   draft: string;
   actionScenario: ActionScenario;
@@ -1131,35 +1589,38 @@ function ActionDrawer({
   onCopy: () => void;
   onMarkSent: () => void;
   onMarkPromised: () => void;
+  onMarkDisputed: () => void;
   onMarkPaid: () => void;
+  onSnooze: () => void;
   onDoNotChase: () => void;
 }) {
   const open = Boolean(item && invoice);
   const actionMeta =
     item && invoice
-      ? actionScenarioMeta(actionScenario, invoice, allInvoices, scenarioDetails)
+      ? actionScenarioMeta(actionScenario, invoice, allInvoices, scenarioDetails, tone)
       : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="w-full overflow-y-auto border-black/10 bg-[#fbf8f1] p-0 sm:max-w-xl"
+        className="w-full overflow-y-auto border-[#d4c9ae] bg-[#faf5e8] p-0 sm:max-w-xl"
         side="right"
+        style={{ boxShadow: "-8px 0 32px rgba(0,0,0,0.08)" }}
       >
         {item && invoice ? (
           <>
-            <SheetHeader className="border-b border-black/10 px-5 py-4">
-              <SheetTitle className="text-lg font-semibold text-neutral-950">
+            <SheetHeader className="border-b border-[#d4c9ae] p-5">
+              <SheetTitle className="text-2xl text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
                 {invoice.customerName}
               </SheetTitle>
-              <SheetDescription className="text-sm text-neutral-500">
-                {invoice.invoiceNumber} &middot;{" "}
+              <SheetDescription className="text-[#6b6253]">
+                Invoice {invoice.invoiceNumber} ·{" "}
                 {formatCurrency(invoice.amountOutstanding)} outstanding
               </SheetDescription>
             </SheetHeader>
 
             <div className="space-y-5 p-5">
-              <section className="grid gap-3 rounded-2xl border border-black/10 bg-white/70 p-4 sm:grid-cols-2">
+              <section className="grid gap-3 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
                 <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
                 <InfoLine
                   label="Days overdue"
@@ -1172,16 +1633,24 @@ function ActionDrawer({
                 <InfoLine label="Relationship" value={invoice.relationshipType} />
               </section>
 
-              <CustomerBehaviourCard profile={behaviourProfile} />
+              {canViewCustomerBehaviour ? (
+                <CustomerBehaviourCard profile={behaviourProfile} />
+              ) : (
+                <LockedFeatureCard
+                  title="Customer behaviour summaries are locked."
+                  description="Upgrade to use previous imports for payment behaviour notes, suggested tone, and customer memory."
+                  feature="customerBehaviourNotes"
+                />
+              )}
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
                   Recommendation
                 </p>
-                <h3 className="mt-3 text-lg font-semibold text-neutral-950">
+                <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
                   {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                <p className="mt-2 text-sm leading-6 text-[#6b6253]">
                   {actionMeta?.explanation ?? item.reason}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1194,50 +1663,56 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
                 <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
                       What do you need to do?
                     </p>
-                    <p className="mt-1 text-sm text-neutral-600">
+                    <p className="mt-1 text-sm text-[#6b6253]">
                       Choose the job first. Zentra adjusts the reason, safety
                       checks, fields, and draft.
                     </p>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Select
-                      value={actionScenario}
-                      onValueChange={(value) => {
-                        const next = value as ActionScenario;
-                        onActionScenarioChange(next);
-                      }}
-                    >
-                      <SelectTrigger className="w-full rounded-full bg-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {actionScenarioOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={tone}
-                      onValueChange={(value) => onToneChange(value as DraftTone)}
-                    >
-                      <SelectTrigger className="w-full rounded-full bg-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="friendly">Friendly</SelectItem>
-                        <SelectItem value="neutral">Neutral</SelectItem>
-                        <SelectItem value="firm">Firm</SelectItem>
-                        <SelectItem value="final">Final</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Action Scenario</label>
+                      <Select
+                        value={actionScenario}
+                        onValueChange={(value) => {
+                          const next = value as ActionScenario;
+                          onActionScenarioChange(next);
+                        }}
+                      >
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {actionScenarioOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Message Tone</label>
+                      <Select
+                        value={tone}
+                        onValueChange={(value) => onToneChange(value as DraftTone)}
+                      >
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="friendly">Friendly</SelectItem>
+                          <SelectItem value="neutral">Neutral</SelectItem>
+                          <SelectItem value="firm">Firm</SelectItem>
+                          <SelectItem value="final">Final</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1250,35 +1725,35 @@ function ActionDrawer({
                 onChange={onScenarioDetailsChange}
               />
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
                       Draft message
                     </p>
-                    <p className="mt-1 text-sm text-neutral-600">
+                    <p className="mt-1 text-sm text-[#6b6253]">
                       Copy-only in MVP. Review before sending.
                     </p>
                   </div>
                   <Badge
                     variant="outline"
-                    className="rounded-full border-black/10 bg-[#f7f2ea]"
+                    className="rounded-full border-[#d4c9ae] bg-[#f3ecd8]"
                   >
                     {draftSource ?? "template"} · {draftConfidence}
                   </Badge>
                 </div>
-                <div className="mt-4 space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                <div className="mt-4 space-y-2" id="draft-section">
+                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
                     Subject
                   </label>
                   <Input
                     value={subject}
                     onChange={(event) => onSubjectChange(event.target.value)}
-                    className="rounded-2xl border-black/10 bg-[#fbf8f1]"
+                    className="rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
                   />
                 </div>
                 <Textarea
-                  className="mt-4 min-h-64 resize-none rounded-2xl border-black/10 bg-[#fbf8f1] leading-6"
+                  className="mt-4 min-h-64 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
                   value={draft}
                   onChange={(event) => onDraftChange(event.target.value)}
                 />
@@ -1289,50 +1764,91 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <SafetyPanel checks={item.safetyChecks} selectedTone={tone} />
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                  Safety checks
+                </p>
+                <div className="mt-3 space-y-3">
+                  {actionMeta?.safetyResult.checks.length ? (
+                    actionMeta.safetyResult.checks.map((check) => (
+                      <div
+                        key={`${check.label}-${check.message}`}
+                        className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-[#1d1813]">
+                            {check.label}
+                          </p>
+                          <SafetyBadge value={check.status} />
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-[#6b6253]">
+                          {check.message}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-[#3d3428]">
+                      <ShieldCheck className="size-4" />
+                      No blocking safety issues found.
+                    </div>
+                  )}
+                </div>
+              </section>
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
                       Classify customer reply
                     </p>
-                    <p className="mt-1 text-sm text-neutral-600">
+                    <p className="mt-1 text-sm text-[#6b6253]">
                       Paste a reply to turn it into an AR state and next action.
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full border-black/10 bg-[#fbf8f1]"
-                    onClick={onClassifyReply}
-                    disabled={!replyText.trim() || isClassifyingReply}
-                  >
-                    {isClassifyingReply ? "Classifying..." : "Classify"}
-                  </Button>
+                  <div className="flex gap-2">
+                    {replyText.trim() && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="rounded-full px-3 text-[#8d8472] hover:text-[#1d1813]"
+                        onClick={() => onReplyTextChange("")}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                      onClick={onClassifyReply}
+                      disabled={!replyText.trim() || isClassifyingReply}
+                    >
+                      {isClassifyingReply ? "Classifying..." : "Classify"}
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
-                  className="mt-4 min-h-28 resize-none rounded-2xl border-black/10 bg-[#fbf8f1] leading-6"
+                  className="mt-4 min-h-28 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
                   value={replyText}
                   onChange={(event) => onReplyTextChange(event.target.value)}
                   placeholder="Paste the customer reply here..."
                 />
                 {replyClassification ? (
-                  <div className="mt-4 rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
+                  <div className="mt-4 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-neutral-950">
+                        <p className="text-sm font-semibold text-[#1d1813]">
                           {humanLabel(replyClassification.classification)}
                         </p>
-                        <p className="mt-1 text-sm leading-6 text-neutral-600">
+                        <p className="mt-1 text-sm leading-6 text-[#6b6253]">
                           {replyClassification.reason}
                         </p>
                       </div>
-                      <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-white/70">
+                      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
                         {replyClassification.source} · {replyClassification.confidence}
                       </Badge>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
                       <InfoLine
                         label="Suggested status"
                         value={replyClassification.suggestedStatusUpdate}
@@ -1343,7 +1859,7 @@ function ActionDrawer({
                       />
                     </div>
                     {replyClassification.classification === "promise_to_pay" ? (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
                         <FieldInput
                           label="Promised payment date"
                           type="date"
@@ -1359,7 +1875,7 @@ function ActionDrawer({
                     ) : null}
                     {replyClassification.classification === "dispute" ? (
                       <div className="mt-4">
-                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
                           Dispute reason
                         </label>
                         <Textarea
@@ -1367,7 +1883,7 @@ function ActionDrawer({
                           onChange={(event) =>
                             onReplyDisputeReasonChange(event.target.value)
                           }
-                          className="mt-2 min-h-20 rounded-2xl border-black/10 bg-white/70"
+                          className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
                         />
                       </div>
                     ) : null}
@@ -1380,7 +1896,7 @@ function ActionDrawer({
                     ) : null}
                     <Button
                       type="button"
-                      className="mt-4 rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+                      className="mt-4 rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
                       onClick={onApplyReplyClassification}
                     >
                       Apply update
@@ -1389,50 +1905,76 @@ function ActionDrawer({
                 ) : null}
               </section>
 
-              <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
                   Activity history
                 </p>
-                <ActivityTimeline items={invoice.activityHistory} />
+                <div className="mt-3 space-y-3">
+                  {invoice.activityHistory.map((event) => (
+                    <div key={event.id} className="flex gap-3">
+                      <span className="mt-1 size-2 rounded-full bg-[#1d1813]" />
+                      <div>
+                        <p className="text-sm font-medium text-[#1d1813]">
+                          {event.title}
+                        </p>
+                        <p className="text-xs leading-5 text-[#6b6253]">
+                          {event.description}
+                        </p>
+                        <p className="mt-1 text-xs text-[#a09885]">
+                          {formatDate(event.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </section>
             </div>
 
-            <div className="sticky bottom-0 border-t border-black/10 bg-[#fbf8f1]/95 p-4 backdrop-blur">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
-                  onClick={onGenerate}
-                  disabled={isGenerating}
+            <div className="sticky bottom-0 grid gap-2 border-t border-[#d4c9ae] bg-[#faf5e8]/95 p-4 backdrop-blur sm:grid-cols-2">
+              <Button
+                className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
+                onClick={onGenerate}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <MailPlus className="size-4" />
+                )}
+                Generate draft
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={onCopy}
+              >
+                <Copy className="size-4" />
+                {copied ? "Copied" : "Copy message"}
+              </Button>
+              <div className="sm:col-span-2">
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    if (val === "sent") onMarkSent();
+                    if (val === "promised") onMarkPromised();
+                    if (val === "disputed") onMarkDisputed();
+                    if (val === "paid") onMarkPaid();
+                    if (val === "snooze") onSnooze();
+                    if (val === "do_not_chase") onDoNotChase();
+                  }}
                 >
-                  {isGenerating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <MailPlus className="size-4" />
-                  )}
-                  Generate draft
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-full border-black/10 bg-white/70"
-                  onClick={onCopy}
-                >
-                  <Copy className="size-4" />
-                  {copied ? "Copied" : "Copy message"}
-                </Button>
-              </div>
-              <div className="mt-2 grid grid-cols-4 gap-1.5">
-                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkSent}>
-                  Mark sent
-                </Button>
-                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkPromised}>
-                  Promised
-                </Button>
-                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onMarkPaid}>
-                  Mark paid
-                </Button>
-                <Button size="sm" variant="ghost" className="rounded-full text-xs text-neutral-600 hover:bg-black/5 hover:text-neutral-950" onClick={onDoNotChase}>
-                  Do not chase
-                </Button>
+                  <SelectTrigger className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8] font-medium">
+                    <SelectValue placeholder="Change status →" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sent">Mark as sent</SelectItem>
+                    <SelectItem value="promised">Mark promised</SelectItem>
+                    <SelectItem value="disputed">Mark disputed</SelectItem>
+                    <SelectItem value="paid">Mark paid</SelectItem>
+                    <SelectItem value="snooze">Snooze</SelectItem>
+                    <SelectItem value="do_not_chase">Do not chase</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </>
@@ -1486,13 +2028,13 @@ function ScenarioFields({
         <FieldInput label="Owner / responsible person" value={details.disputeOwner} onChange={(value) => onChange({ disputeOwner: value })} />
         <FieldInput label="Next resolution date" type="date" value={details.nextResolutionDate} onChange={(value) => onChange({ nextResolutionDate: value })} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Notes
           </label>
           <Textarea
             value={details.disputeNotes}
             onChange={(event) => onChange({ disputeNotes: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1505,13 +2047,13 @@ function ScenarioFields({
         <InfoLine label="Open invoices" value={`${customerInvoices.length}`} />
         <InfoLine label="Total outstanding" value={formatCurrency(customerInvoices.reduce((sum, item) => sum + item.amountOutstanding, 0))} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Statement summary
           </label>
           <Textarea
             value={details.statementSummary}
             onChange={(event) => onChange({ statementSummary: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1532,13 +2074,13 @@ function ScenarioFields({
       <ScenarioFieldCard title="Internal escalation">
         <FieldInput label="Account manager / owner" value={details.internalOwner} onChange={(value) => onChange({ internalOwner: value })} />
         <div>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Escalation note
           </label>
           <Textarea
             value={details.escalationNote}
             onChange={(event) => onChange({ escalationNote: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1555,86 +2097,93 @@ function CustomerBehaviourCard({
 }) {
   if (!profile || profile.totalInvoices < 2 || profile.riskLabel === "unknown") {
     return (
-      <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+      <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
           Customer behaviour
         </p>
-        <p className="mt-2 text-sm font-semibold text-neutral-950">
+        <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
           Not enough history yet.
-        </p>
-        <p className="mt-1 text-sm leading-6 text-neutral-500">
-          Zentra needs more invoice history before suggesting a payment pattern.
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+          Based on previous imported data, Zentra needs more invoice history
+          before suggesting a customer pattern.
         </p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
             Customer behaviour
           </p>
-          <p className="mt-2 text-sm font-semibold text-neutral-950">
-            Payment pattern:{" "}
-            <span className="capitalize">{profile.riskLabel}</span>
-          </p>
+          <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
+            Based on previous imported data, this customer looks{" "}
+            {profile.riskLabel}.
+          </h3>
         </div>
-        <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-[#f7f2ea]">
+        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#f3ecd8]">
           {profile.riskLabel}
         </Badge>
       </div>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">
+      <p className="mt-2 text-sm leading-6 text-[#6b6253]">
         {profile.memoryNotes[0]}
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <InfoLine label="Average days late" value={`${profile.averageDaysLate}`} />
-        <InfoLine
-          label="Paid on time / late"
-          value={`${profile.invoicesPaidOnTime} / ${profile.invoicesPaidLate}`}
-        />
-        <InfoLine
-          label="Reminder pattern"
-          value={`${profile.remindersUsuallyNeeded} usually needed`}
-        />
-        <InfoLine
-          label="After first reminder"
-          value={
-            profile.averageDaysToPaymentAfterFirstReminder === null
-              ? "No paid history"
-              : `${profile.averageDaysToPaymentAfterFirstReminder} days`
-          }
-        />
-        <InfoLine
-          label="Promises missed"
-          value={`${profile.missedPromisesCount}`}
-        />
-        <InfoLine label="Disputes" value={`${profile.disputesCount}`} />
-        <InfoLine
-          label="Remittance requests"
-          value={`${profile.remittanceRequestsCount}`}
-        />
-        <InfoLine
-          label="Statement requests"
-          value={`${profile.statementRequestsCount}`}
-        />
-      </div>
-      <div className="mt-4 rounded-xl border border-black/10 bg-[#fbf8f1] p-3 text-sm leading-6 text-neutral-700">
+      {profile.averageDaysLate === 0 && profile.invoicesPaidLate === 0 && profile.missedPromisesCount === 0 && profile.disputesCount === 0 ? (
+        <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
+          <p className="text-sm text-[#3d3428]">Clean payment history. No missed promises or disputes recorded.</p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+          <InfoLine label="Average days late" value={`${profile.averageDaysLate}`} />
+          <InfoLine
+            label="Paid on time / late"
+            value={`${profile.invoicesPaidOnTime} / ${profile.invoicesPaidLate}`}
+          />
+          <InfoLine
+            label="Reminder pattern"
+            value={`${profile.remindersUsuallyNeeded} usually needed`}
+          />
+          <InfoLine
+            label="After first reminder"
+            value={
+              profile.averageDaysToPaymentAfterFirstReminder === null
+                ? "No paid history"
+                : `${profile.averageDaysToPaymentAfterFirstReminder} days`
+            }
+          />
+          <InfoLine
+            label="Promises missed"
+            value={`${profile.missedPromisesCount}`}
+          />
+          <InfoLine label="Disputes" value={`${profile.disputesCount}`} />
+          <InfoLine
+            label="Remittance requests"
+            value={`${profile.remittanceRequestsCount}`}
+          />
+          <InfoLine
+            label="Statement requests"
+            value={`${profile.statementRequestsCount}`}
+          />
+        </div>
+      )}
+      <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]">
         <p>
-          <span className="font-medium text-neutral-950">Payment behaviour:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Payment behaviour:</span>{" "}
           {profile.lastPaymentBehaviour}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Suggested tone:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Suggested tone:</span>{" "}
           {humanLabel(profile.preferredToneSuggestion)}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Recommendation:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Recommendation:</span>{" "}
           {profile.recommendation}.
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Terms note:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Terms note:</span>{" "}
           {profile.paymentTermsRecommendation}
         </p>
       </div>
@@ -1650,8 +2199,8 @@ function ScenarioFieldCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
         {title}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">{children}</div>
@@ -1672,14 +2221,14 @@ function FieldInput({
 }) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
         {label}
       </label>
       <Input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 rounded-2xl border-black/10 bg-[#fbf8f1]"
+        className="mt-2 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
       />
     </div>
   );
@@ -1688,16 +2237,16 @@ function FieldInput({
 function DashboardLoadingState() {
   return (
     <div className="space-y-6">
-      <div className="h-32 animate-pulse rounded-3xl bg-white/70" />
+      <div className="h-32 animate-pulse rounded-3xl bg-[#faf5e8]" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="h-36 animate-pulse rounded-2xl bg-white/70"
+            className="h-36 animate-pulse rounded-2xl bg-[#faf5e8]"
           />
         ))}
       </div>
-      <div className="h-96 animate-pulse rounded-2xl bg-white/70" />
+      <div className="h-96 animate-pulse rounded-2xl bg-[#faf5e8]" />
     </div>
   );
 }
@@ -1705,18 +2254,18 @@ function DashboardLoadingState() {
 function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-md rounded-3xl border border-black/10 bg-white/75 p-8 text-center">
-        <AlertTriangle className="mx-auto size-8 text-neutral-950" />
-        <h1 className="mt-4 text-2xl font-semibold text-neutral-950">
+      <div className="max-w-md rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
+        <AlertTriangle className="mx-auto size-8 text-[#1d1813]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
           Collections plan could not load
         </h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-600">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
           The import data or ranking rules failed to load. No messages have been
           generated or sent.
         </p>
         <Button
           onClick={onRetry}
-          className="mt-5 rounded-full bg-neutral-950 px-5 text-white"
+          className="mt-5 rounded-full bg-[#1d1813] px-5 text-white"
         >
           Try again
         </Button>
@@ -1728,16 +2277,16 @@ function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
 function DashboardEmptyState() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-lg rounded-3xl border border-black/10 bg-white/75 p-8 text-center">
-        <FileText className="mx-auto size-9 text-neutral-950" />
-        <h1 className="mt-4 text-2xl font-semibold text-neutral-950">
+      <div className="max-w-lg rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
+        <FileText className="mx-auto size-9 text-[#1d1813]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
           Import invoices to build a collections plan
         </h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-600">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
           Zentra needs an overdue invoice export before it can rank actions,
           explain reasons, and prepare safe draft messages.
         </p>
-        <Button asChild className="mt-5 rounded-full bg-neutral-950 px-5 text-white">
+        <Button asChild className="mt-5 rounded-full bg-[#1d1813] px-5 text-white">
           <Link href="/import">Import invoices</Link>
         </Button>
       </div>
@@ -1755,23 +2304,25 @@ function Metric({
   detail?: string;
 }) {
   return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
+    <div className="min-w-0 overflow-hidden">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-neutral-950">{value}</p>
-      {detail ? <p className="mt-1 text-xs text-neutral-500">{detail}</p> : null}
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5 text-[#1d1813]" title={value}>{value}</p>
+      {detail ? <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[#8d8472]" title={detail}>{detail}</p> : null}
     </div>
   );
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400">
+    <div className="min-w-0 overflow-hidden">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
         {label}
       </p>
-      <p className="mt-1 break-all text-sm font-medium text-neutral-950">{value}</p>
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-[#1d1813]" title={value}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -1789,7 +2340,7 @@ function StatusBadge({
       ? "border-red-200 bg-red-50 text-red-700"
       : value === "medium"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-black/10 bg-neutral-100 text-neutral-700";
+        : "border-[#d4c9ae] bg-[#f3ecd8] text-[#3d3428]";
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>
@@ -1798,25 +2349,50 @@ function StatusBadge({
   );
 }
 
-const safetyLabels: Record<string, string> = {
-  blocked: "Blocked",
-  needs_review: "Needs review",
-  safe_to_draft: "Safe to draft",
-};
-
 function SafetyBadge({ value }: { value: string }) {
   const tone =
     value === "blocked"
       ? "border-red-200 bg-red-50 text-red-700"
-      : value === "needs_review"
+      : value === "needs_review" || value === "review"
         ? "border-amber-200 bg-amber-50 text-amber-700"
         : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>
-      {safetyLabels[value] ?? humanLabel(value)}
+      {humanLabel(value)}
     </Badge>
   );
+}
+
+function formatSafetyRiskNotes(result: UnifiedSafetyResult) {
+  return `${result.warningMessage} ${result.checks
+    .map((check) => check.message)
+    .join(" ")}`.trim();
+}
+
+function buildDrawerSafetyResult(
+  item: CollectionsPlanItem,
+  invoice: Invoice,
+  tone?: DraftTone,
+  extraChecks: UnifiedSafetyCheck[] = [],
+) {
+  return buildInvoiceMessageSafetyResult({
+    invoice,
+    tone,
+    extraChecks: [
+      ...item.safetyChecks.map((check) => ({
+        label: check.title,
+        status:
+          check.status === "blocked"
+            ? "blocked" as const
+            : check.status === "needs_review"
+              ? "review" as const
+              : "safe" as const,
+        message: check.explanation,
+      })),
+      ...extraChecks,
+    ],
+  });
 }
 
 function buildSummary(invoices: Invoice[], plan: CollectionsPlanItem[]) {
@@ -2018,6 +2594,7 @@ function actionScenarioMeta(
   invoice: Invoice,
   allInvoices: Invoice[],
   details: ScenarioDetails,
+  tone?: DraftTone,
 ) {
   const customerInvoices = allInvoices.filter(
     (item) => item.customerId === invoice.customerId && item.amountOutstanding > 0,
@@ -2029,7 +2606,8 @@ function actionScenarioMeta(
   const meta: Record<ActionScenario, {
     recommendedAction: string;
     explanation: string;
-    safetyChecks: string[];
+    safetyChecks: UnifiedSafetyCheck[];
+    safetyResult: UnifiedSafetyResult;
     safetyStatus: "safe_to_draft" | "needs_review" | "blocked";
     confidence: "high" | "medium" | "low";
     nextStep: string;
@@ -2037,80 +2615,112 @@ function actionScenarioMeta(
     SEND_PAYMENT_REMINDER: {
       recommendedAction: "Send payment reminder",
       explanation: `${invoice.invoiceNumber} has ${formatCurrency(invoice.amountOutstanding)} outstanding and is ${invoice.daysOverdue} days overdue.`,
-      safetyChecks: baseSafety(invoice, details),
-      safetyStatus: invoice.disputeReason ? "blocked" : "safe_to_draft",
+      ...scenarioSafety(invoice, details, [], tone),
       confidence: invoice.disputeReason ? "low" : "high",
       nextStep: "Review the draft, then copy it into your email client.",
     },
     ASK_FOR_PAYMENT_DATE: {
       recommendedAction: "Ask for payment date",
       explanation: "The goal is not escalation; ask for a clear expected payment date.",
-      safetyChecks: baseSafety(invoice, details),
-      safetyStatus: "safe_to_draft",
+      ...scenarioSafety(invoice, details, [], tone),
       confidence: "high",
       nextStep: "Copy only after checking the balance is still outstanding.",
     },
     REQUEST_REMITTANCE: {
       recommendedAction: "Request remittance advice",
       explanation: `Customer may have paid, but ${formatCurrency(invoice.amountOutstanding)} is still unmatched.`,
-      safetyChecks: ["Ask for remittance before sending another payment reminder.", ...baseSafety(invoice, details)],
-      safetyStatus: "needs_review",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Remittance first",
+          status: "review",
+          message: "Ask for remittance before sending another payment reminder.",
+        },
+      ], tone),
       confidence: "medium",
       nextStep: "Ask for remittance details and match the payment before chasing again.",
     },
     STATEMENT_OF_ACCOUNT: {
       recommendedAction: "Send/request statement of account",
       explanation: `${customerInvoices.length} open invoice${customerInvoices.length === 1 ? "" : "s"} total ${formatCurrency(totalOutstanding)} for this customer.`,
-      safetyChecks: ["Check the statement includes only open customer invoices.", ...baseSafety(invoice, details)],
-      safetyStatus: "needs_review",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Statement accuracy",
+          status: "review",
+          message: "Check the statement includes only open customer invoices.",
+        },
+      ], tone),
       confidence: "medium",
       nextStep: "Review open items before copying the statement request.",
     },
     CONFIRM_INVOICE_RECEIVED: {
       recommendedAction: "Confirm invoice was received",
       explanation: "Use this when the invoice is early-stage, not seriously overdue, or the recipient is uncertain.",
-      safetyChecks: baseSafety(invoice, details),
-      safetyStatus: "safe_to_draft",
+      ...scenarioSafety(invoice, details, [], tone),
       confidence: "high",
       nextStep: "Confirm the right recipient before increasing tone.",
     },
     ASK_FOR_AP_CONTACT: {
       recommendedAction: "Ask for AP/accounts contact",
       explanation: "The current contact is missing or may not be the right person for payment queries.",
-      safetyChecks: ["Do not send invoice-specific pressure until the right contact is confirmed."],
-      safetyStatus: "needs_review",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Contact first",
+          status: "review",
+          message: "Do not send invoice-specific pressure until the right contact is confirmed.",
+        },
+      ], tone),
       confidence: "medium",
       nextStep: "Find the right AP contact, then resume invoice-level follow-up.",
     },
     PROMISE_FOLLOW_UP: {
       recommendedAction: "Follow up promised payment",
       explanation: `A promised payment date${details.promisedDate ? ` of ${formatDate(details.promisedDate)}` : ""} needs checking.`,
-      safetyChecks: ["Check bank receipts before saying the promise was missed.", ...baseSafety(invoice, details)],
-      safetyStatus: "needs_review",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Receipt check",
+          status: "review",
+          message: "Check bank receipts before saying the promise was missed.",
+        },
+      ], tone),
       confidence: "medium",
       nextStep: "Ask whether payment was made or request a revised payment date.",
     },
     RESOLVE_DISPUTE: {
       recommendedAction: "Resolve dispute",
       explanation: details.disputeReason || invoice.disputeReason || "This item should be resolved before normal chasing.",
-      safetyChecks: ["Do not send a normal payment reminder while a dispute is open."],
-      safetyStatus: "blocked",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Dispute workflow",
+          status: "blocked",
+          message: "Do not send a normal payment reminder while a dispute is open.",
+        },
+      ], tone),
       confidence: "high",
       nextStep: "Resolve the query before resuming payment reminders.",
     },
     INTERNAL_ESCALATION: {
       recommendedAction: "Escalate internally",
       explanation: "This is an internal note, not a customer chase.",
-      safetyChecks: ["Keep this internal. Do not send it to the customer."],
-      safetyStatus: "needs_review",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Internal only",
+          status: "review",
+          message: "Keep this internal. Do not send it to the customer.",
+        },
+      ], tone),
       confidence: "medium",
       nextStep: "Share internally with the account owner.",
     },
     THANK_YOU_AFTER_PAYMENT: {
       recommendedAction: "Send thank-you after payment",
       explanation: "Use only after confirming the payment has cleared.",
-      safetyChecks: ["Confirm the invoice is paid before sending thanks."],
-      safetyStatus: invoice.amountOutstanding > 0 ? "needs_review" : "safe_to_draft",
+      ...scenarioSafety(invoice, details, [
+        {
+          label: "Payment confirmation",
+          status: invoice.amountOutstanding > 0 ? "review" : "safe",
+          message: "Confirm the invoice is paid before sending thanks.",
+        },
+      ], tone),
       confidence: invoice.amountOutstanding > 0 ? "medium" : "high",
       nextStep: "Send only after the payment is confirmed.",
     },
@@ -2119,15 +2729,52 @@ function actionScenarioMeta(
   return meta[scenario];
 }
 
-function baseSafety(invoice: Invoice, details: ScenarioDetails) {
-  const checks = ["Human review is required before sending."];
-  if (!invoice.customerEmail && !details.currentContact) {
-    checks.push("No customer email is present; confirm the correct contact first.");
-  }
-  if (invoice.disputeReason || details.disputeReason) {
-    checks.push("A dispute is present; avoid normal payment reminder wording.");
-  }
-  return checks;
+function scenarioSafety(
+  invoice: Invoice,
+  details: ScenarioDetails,
+  extraChecks: UnifiedSafetyCheck[] = [],
+  tone?: DraftTone,
+): {
+  safetyChecks: UnifiedSafetyCheck[];
+  safetyResult: UnifiedSafetyResult;
+  safetyStatus: "safe_to_draft" | "needs_review" | "blocked";
+} {
+  const safetyResult = buildInvoiceMessageSafetyResult({
+    invoice,
+    tone,
+    extraChecks: [
+      ...extraChecks,
+      ...(details.currentContact || invoice.customerEmail
+        ? []
+        : [
+            {
+              label: "Contact missing",
+              status: "blocked" as const,
+              message: "No customer email is present; confirm the correct contact first.",
+            },
+          ]),
+      ...(details.disputeReason
+        ? [
+            {
+              label: "Scenario dispute detail",
+              status: "blocked" as const,
+              message: "A dispute is present; avoid normal payment reminder wording.",
+            },
+          ]
+        : []),
+    ],
+  });
+
+  return {
+    safetyChecks: safetyResult.checks,
+    safetyResult,
+    safetyStatus:
+      safetyResult.status === "blocked"
+        ? "blocked"
+        : safetyResult.status === "review"
+          ? "needs_review"
+          : "safe_to_draft",
+  };
 }
 
 function buildActionDraftMessage(

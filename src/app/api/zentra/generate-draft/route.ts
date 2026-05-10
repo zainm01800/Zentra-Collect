@@ -1,8 +1,5 @@
-// TODO: Add rate limiting (e.g. per-IP or per-session token bucket) before public launch
-// to prevent AI cost abuse on this endpoint.
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { canPerformUsage, recordAIAction, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
 import {
   buildDraftPrompt,
   generateTemplateDraft,
@@ -10,6 +7,7 @@ import {
   type DraftGenerationInput,
   type DraftGenerationResponse,
 } from "@/lib/ai/zentra-drafts";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 
 let openaiClient: OpenAI | null = null;
 
@@ -22,6 +20,18 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
+  const rateLimit = checkRateLimit(request, {
+    namespace: "zentra-generate-draft",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many draft requests. Please wait a minute and try again." },
+      { status: 429 },
+    );
+  }
+
   let input: DraftGenerationInput;
 
   try {
@@ -50,41 +60,20 @@ export async function POST(request: Request) {
     });
   }
 
-  // ── Quota gate ──────────────────────────────────────────────────────────────
-  // Return a template draft with an explanatory note rather than a hard 403,
-  // so the user still gets a usable draft even when AI quota is exhausted.
-  const quotaCheck = canPerformUsage(DEMO_ACCOUNT_ID, "aiAction");
-  if (!quotaCheck.allowed) {
-    return NextResponse.json({
-      ...fallback,
-      riskNotes:
-        quotaCheck.reason ??
-        "AI drafts are not available on your current plan. This is a template draft — review before sending.",
-      source: "template",
-    });
-  }
-
   try {
     const geminiKey =
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
       const gemini = await generateWithGemini(input, geminiKey);
-      recordAIAction(DEMO_ACCOUNT_ID, "draft_generation");
       return NextResponse.json(normaliseDraft(gemini, fallback, "gemini"));
     }
 
     const client = getOpenAIClient();
     if (client) {
       const openai = await generateWithOpenAI(input, client);
-      recordAIAction(DEMO_ACCOUNT_ID, "draft_generation");
       return NextResponse.json(normaliseDraft(openai, fallback, "openai"));
     }
-  } catch (err) {
-    // Log the failure so it appears in server logs / Vercel function output.
-    // TODO (production): Replace console.error with structured logging
-    //   (e.g. Sentry.captureException(err)) and include account ID + scenario
-    //   so silent degradation to template is visible in monitoring.
-    console.error("[generate-draft] AI provider error — falling back to template:", err);
+  } catch {
     return NextResponse.json(fallback);
   }
 
@@ -101,12 +90,15 @@ async function generateWithOpenAI(
       {
         role: "system",
         content:
-          "You write safe, professional UK collections emails for Zentra Collect. You never provide legal advice.",
+          "You write safe, professional UK collections emails. The user will send these from their own inbox, signed as themselves (never as Zentra). You never provide legal advice.",
       },
       { role: "user", content: buildDraftPrompt(input) },
     ],
     response_format: { type: "json_object" },
     temperature: 0.35,
+    // Cap output tokens — body is ~150 words, plus subject + JSON overhead.
+    // Prevents cost runaway from a chatty model.
+    max_tokens: 500,
   });
 
   return parseDraftJson(completion.choices[0]?.message.content);
@@ -132,6 +124,7 @@ async function generateWithGemini(
         generationConfig: {
           temperature: 0.35,
           responseMimeType: "application/json",
+          maxOutputTokens: 500,
         },
       }),
     },
@@ -145,11 +138,7 @@ async function generateWithGemini(
 
 function parseDraftJson(text: string | null | undefined) {
   if (!text) return null;
-  try {
-    return JSON.parse(text) as Partial<DraftGenerationResponse>;
-  } catch {
-    return null;
-  }
+  return JSON.parse(text) as Partial<DraftGenerationResponse>;
 }
 
 function normaliseDraft(

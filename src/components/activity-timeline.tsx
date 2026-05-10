@@ -1,14 +1,8 @@
 import { Clock3 } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
+import type { ActivityItem } from "@/types/cashpilot";
 
-type ActivityLike = {
-  id: string;
-  title: string;
-  description: string;
-  createdAt: string;
-};
-
-export function ActivityTimeline({ items }: { items: ActivityLike[] }) {
+export function ActivityTimeline({ items }: { items: ActivityItem[] }) {
   if (!items.length) {
     return (
       <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">

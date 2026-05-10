@@ -1,19 +1,45 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
-      <div className="max-w-md rounded-lg border bg-white p-6 text-center">
-        <p className="text-sm font-medium text-muted-foreground">Nothing to chase here</p>
-        <h1 className="mt-2 text-2xl font-semibold">Page not found</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page or invoice you opened does not exist in this CashPilot
-          workspace.
+    <main
+      className="min-h-screen flex items-center justify-center px-4 relative z-[1]"
+      style={{ background: "var(--zn-bg)", color: "var(--zn-ink)" }}
+    >
+      <div className="zn-card max-w-[460px] w-full p-8 text-center">
+        <div
+          className="size-12 mx-auto rounded-lg inline-flex items-center justify-center mb-4"
+          style={{
+            background: "var(--zn-ink)",
+            color: "var(--zn-surface)",
+            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+            fontStyle: "italic",
+            fontWeight: 600,
+            fontSize: 22,
+          }}
+        >
+          Z
+        </div>
+        <div className="zn-label !p-0 mb-2">404 · not found</div>
+        <h1
+          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+          style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+        >
+          This page isn&apos;t in your workspace.
+        </h1>
+        <p className="mt-3 text-[13.5px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
+          The page or invoice you opened doesn&apos;t exist here. It may have
+          been deleted, moved, or never created.
         </p>
-        <Button asChild className="mt-4">
-          <Link href="/dashboard">Back to dashboard</Link>
-        </Button>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <Link href="/dashboard" className="zn-pill">
+            Back to dashboard <ArrowRight className="size-3.5" />
+          </Link>
+          <Link href="/" className="zn-pill zn-pill-ghost">
+            Homepage
+          </Link>
+        </div>
       </div>
     </main>
   );
