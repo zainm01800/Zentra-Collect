@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { CustomersTable, type CustomerRow } from "@/components/customers-table";
 import { PageHeader } from "@/components/page-header";
-import { demoInvoices } from "@/data/demo-invoices";
+import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency } from "@/lib/formatters";
 
 import type { Metadata } from "next";
