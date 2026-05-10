@@ -4,7 +4,7 @@ import { ChaseQueue } from "@/components/chase-queue";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
 import { PageHeader } from "@/components/page-header";
-import { demoInvoices } from "@/data/demo-invoices";
+import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 import type { Metadata } from "next";
 
