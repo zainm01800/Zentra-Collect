@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
-import { writeEmailUiSettings, startArming } from "@/lib/email/settings-store";
+import { writeEmailUiSettings, startArming, startDemoArming } from "@/lib/email/settings-store";
 
 type Step = "risk" | "smtp" | "rules" | "confirm";
 
@@ -109,7 +109,11 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
       }).catch(() => null);
     }
 
-    startArming();
+    if (isDemoMode) {
+      startDemoArming();
+    } else {
+      startArming();
+    }
     handleClose();
   }
 
@@ -157,30 +161,42 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
 
         {step === "risk" && (
           <div className="space-y-4">
+            {isDemoMode && (
+              <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-3 text-sm text-zinc-600 flex items-start gap-2">
+                <span className="font-semibold text-zinc-800 shrink-0">Demo mode.</span>
+                <span>
+                  No real emails will be sent. This walkthrough shows you exactly how auto-send
+                  works — SMTP credentials are not saved and the send log is simulated.
+                </span>
+              </div>
+            )}
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
               <div className="flex items-center gap-2 font-medium text-amber-900">
                 <AlertTriangle className="size-4" />
-                Important — read before enabling
+                {isDemoMode ? "How auto-send works" : "Important — read before enabling"}
               </div>
               <ul className="text-sm text-amber-800 space-y-1.5 list-disc pl-5">
-                <li>Emails will be sent automatically to your customers on a schedule.</li>
-                <li>You are responsible for reviewing chase plans before enabling auto-send.</li>
+                <li>Emails are sent automatically to your customers on a configured schedule.</li>
+                <li>You must review your chase plan before enabling — auto-send acts on it as-is.</li>
                 <li>
-                  Zentra Collect will only send using the AI-drafted message shown in the chase
-                  plan. You should review and edit these drafts first.
+                  Only the AI-drafted message shown in the chase plan is sent. Review and edit
+                  drafts first.
                 </li>
-                <li>Do not enable this if your data has not been reviewed recently.</li>
+                <li>Do not enable if your invoice data has not been reviewed recently.</li>
                 <li>
-                  There is a <strong>5-minute cancellation window</strong> after enabling.
+                  There is a <strong>5-minute cancellation window</strong> after enabling —
+                  you can abort before the first send fires.
                 </li>
               </ul>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Zentra Collect does not take responsibility for emails sent. You remain fully
-              responsible for all outbound customer communications.
-            </p>
+            {!isDemoMode && (
+              <p className="text-xs text-muted-foreground">
+                Zentra Collect does not take responsibility for emails sent. You remain fully
+                responsible for all outbound customer communications.
+              </p>
+            )}
             <Button className="w-full rounded-full" onClick={() => setStep("smtp")}>
-              I understand — continue
+              {isDemoMode ? "See how setup works" : "I understand — continue"}
             </Button>
           </div>
         )}
