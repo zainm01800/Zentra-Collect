@@ -100,7 +100,7 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/login" className="zn-pill zn-pill-ghost">Sign in</Link>
-            <Link href="/demo" className="zn-pill">Try the demo</Link>
+            <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill">Try the demo</Link>
           </div>
         </div>
       </header>
@@ -124,7 +124,7 @@ export default function Home() {
             to land. Action + reason + draft message, in one calm workspace.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-2">
-            <Link href="/demo" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
+            <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
               Try the demo <ArrowRight className="size-4" />
             </Link>
             <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
@@ -405,6 +405,8 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <Link
                 href="/demo"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="zn-pill"
                 style={{
                   height: 40, padding: "0 18px", fontSize: 14,
