@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ChaseQueue } from "@/components/chase-queue";
-import { DashboardStats } from "@/components/dashboard-stats";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
 import { PageHeader } from "@/components/page-header";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -24,7 +23,6 @@ export default function ChaseTodayPage() {
           sub="Your ranked chase plan. Each row has a recommended action, the reason behind it, and a Review step before anything goes out."
           actions={<button className="zn-pill zn-pill-ghost">Export</button>}
         />
-        <DashboardStats invoices={demoInvoices} />
         <Suspense fallback={null}>
           <ChaseQueue initialInvoices={demoInvoices} onlyToday={false} />
         </Suspense>
