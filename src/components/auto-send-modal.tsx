@@ -237,7 +237,15 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
                   }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Gmail: My Account → Security → 2-Step Verification → App passwords
+                  Gmail:{" "}
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                  >
+                    myaccount.google.com/apppasswords
+                  </a>
                   <br />
                   Outlook: account.microsoft.com → Security → App passwords
                 </p>
