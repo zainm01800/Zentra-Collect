@@ -89,9 +89,7 @@ export function AutoSendToggle({
         sync();
         window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
       } else {
-        startDemoArming();
-        sync();
-        window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
+        setModalOpen(true);
       }
       return;
     }
@@ -185,7 +183,7 @@ export function AutoSendToggle({
           setModalOpen(false);
           sync();
         }}
-        isDemoMode={false}
+        isDemoMode={state === "demo"}
       />
     </>
   );
