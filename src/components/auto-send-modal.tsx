@@ -247,7 +247,16 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
                     myaccount.google.com/apppasswords
                   </a>
                   <br />
-                  Outlook: account.microsoft.com → Security → App passwords
+                  Outlook:{" "}
+                  <a
+                    href="https://account.microsoft.com/security"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                  >
+                    account.microsoft.com/security
+                  </a>
+                  {" "}→ Advanced security options → App passwords
                 </p>
               </div>
               <div className="space-y-1.5">
