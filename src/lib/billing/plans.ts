@@ -8,6 +8,7 @@ import {
 export type PlanId =
   | "demo"
   | "trial"
+  | "starter_solo"
   | "founding_single_business"
   | "founding_bookkeeper"
   | "single_business"
@@ -94,6 +95,7 @@ export interface ComparisonRow {
 const centralPlanMap: Record<PlanId, CentralPlanId> = {
   demo: "DEMO",
   trial: "TRIAL",
+  starter_solo: "STARTER_SOLO",
   founding_single_business: "FOUNDING_SINGLE",
   founding_bookkeeper: "FOUNDING_BOOKKEEPER",
   single_business: "SINGLE_BUSINESS",
@@ -136,6 +138,7 @@ export function getPlan(planId: PlanId): Plan {
   const taglineMap: Record<PlanId, string> = {
     demo: "Explore the product with sample data.",
     trial: "14-day free trial with your own data.",
+    starter_solo: "For sole traders with a small invoice book.",
     founding_single_business: "Founding price for a single business.",
     founding_bookkeeper: "Founding price for bookkeepers.",
     single_business: "Standard plan for one business.",
@@ -146,6 +149,7 @@ export function getPlan(planId: PlanId): Plan {
   const featuresMap: Record<PlanId, string[]> = {
     demo: ["Sample invoices only", "3 AI drafts included", "Ranked chase plan"],
     trial: ["Real invoice exports", "25 AI actions", "Full decision engine"],
+    starter_solo: ["50 active invoices", "10 AI actions/mo", "2 imports/month"],
     founding_single_business: ["500 active invoices", "150 AI actions/mo", "Price locked for 12mo"],
     founding_bookkeeper: ["1,500 active invoices", "300 AI actions/mo", "Up to 5 client ledgers"],
     single_business: ["500 active invoices", "200 AI actions/mo", "Saved import templates"],
@@ -176,6 +180,7 @@ export function getPlan(planId: PlanId): Plan {
 export const PLANS: Plan[] = [
   getPlan("demo"),
   getPlan("trial"),
+  getPlan("starter_solo"),
   getPlan("single_business"),
   getPlan("bookkeeper_starter"),
   getPlan("bookkeeper_pro"),
@@ -187,6 +192,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: "Unlimited (sample)",
       trial: "100",
+      starter_solo: "50",
       founding_single_business: "500",
       founding_bookkeeper: "1,500",
       single_business: "500",
@@ -199,6 +205,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 1,
       trial: 1,
+      starter_solo: 1,
       founding_single_business: 1,
       founding_bookkeeper: 5,
       single_business: 1,
@@ -211,6 +218,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 3,
       trial: 25,
+      starter_solo: 10,
       founding_single_business: 150,
       founding_bookkeeper: 300,
       single_business: 200,
@@ -223,6 +231,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: false,
+      starter_solo: false,
       founding_single_business: true,
       founding_bookkeeper: true,
       single_business: true,
