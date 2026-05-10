@@ -26,15 +26,29 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as any;
-        const accountId = session.subscription_data?.metadata?.accountId || session.metadata?.accountId;
-        
-        if (accountId) {
+        const accountId = session.metadata?.accountId;
+        const addonType = session.metadata?.addonType;
+
+        if (!accountId) break;
+
+        if (addonType === "email") {
+          // Email add-on purchased — enable addon without touching plan_id or status
+          await supabase
+            .from('zentra_accounts')
+            .update({
+              email_addon: true,
+              email_addon_subscription_id: session.subscription,
+            })
+            .eq('id', accountId);
+        } else {
+          // Base plan purchase
+          const planId = session.metadata?.planId ?? 'FOUNDING_SINGLE';
           await supabase
             .from('zentra_accounts')
             .update({
               status: 'active',
               stripe_subscription_id: session.subscription,
-              plan_id: session.metadata?.planId || 'FOUNDING_SINGLE' // Default to single if not specified
+              plan_id: planId,
             })
             .eq('id', accountId);
         }
@@ -44,21 +58,40 @@ export async function POST(req: Request) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as any;
-        const { data: account } = await supabase
-          .from('zentra_accounts')
-          .select('id')
-          .eq('stripe_subscription_id', subscription.id)
-          .single();
+        const subAddonType = subscription.metadata?.addonType;
 
-        if (account) {
-          const status = subscription.status === 'active' ? 'active' : 
-                         subscription.status === 'trialing' ? 'trialing' : 
-                         subscription.status === 'past_due' ? 'expired' : 'cancelled';
-          
-          await supabase
+        if (subAddonType === "email") {
+          // Email add-on cancelled
+          const { data: account } = await supabase
             .from('zentra_accounts')
-            .update({ status })
-            .eq('id', account.id);
+            .select('id')
+            .eq('email_addon_subscription_id', subscription.id)
+            .single();
+
+          if (account && event.type === 'customer.subscription.deleted') {
+            await supabase
+              .from('zentra_accounts')
+              .update({ email_addon: false, email_addon_subscription_id: null })
+              .eq('id', account.id);
+          }
+        } else {
+          // Base plan subscription change
+          const { data: account } = await supabase
+            .from('zentra_accounts')
+            .select('id')
+            .eq('stripe_subscription_id', subscription.id)
+            .single();
+
+          if (account) {
+            const status = subscription.status === 'active' ? 'active' :
+                           subscription.status === 'trialing' ? 'trialing' :
+                           subscription.status === 'past_due' ? 'expired' : 'cancelled';
+
+            await supabase
+              .from('zentra_accounts')
+              .update({ status })
+              .eq('id', account.id);
+          }
         }
         break;
       }

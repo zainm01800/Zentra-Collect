@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { saveImportBatchAction } from "@/actions/import";
 import {
   buildInvoicesFromPreview,
   compareImportBatches,
@@ -232,6 +233,20 @@ export function ZentraImportFlow() {
         mappings,
       }),
     );
+
+    // Persist to Supabase in the background — does not block navigation.
+    // Silently ignored when Supabase is not configured or user is not authenticated.
+    saveImportBatchAction(
+      {
+        businessId: "default",
+        source: "csv",
+        fileName,
+        rowCount: validation.preview.length,
+        validInvoiceCount: invoices.length,
+        warningCount: 0,
+      },
+      invoices,
+    ).catch(() => null);
     incrementUsage("importBatches");
     incrementUsage("importsThisMonth");
     incrementImportUsage(accountState);

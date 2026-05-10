@@ -33,7 +33,8 @@ export type FeatureKey =
   | "bookkeeperMode"
   | "priceLock"
   | "viewExistingDataAfterTrial"
-  | "emailSending";
+  | "emailSending"
+  | "emailSendingAddon";
 
 export type LimitValue = number | "unlimited";
 
@@ -99,6 +100,7 @@ const defaultFeatures: Record<FeatureKey, boolean> = {
   priceLock: false,
   viewExistingDataAfterTrial: false,
   emailSending: false,
+  emailSendingAddon: false,
 };
 
 const defaultLimits: Record<UsageType, LimitValue> = {
@@ -149,6 +151,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       ...defaultFeatures,
       realData: true,
       persistentRealImports: true,
+      emailSendingAddon: true,
     },
   },
   TRIAL: {
@@ -221,6 +224,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       persistentRealImports: true,
       bookkeeperMode: true,
       priceLock: true,
+      emailSending: true,
     },
   },
   SINGLE_BUSINESS: {
@@ -243,6 +247,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       ...defaultFeatures,
       realData: true,
       persistentRealImports: true,
+      emailSendingAddon: true,
     },
   },
   BOOKKEEPER_STARTER: {
@@ -266,6 +271,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       realData: true,
       persistentRealImports: true,
       bookkeeperMode: true,
+      emailSending: true,
     },
   },
   BOOKKEEPER_PRO: {
@@ -289,6 +295,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       realData: true,
       persistentRealImports: true,
       bookkeeperMode: true,
+      emailSending: true,
     },
   },
 };

@@ -6,6 +6,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
+import { CheckoutButton } from "@/components/billing/checkout-button";
+
+// Base plan price IDs — set in env vars, passed to Stripe checkout
+const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
+  STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO ?? "",
+  SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE ?? "",
+  BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER ?? "",
+  BOOKKEEPER_PRO:      process.env.STRIPE_PRICE_ID_BOOKKEEPER_PRO ?? "",
+};
 
 const answers = [
   "Who should I chase today?",
@@ -359,12 +368,29 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-                <Link
-                  href={planId === "TRIAL" ? "/login?mode=signup" : "/request-access"}
-                  className={isFeatured ? "zn-pill mt-5 w-full justify-center" : "zn-pill zn-pill-ghost mt-5 w-full justify-center"}
-                >
-                  {planId === "TRIAL" ? "Start free trial" : "Request access"}
-                </Link>
+                {planId === "TRIAL" ? (
+                  <Link
+                    href="/login?mode=signup"
+                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
+                  >
+                    Start free trial
+                  </Link>
+                ) : PLAN_PRICE_IDS[planId] ? (
+                  <CheckoutButton
+                    priceId={PLAN_PRICE_IDS[planId]!}
+                    planId={planId}
+                    cta="Get started"
+                    variant={isFeatured ? "primary" : "secondary"}
+                    className="mt-5"
+                  />
+                ) : (
+                  <Link
+                    href="/request-access"
+                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
+                  >
+                    Request access
+                  </Link>
+                )}
               </div>
             );
           })}

@@ -275,7 +275,7 @@ function DigestStat({
   label: string;
   value: string;
   detail: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
 }) {
   return (
     <div className="zn-stat">

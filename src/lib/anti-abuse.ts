@@ -217,7 +217,10 @@ export async function recordTrialSignup(
     return;
   }
   const businessDomain = emailDomain(email);
-  const { error } = await admin.from("trial_signup_history").insert({
+  // Cast required because the Supabase client here is created without a Database
+  // generic, so TypeScript infers the insert row type as never[].
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any).from("trial_signup_history").insert({
     email: email.toLowerCase(),
     ip_hash: ipHash,
     business_domain: businessDomain || null,
