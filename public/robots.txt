@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /chase-today
+Disallow: /customers
+Disallow: /promises
+Disallow: /disputes
+Disallow: /reports
+Disallow: /portfolio
+Disallow: /digest
+Disallow: /import
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /auth/
+
+Sitemap: https://zentracollect.co.uk/sitemap.xml

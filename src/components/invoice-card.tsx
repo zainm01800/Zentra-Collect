@@ -1,9 +1,10 @@
 "use client";
 
-import { 
-  ChevronRight, 
+import {
+  Phone,
+  Mail,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   getCustomerProfile,
@@ -12,10 +13,13 @@ import {
   getSuggestedAction,
 } from "@/lib/invoice-logic";
 import type { Invoice } from "@/types/cashpilot";
-import {
-  StatusBadge,
-  SafetyBadge,
-} from "./zentra-ui";
+
+const urgencyColour: Record<string, string> = {
+  Critical: "border-rose-200 bg-rose-50 text-rose-700",
+  High: "border-amber-200 bg-amber-50 text-amber-700",
+  Medium: "border-yellow-200 bg-yellow-50 text-yellow-700",
+  Low: "border-[#d4c9ae] bg-[#f3ecd8] text-[#6b6253]",
+};
 
 export function InvoiceCard({
   invoice,
@@ -30,6 +34,7 @@ export function InvoiceCard({
 }) {
   const urgency = getInvoiceUrgency(invoice);
   const suggestedAction = getSuggestedAction(invoice);
+  const ActionIcon = suggestedAction === "Call customer" ? Phone : Mail;
   const riskLabels = getRiskLabels(invoice);
   const customerProfile = getCustomerProfile(invoices, invoice);
 
@@ -37,70 +42,76 @@ export function InvoiceCard({
     <button
       type="button"
       onClick={() => onOpen(invoice)}
-      className={cn(
-        "group relative flex flex-col w-full gap-6 p-6 text-left transition-all duration-300",
-        "hover:bg-neutral-50/80 rounded-2xl border border-black/5 bg-white mb-3 shadow-sm",
-        "md:flex-row md:items-start"
-      )}
+      className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
     >
-      {/* Customer & Amount Section */}
-      <div className="min-w-0 shrink-0 space-y-4 md:w-1/3">
-        <div>
-          <p className="truncate text-lg font-black tracking-tight text-neutral-950">
-            {invoice.customerName}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-            {invoice.invoiceNumber}
-          </p>
-        </div>
-        
-        <div className="flex items-baseline gap-3">
-          <span className="text-xl font-black tracking-tight text-neutral-950">
+      {/* Left: customer + amounts */}
+      <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCustomer(invoice.customerName);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              onOpenCustomer(invoice.customerName);
+            }
+          }}
+          className="block truncate text-left text-base font-semibold text-[#1d1813] underline-offset-4 hover:underline cursor-pointer"
+        >
+          {invoice.customerName}
+        </span>
+        <p className="mt-1 text-sm text-[#8d8472]">{invoice.invoiceNumber}</p>
+
+        <div className="mt-4 space-y-2">
+          <p className="text-base font-semibold text-[#1d1813]">
             {formatCurrency(invoice.amount)}
-          </span>
+          </p>
           {invoice.daysOverdue > 0 ? (
-            <span className="text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+            <p className="text-sm font-medium text-rose-600">
               {invoice.daysOverdue}d overdue
-            </span>
+              <span className="ml-1.5 font-normal text-[#a09885]">
+                · due {formatDate(invoice.dueDate)}
+              </span>
+            </p>
           ) : (
-            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+            <p className="text-sm text-[#8d8472]">
               Due {formatDate(invoice.dueDate)}
-            </span>
+            </p>
           )}
         </div>
       </div>
 
-      {/* Action Section */}
-      <div className="min-w-0 flex-1 space-y-2 md:border-l md:border-black/5 md:pl-8">
-        <div className="flex items-center gap-3">
-          <p className="text-base font-black text-neutral-950">{suggestedAction}</p>
-          <div className="hidden sm:flex gap-2">
-            <StatusBadge 
-              status={urgency.toLowerCase()} 
-              variant={urgency === "Critical" || urgency === "High" ? "danger" : urgency === "Medium" ? "warning" : "success"} 
-            />
-            {riskLabels.length > 0 && <SafetyBadge level="caution" />}
-          </div>
-        </div>
-        <p className="text-sm font-medium leading-relaxed text-neutral-500 line-clamp-2">
+      <div className="min-w-0">
+        <p className="text-base font-semibold text-[#1d1813]">{suggestedAction}</p>
+        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
           {customerProfile.summary.split(".")[0].trim()}.
         </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {riskLabels.slice(0, 2).map((label) => (
+            <Badge
+              key={label}
+              variant="outline"
+              className="rounded-full border-[#d4c9ae] bg-[#f3ecd8] text-[10px] uppercase tracking-wider text-[#8d8472]"
+            >
+              {label}
+            </Badge>
+          ))}
+        </div>
       </div>
 
-      {/* Meta & CTA */}
-      <div className="flex items-center justify-between gap-4 md:flex-col md:items-end md:justify-center">
-        <div className="flex sm:hidden gap-2">
-           <StatusBadge 
-              status={urgency.toLowerCase()} 
-              variant={urgency === "Critical" || urgency === "High" ? "danger" : urgency === "Medium" ? "warning" : "success"} 
-            />
-        </div>
-        <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-950 transition-colors">
-          Review <ChevronRight className="size-3 transition-transform group-hover:translate-x-1" />
+      {/* Right: meta + CTA */}
+      <div className="flex min-w-0 flex-wrap items-start gap-2 md:max-w-48 md:justify-end">
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${urgencyColour[urgency] ?? urgencyColour.Low}`}
+        >
+          {urgency}
         </span>
-        <div className="md:hidden flex h-10 items-center justify-center rounded-full bg-neutral-950 px-6 text-xs font-black uppercase tracking-widest text-white">
-          Review
-        </div>
+        <span className="mt-1 w-full rounded-full bg-[#1d1813] px-3 py-2 text-center text-xs font-semibold text-[#faf5e8] transition hover:bg-[#3d3428]">
+          Review action
+        </span>
       </div>
     </button>
   );

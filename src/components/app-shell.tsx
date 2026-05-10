@@ -1,368 +1,345 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   AlertTriangle,
+  ArrowUpFromLine,
   BarChart3,
-  Bell,
-  BriefcaseBusiness,
-  Calendar,
-  ChevronRight,
   CreditCard,
   FileText,
-  FileUp,
   HelpCircle,
-  Home,
-  Search,
+  LayoutDashboard,
+  Menu,
+  ShieldAlert,
   Settings,
-  Upload,
   Users,
+  Wallet,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  ActiveTrialBanner,
-  DemoModeBanner,
-  GracePeriodWarning,
-  TrialExpiredBanner,
-  UsageMeter,
-} from "@/components/account-plan-ui";
-import { getPlanConfig, getTrialState } from "@/lib/billing/plans";
-import {
-  normaliseLocalAccount,
-  demoUserStorageKey,
-  isDemoUserExpired,
-  createLocalAccount,
-  writeLocalAccount,
-  type DemoUser,
-} from "@/lib/demo-auth";
-import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
-import { User } from "@supabase/supabase-js";
+import { ReviewProvider, useReview } from "@/components/review-context";
+import { ReviewDrawer } from "@/components/review-drawer";
+import { TrialStatusBanner } from "@/components/trial-banners";
+import { demoInvoices } from "@/data/demo-invoices";
 
-const primaryNav = [
-  { href: "/dashboard", label: "Overview", icon: Home },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const workspaceNav: NavItem[] = [
+  { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
   { href: "/chase-today", label: "Collections", icon: CreditCard },
-  { href: "/import", label: "Import", icon: FileUp },
-  { href: "/portfolio", label: "Portfolio", icon: BriefcaseBusiness },
-  { href: "/digest", label: "Digest", icon: FileText },
+  { href: "/import",      label: "Import",      icon: ArrowUpFromLine },
+  { href: "/portfolio",   label: "Portfolio",   icon: Wallet },
+  { href: "/digest",      label: "Digest",      icon: FileText },
 ];
 
-const secondaryNav = [
-  { href: "/chase-today", label: "Customers", icon: Users },
-  { href: "/chase-today", label: "Promises", icon: Calendar },
-  { href: "/chase-today", label: "Disputes", icon: AlertTriangle },
-  { href: "/digest", label: "Reports", icon: BarChart3 },
+const contextNav: NavItem[] = [
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/promises",  label: "Promises",  icon: AlertTriangle },
+  { href: "/disputes",  label: "Disputes",  icon: ShieldAlert },
+  { href: "/reports",   label: "Reports",   icon: BarChart3 },
 ];
 
-function subscribeToDemoUserChanges(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-  window.addEventListener("zentra-account-change", onStoreChange);
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener("zentra-account-change", onStoreChange);
-  };
-}
-
-function getDemoUserSnapshot() {
-  return window.localStorage.getItem(demoUserStorageKey);
-}
-
-function getDemoUserServerSnapshot() {
-  return null;
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      className={cn("zn-nav-item", active && "active")}
+    >
+      <item.icon className="zn-nav-icon size-4" />
+      <span>{item.label}</span>
+    </Link>
+  );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-
-  useEffect(() => {
-    setMounted(true);
-    
-    // Check for Supabase session
-    if (hasSupabaseBrowserConfig()) {
-      const supabase = createSupabaseBrowserClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        setSupabaseUser(user);
-        setLoadingAuth(false);
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSupabaseUser(session?.user ?? null);
-      });
-
-      return () => subscription.unsubscribe();
-    } else {
-      setLoadingAuth(false);
-    }
-  }, []);
-
-  const rawUser = useSyncExternalStore(
-    subscribeToDemoUserChanges,
-    getDemoUserSnapshot,
-    getDemoUserServerSnapshot,
+  return (
+    <ReviewProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </ReviewProvider>
   );
-  const effectiveRawUser =
-    rawUser ??
-    (typeof window === "undefined"
-      ? null
-      : window.localStorage.getItem(demoUserStorageKey));
-  const user = useMemo(() => {
-    if (!effectiveRawUser) return null;
-    try {
-      return normaliseLocalAccount(JSON.parse(effectiveRawUser) as Partial<DemoUser>);
-    } catch {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(demoUserStorageKey);
-      }
-      return null;
-    }
-  }, [effectiveRawUser]);
+}
 
-  const planConfig = user ? getPlanConfig(user.planId) : null;
-  const billingAccount = user
-    ? {
-        planId: user.planId,
-        accountType: user.accountType,
-        subscriptionStatus: user.subscriptionStatus,
-        createdAt: user.createdAt,
-        trialStartedAt: user.planId === "trial" ? user.createdAt : undefined,
-        trialEndsAt: user.trialEndsAt,
-        graceEndsAt: user.graceEndsAt,
-        currentPeriodStartedAt: user.createdAt,
-        usage: user.usage,
-      }
-    : null;
-  const trialState = billingAccount ? getTrialState(billingAccount) : "not_trial";
-  const isTrialActive = trialState === "active";
-  const aiUsed = (user?.usage as Record<string, number> | undefined)?.aiActionsThisMonth ?? 0;
-  const aiLimit = planConfig?.limits?.aiActionsPerMonth ?? 25;
-
-  // Days remaining in trial
-  const trialDaysLeft = useMemo(() => {
-    if (!user?.trialEndsAt) return null;
-    const diff = new Date(user.trialEndsAt).getTime() - Date.now();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }, [user?.trialEndsAt]);
-
-  function signOut() {
-    window.localStorage.removeItem(demoUserStorageKey);
-    window.dispatchEvent(new Event("zentra-account-change"));
-    router.push("/login");
-  }
-
-  useEffect(() => {
-    if (!mounted) return;
-    if (!user) {
-      window.setTimeout(() => {
-        if (window.localStorage.getItem(demoUserStorageKey)) {
-          window.dispatchEvent(new Event("zentra-account-change"));
-        } else if (pathname === "/demo" || pathname.startsWith("/demo/")) {
-          // Auto-provision a demo account so /demo works without login
-          const demoUser = createLocalAccount({
-            name: "Demo User",
-            email: "demo@zentracollect.co.uk",
-            businessName: "Demo Business",
-            planId: "demo",
-          });
-          writeLocalAccount(demoUser);
-          window.dispatchEvent(new Event("zentra-account-change"));
-        } else {
-          router.replace("/login");
-        }
-      }, 0);
-      return;
-    }
-    if (isDemoUserExpired(user)) {
-      window.localStorage.removeItem(demoUserStorageKey);
-      window.dispatchEvent(new Event("zentra-account-change"));
-      router.replace("/login");
-    }
-  }, [mounted, pathname, router, user]);
-
-  if (!mounted || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8f7f4]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-neutral-950 text-white font-black text-lg animate-pulse">
-            Z
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
-            Loading workspace…
-          </p>
-        </div>
-      </div>
-    );
-  }
+function AppShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "";
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+  const { isOpen: reviewOpen, close: closeReview } = useReview();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#f8f7f4]">
-      {/* Left Sidebar — fixed 230px on desktop, hidden on mobile (uses bottom nav) */}
-      <aside className="hidden lg:flex w-[230px] flex-shrink-0 flex-col border-r border-black/8 bg-white overflow-y-auto">
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-7">
-          <div className="flex size-9 items-center justify-center rounded-[10px] bg-neutral-950 text-white font-black text-[15px] flex-shrink-0">
-            Z
-          </div>
-          <div className="leading-none min-w-0">
-            <p className="text-[14px] font-black tracking-[0.12em] text-neutral-950 uppercase">Zentra</p>
-            <p className="text-[10px] font-bold tracking-[0.18em] text-neutral-400 uppercase mt-1">Collect</p>
-          </div>
+    <div className="grid min-h-screen relative z-[1] md:grid-cols-[232px_1fr]">
+
+      {/* ── Sidebar ── */}
+      <aside
+        className="hidden md:flex md:flex-col sticky top-0 h-screen z-40 border-r"
+        style={{
+          background: "var(--zn-bg-2)",
+          borderColor: "var(--zn-line)",
+          padding: "20px 14px",
+        }}
+      >
+        {/* Brand */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 mb-[22px] px-1.5"
+        >
+          <span className="zn-brand-mark">Z</span>
+          <span className="flex flex-col leading-[1.1]">
+            <span className="text-[14px] font-semibold tracking-[-0.01em] text-[#1d1813]">Zentra</span>
+            <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+          </span>
+        </Link>
+
+        {/* Workspace */}
+        <div className="zn-section-label">Workspace</div>
+        <div className="flex flex-col gap-1 mb-[14px]">
+          {workspaceNav.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
         </div>
 
-        {/* Primary Nav */}
-        <nav className="flex flex-col gap-0.5 px-3 pt-1">
-          {primaryNav.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {/* Context */}
+        <div className="zn-section-label">Context</div>
+        <div className="flex flex-col gap-1">
+          {contextNav.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Bottom: settings, help, demo badge */}
+        <div
+          className="flex flex-col gap-1 pt-[14px] border-t"
+          style={{ borderColor: "var(--zn-line-soft)" }}
+        >
+          <NavLink
+            item={{ href: "/settings", label: "Settings", icon: Settings }}
+            active={isActive("/settings")}
+          />
+          <NavLink
+            item={{ href: "/help", label: "Help & support", icon: HelpCircle }}
+            active={isActive("/help")}
+          />
+
+          {/* Outcomes counter — small reward loop for working the queue */}
+          <SessionCounter />
+
+          {/* Demo badge — replaces the user profile in this demo build */}
+          <div
+            className="flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
+            style={{
+              background: "var(--zn-warn-soft)",
+              border: "1px solid var(--zn-warn-soft)",
+            }}
+          >
+            <span
+              className="size-7 rounded-md inline-flex items-center justify-center text-[10px] font-bold tracking-[0.06em] flex-shrink-0"
+              style={{
+                background: "var(--zn-warn)",
+                color: "var(--zn-surface)",
+                fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+              }}
+            >
+              DEMO
+            </span>
+            <span className="flex flex-col leading-[1.2] min-w-0">
+              <span
+                className="text-[12px] font-semibold truncate"
+                style={{ color: "var(--zn-warn)" }}
+              >
+                Demo workspace
+              </span>
+              <span
+                className="text-[10.5px] truncate"
+                style={{ color: "var(--zn-warn)" }}
+              >
+                Sample data only
+              </span>
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main ── */}
+      <div className="flex flex-col min-w-0">
+
+        {/* Mobile top bar (sm only) */}
+        <header
+          className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b backdrop-blur px-4 py-3"
+          style={{
+            background: "rgba(233,223,201,0.95)",
+            borderColor: "var(--zn-line)",
+          }}
+        >
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
+            <span className="text-[13px] font-semibold text-[#1d1813]">Zentra Collect</span>
+          </Link>
+          <span
+            className="text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md"
+            style={{
+              background: "var(--zn-warn)",
+              color: "var(--zn-surface)",
+              fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+            }}
+          >
+            DEMO
+          </span>
+        </header>
+
+        {/* Mobile bottom nav — first 4 items + a real "More" sheet trigger */}
+        <nav
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t backdrop-blur"
+          style={{
+            background: "rgba(250,245,232,0.95)",
+            borderColor: "var(--zn-line)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          {workspaceNav.slice(0, 4).map((item) => {
+            const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-all",
-                  isActive
-                    ? "bg-[#F5F5F0] text-neutral-950 font-bold"
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 font-medium"
+                  "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+                  active ? "text-[#b8481f]" : "text-[#8d8472]"
                 )}
               >
-                <item.icon className="size-[17px] flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <item.icon className="size-5" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
-        </nav>
-
-        {/* Divider + Secondary Nav */}
-        <div className="mx-4 my-3 border-t border-black/5" />
-        <nav className="flex flex-col gap-0.5 px-3">
-          {secondaryNav.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-all",
-                  isActive
-                    ? "bg-[#F5F5F0] text-neutral-950 font-bold"
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 font-medium"
-                )}
-              >
-                <item.icon className="size-[17px] flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Bottom Nav */}
-        <div className="px-3 pb-2">
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
-          >
-            <Settings className="size-[17px] flex-shrink-0" />
-            <span>Settings</span>
-          </Link>
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
-          >
-            <HelpCircle className="size-[17px] flex-shrink-0" />
-            <span>Help &amp; support</span>
-          </Link>
-        </div>
-
-        {/* Trial / Plan Info */}
-        {billingAccount && user?.planId !== "demo" && (
-          <div className="mx-3 mb-3 rounded-2xl border border-black/5 bg-transparent p-4">
-            {isTrialActive && trialDaysLeft !== null && (
-              <>
-                <p className="text-[12px] font-bold text-neutral-950">Trial</p>
-                <p className="text-[11px] font-medium text-neutral-500 mt-0.5">{trialDaysLeft} days left</p>
-                <div className="mt-3 h-[3px] w-full rounded-full bg-neutral-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-amber-400 transition-all"
-                    style={{ width: `${Math.max(5, (trialDaysLeft / 14) * 100)}%` }}
-                  />
-                </div>
-              </>
-            )}
-            <p className="mt-3 text-[11px] font-medium text-neutral-500">{aiUsed} / {aiLimit} AI actions used</p>
-            <Button
-              onClick={() => router.push("/pricing")}
-              className="mt-3 w-full h-[30px] rounded-full bg-white border border-black/10 text-neutral-950 text-[11px] font-bold hover:bg-neutral-50 transition-all"
-            >
-              Upgrade
-            </Button>
-          </div>
-        )}
-
-        {/* User */}
-        <div className="mt-2 px-3 py-4 border-t border-black/5">
           <button
             type="button"
-            onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-xl hover:bg-neutral-50 p-2 transition-all group"
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+              moreOpen ? "text-[#b8481f]" : "text-[#8d8472]"
+            )}
           >
-            <div className="flex size-9 items-center justify-center rounded-full bg-neutral-950 text-white text-[13px] font-black flex-shrink-0">
-              {user.name?.charAt(0).toUpperCase() ?? "U"}
-            </div>
-            <div className="min-w-0 text-left">
-              <p className="truncate text-[13px] font-bold text-neutral-900 leading-tight">{user.name ?? "User"}</p>
-              <p className="truncate text-[11px] font-medium text-neutral-400 leading-tight capitalize mt-0.5">{user.planId} account</p>
-            </div>
-            <ChevronRight className="ml-auto size-4 text-neutral-400 flex-shrink-0 group-hover:text-neutral-600 transition-colors" />
+            <Menu className="size-5" />
+            <span>More</span>
           </button>
-        </div>
-      </aside>
+        </nav>
 
-      {/* Main Area */}
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        {/* Billing Banners */}
-        {billingAccount && (
-          <div className="px-4 pt-3 space-y-2 flex-shrink-0 sm:px-6">
-            <TrialExpiredBanner account={billingAccount} />
-            <GracePeriodWarning account={billingAccount} />
-            {user.planId === "demo" && <DemoModeBanner />}
-            <ActiveTrialBanner account={billingAccount} />
-          </div>
-        )}
+        {/* Mobile "More" sheet */}
+        {moreOpen ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(false)}
+              aria-label="Close menu"
+              className="md:hidden fixed inset-0 z-50 backdrop-blur-[2px]"
+              style={{ background: "rgba(29,24,19,0.32)", animation: "fadeIn 200ms ease" }}
+            />
+            <div
+              className="md:hidden fixed bottom-0 inset-x-0 z-[60] rounded-t-[18px]"
+              style={{
+                background: "var(--zn-surface)",
+                borderTop: "1px solid var(--zn-line)",
+                paddingBottom: "env(safe-area-inset-bottom)",
+                animation: "slideUp 240ms cubic-bezier(0.32, 0.72, 0, 1)",
+              }}
+            >
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <div className="zn-label !p-0">More</div>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(false)}
+                  className="size-8 inline-flex items-center justify-center rounded-md"
+                  style={{ color: "var(--zn-ink-3)" }}
+                  aria-label="Close menu"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+                {[...contextNav,
+                  { href: "/settings", label: "Settings", icon: Settings },
+                  { href: "/help",     label: "Help & support", icon: HelpCircle }
+                ].map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMoreOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-[10px] px-3 py-3 text-[13px] font-medium transition-colors",
+                        active
+                          ? "bg-[#f0d3c2] text-[#b8481f]"
+                          : "bg-[#f3ecd8] text-[#3d3428]"
+                      )}
+                    >
+                      <item.icon className={cn("size-4", active ? "text-[#b8481f]" : "text-[#6b6253]")} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        ) : null}
 
-        {/* Scrollable Page Content — mobile bottom padding for nav bar */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-5 py-6 lg:px-7 lg:py-8 pb-24 lg:pb-8">
-            {children}
-          </div>
+        {/* Page content — drawer always overlays, no shift needed */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-7 pt-6 pb-24 md:pb-6">
+          <TrialStatusBanner />
+          {children}
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-black/8 bg-white px-2 md:hidden">
-        {primaryNav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-all",
-                isActive ? "text-neutral-950" : "text-neutral-400"
-              )}
-            >
-              <item.icon className={cn("size-5", isActive ? "text-neutral-950" : "text-neutral-400")} />
-              <span className="text-[10px] font-semibold">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Backdrop — drawer always overlays */}
+      {reviewOpen ? (
+        <button
+          type="button"
+          onClick={closeReview}
+          aria-label="Close review"
+          className="fixed inset-0 z-20 backdrop-blur-[2px]"
+          style={{
+            background: "rgba(29,24,19,0.32)",
+            animation: "fadeIn 200ms ease",
+          }}
+        />
+      ) : null}
+
+      {/* Review drawer (fixed-position, overlays page) */}
+      <ReviewDrawer allInvoices={demoInvoices} />
+    </div>
+  );
+}
+
+/**
+ * Quiet session counter — shows how many outcomes the user has logged in this
+ * browser session. Small dopamine loop for working the queue.
+ */
+function SessionCounter() {
+  const { outcomesLogged } = useReview();
+  if (outcomesLogged === 0) return null;
+  return (
+    <div
+      className="mt-1 flex items-center gap-2 px-3 py-2 rounded-lg"
+      style={{
+        background: "var(--zn-surface)",
+        border: "1px solid var(--zn-line-soft)",
+      }}
+    >
+      <span
+        className="zn-pulse"
+        style={{ width: 6, height: 6, background: "var(--zn-accent)" }}
+      />
+      <span className="text-[11.5px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+        {outcomesLogged} outcome{outcomesLogged === 1 ? "" : "s"} logged today
+      </span>
     </div>
   );
 }

@@ -47,6 +47,11 @@ export type DraftGenerationInput = {
   reason: string;
   selectedTone: DraftTone;
   lateFeesEnabled?: boolean;
+
+  // Who the email is from. Templates and AI prompt use these to sign correctly.
+  // If absent, the signoff falls back to a neutral "Thanks," (never "Zentra Collect").
+  senderName?: string;
+  senderBusinessName?: string;
 };
 
 export type DraftGenerationResponse = {
@@ -102,8 +107,7 @@ export function generateTemplateDraft(
         "",
         "Could you share any details that would help us resolve this quickly?",
         "",
-        "Thanks,",
-        "Zentra Collect",
+        buildSignoff(input),
       ].join("\n"),
       suggestedNextStep: "Resolve the dispute before sending a payment reminder.",
       riskNotes: safety.riskNotes.join(" "),
@@ -143,6 +147,8 @@ Return only valid JSON matching this exact shape:
 Context:
 - Scenario: ${input.scenario}
 - Tone: ${input.selectedTone}
+- Sender (the person sending this email): ${input.senderName ?? "the user"}
+- Sender business: ${input.senderBusinessName ?? "the user's business"}
 - Customer name: ${input.customerName}
 - Customer email: ${input.customerEmail ?? "missing"}
 - Invoice number: ${input.invoiceNumber}
@@ -160,6 +166,7 @@ Context:
 - Late fees enabled: ${input.lateFeesEnabled === true}
 
 Rules:
+- Sign the email as the sender (and their business if provided). NEVER sign as "Zentra", "Zentra Collect", or any third party — this email comes from the sender's own inbox.
 - Never claim to be a solicitor or debt collector.
 - Never give legal, accounting, or tax advice.
 - Avoid aggressive, threatening, or intimidating wording.
@@ -168,7 +175,7 @@ Rules:
 - Always include riskNotes that remind the user to review before sending.
 - Mention late fees only if late fees are explicitly enabled, and still warn the user to review contract/rules first.
 - Use British English.
-- Keep the body practical and human.`;
+- Keep the body practical and human. Aim for 80-160 words in the body.`;
 }
 
 function subjectFor(input: DraftGenerationInput) {
@@ -189,6 +196,15 @@ function subjectFor(input: DraftGenerationInput) {
   return `${prefixes[input.scenario]}: invoice ${input.invoiceNumber}`;
 }
 
+function buildSignoff(input: DraftGenerationInput): string {
+  // Sign as the user, not Zentra. If we have no sender info, sign neutrally
+  // — never sign as "Zentra Collect" because the email goes from the user's inbox.
+  const lines: string[] = ["Thanks,"];
+  if (input.senderName?.trim()) lines.push(input.senderName.trim());
+  if (input.senderBusinessName?.trim()) lines.push(input.senderBusinessName.trim());
+  return lines.join("\n");
+}
+
 function bodyFor(
   input: DraftGenerationInput,
   name: string,
@@ -196,7 +212,7 @@ function bodyFor(
   dueDate: string,
 ) {
   const greeting = `Hi ${name},`;
-  const signoff = "Thanks,\nZentra Collect";
+  const signoff = buildSignoff(input);
 
   if (input.scenario === "PROMISE_TO_PAY_FOLLOW_UP") {
     return `${greeting}\n\nI am following up on invoice ${input.invoiceNumber}. We had a payment date noted for ${input.promisedPaymentDate ? formatDate(input.promisedPaymentDate) : "earlier this week"}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\n${signoff}`;

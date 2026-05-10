@@ -73,14 +73,14 @@ export function TrialExpiredBanner({
   const formattedDate = formatGraceDate(gracePeriodEndsAt);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] bg-[#ecdcae]/60 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
-        <Clock className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <Clock className="mt-0.5 size-4 shrink-0 text-[#a07522]" />
         <div>
-          <p className="text-sm font-semibold text-amber-900">
+          <p className="text-sm font-semibold text-[#1d1813]">
             Your trial has ended
           </p>
-          <p className="mt-0.5 text-xs leading-5 text-amber-800">
+          <p className="mt-0.5 text-xs leading-5 text-[#6b6253]">
             Your data will remain available until{" "}
             <span className="font-medium">{formattedDate}</span>
             {daysRemaining > 0 && (
@@ -95,7 +95,7 @@ export function TrialExpiredBanner({
         <Button
           asChild
           size="sm"
-          className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+          className="rounded-full bg-[#1d1813] text-[#faf5e8] hover:bg-[#3d3428]"
         >
           <Link href="/request-access">
             Upgrade now
@@ -105,7 +105,7 @@ export function TrialExpiredBanner({
         <ExportDataButton />
         <Link
           href="/pricing"
-          className="text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900"
+          className="text-xs font-medium text-[#a07522] underline underline-offset-2 hover:text-[#1d1813]"
         >
           View plans
         </Link>
@@ -129,14 +129,14 @@ export function TrialExpiredBanner({
  */
 export function GracePeriodExpiredBanner() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] bg-[#efcdc9]/50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#9a3535]" />
         <div>
-          <p className="text-sm font-semibold text-red-700">
+          <p className="text-sm font-semibold text-[#9a3535]">
             Your trial data is scheduled for deletion
           </p>
-          <p className="mt-0.5 text-xs leading-5 text-red-600">
+          <p className="mt-0.5 text-xs leading-5 text-[#9a3535]">
             Your 30-day data retention period has ended. Export your invoices
             and history now, or upgrade to keep everything and continue using
             Zentra Collect.
@@ -147,7 +147,7 @@ export function GracePeriodExpiredBanner() {
         <Button
           asChild
           size="sm"
-          className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+          className="rounded-full bg-[#1d1813] text-[#faf5e8] hover:bg-[#3d3428]"
         >
           <Link href="/request-access">
             Upgrade to keep data

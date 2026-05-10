@@ -90,12 +90,15 @@ async function generateWithOpenAI(
       {
         role: "system",
         content:
-          "You write safe, professional UK collections emails for Zentra Collect. You never provide legal advice.",
+          "You write safe, professional UK collections emails. The user will send these from their own inbox, signed as themselves (never as Zentra). You never provide legal advice.",
       },
       { role: "user", content: buildDraftPrompt(input) },
     ],
     response_format: { type: "json_object" },
     temperature: 0.35,
+    // Cap output tokens — body is ~150 words, plus subject + JSON overhead.
+    // Prevents cost runaway from a chatty model.
+    max_tokens: 500,
   });
 
   return parseDraftJson(completion.choices[0]?.message.content);
@@ -121,6 +124,7 @@ async function generateWithGemini(
         generationConfig: {
           temperature: 0.35,
           responseMimeType: "application/json",
+          maxOutputTokens: 500,
         },
       }),
     },

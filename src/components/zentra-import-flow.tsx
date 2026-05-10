@@ -10,9 +10,6 @@ import {
   FileUp,
   Wand2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { saveImportBatchAction } from "@/actions/import";
-import { hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +18,12 @@ import {
   UsageLimitBanner,
 } from "@/components/billing-gates";
 import {
-  PageHeader,
-  SectionCard,
-  StatusBadge,
-  EmptyState,
-  LoadingOverlay,
-} from "./zentra-ui";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -185,7 +182,7 @@ export function ZentraImportFlow() {
     setMessage("Mapping template saved for future imports in this browser.");
   }
 
-  async function importRows() {
+  function importRows() {
     if (errors.length) return;
     const user = readLocalAccount();
     const account = user ? toBillingAccount(user) : null;
@@ -238,23 +235,6 @@ export function ZentraImportFlow() {
     localStorage.setItem(importedInvoicesStorageKey, JSON.stringify(invoices));
     localStorage.setItem(importSummaryStorageKey, JSON.stringify(summary));
     localStorage.setItem(importDiffStorageKey, JSON.stringify(diff));
-
-    // Save to Supabase if configured
-    if (hasSupabaseBrowserConfig()) {
-      try {
-        await saveImportBatchAction({
-          businessId: "default", // Action will handle default business creation
-          source: "csv",
-          fileName,
-          rowCount: invoices.length,
-          validInvoiceCount: invoices.length,
-          warningCount: 0
-        }, invoices);
-      } catch (err) {
-        console.error("Failed to save import to Supabase:", err);
-      }
-    }
-
     localStorage.setItem(
       importMappingTemplateStorageKey,
       JSON.stringify({
@@ -286,10 +266,14 @@ export function ZentraImportFlow() {
         description={upgradePrompt?.description ?? ""}
         onClose={() => setUpgradePrompt(null)}
       />
-      <PageHeader
-        title="Upload overdue invoices"
-        description="Bring in an AR ageing or unpaid invoice export, map the columns, and turn it into a ranked collections plan."
-      />
+      <section>
+        <div className="zn-label mb-1.5">Bring data in</div>
+        <h1 className="zn-page-h1">Upload overdue invoices</h1>
+        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+          Bring in an AR ageing or unpaid invoice export, map the columns, and
+          turn it into a ranked collections plan.
+        </p>
+      </section>
 
       {account?.planId === "demo" ? (
         <UsageLimitBanner
@@ -299,10 +283,10 @@ export function ZentraImportFlow() {
         />
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)] items-start">
+      <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
         <ImportSteps current={step} />
 
-        <div className="space-y-5 w-full">
+        <div className="space-y-5">
           {message ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               {message}
@@ -352,9 +336,16 @@ export function ZentraImportFlow() {
           ) : null}
 
           {step === "complete" ? (
-            <div className="flex min-h-[40vh] items-center justify-center">
-              <LoadingOverlay message="Building your chase plan..." />
-            </div>
+            <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+              <CardHeader>
+                <CheckCircle2 className="size-8 text-[#1d1813]" />
+                <CardTitle className="text-2xl">Import complete</CardTitle>
+                <CardDescription>
+                  Your dashboard is being refreshed with the new collections
+                  plan.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           ) : null}
         </div>
       </div>
@@ -384,54 +375,62 @@ function ImportSteps({ current }: { current: ImportStep }) {
   const currentIndex = steps.findIndex((step) => step.id === current);
 
   return (
-    <SectionCard title="Import journey" description="CSV supported currently.">
-      <div className="space-y-4">
-        {steps.map((step, index) => {
-          const isDone = index < currentIndex;
-          const isCurrent = index === currentIndex;
-          return (
-            <div key={step.id} className="flex items-center gap-4">
-              <span
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition-all",
-                  isDone ? "bg-emerald-500 text-white" : isCurrent ? "bg-neutral-950 text-white shadow-lg scale-110" : "bg-neutral-200/60 text-neutral-500"
-                )}
-              >
-                {isDone ? <CheckCircle2 className="size-4" /> : index + 1}
-              </span>
-              <div>
-                <p className={cn("text-sm font-bold", isCurrent ? "text-neutral-950" : "text-neutral-500")}>
-                  {step.label}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">{step.detail}</p>
-              </div>
+    <Card className="h-fit rounded-2xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <CardTitle>Import flow</CardTitle>
+        <CardDescription>
+          CSV supported. XLSX coming soon.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {steps.map((step, index) => (
+          <div key={step.id} className="flex gap-3">
+            <span
+              className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                index <= currentIndex
+                  ? "bg-[#1d1813] text-white"
+                  : "bg-[#f3ecd8] text-[#8d8472]"
+              }`}
+            >
+              {index + 1}
+            </span>
+            <div>
+              <p className="text-sm font-medium text-[#1d1813]">{step.label}</p>
+              <p className="text-xs text-[#8d8472]">{step.detail}</p>
             </div>
-          );
-        })}
-      </div>
-    </SectionCard>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
 function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
   return (
-    <SectionCard>
-      <div className="flex flex-col items-center py-8">
-        <div className="mb-6 flex size-16 items-center justify-center rounded-[2rem] bg-neutral-950 text-white shadow-xl">
-          <FileUp className="size-8" />
+    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-[#f3ecd8]">
+          <FileUp className="size-5 text-[#1d1813]" />
         </div>
-        <h2 className="text-2xl font-black tracking-tight text-neutral-950">Upload an AR export</h2>
-        <p className="mt-2 max-w-md text-center text-sm font-medium text-neutral-500 leading-relaxed">
-          Choose a CSV file containing your unpaid invoices. We need customer names, invoice numbers, due dates, and amounts.
-        </p>
-
+        <CardTitle className="text-2xl">Upload an AR export</CardTitle>
+        <CardDescription className="max-w-2xl leading-6">
+          Use a customer invoice ageing, unpaid invoices, or receivables export.
+          Required columns are customer, invoice number, due date, and amount
+          outstanding.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
         <Label
           htmlFor="invoice-file"
-          className="group mt-10 flex w-full cursor-pointer flex-col items-center justify-center rounded-[2.5rem] border border-black/10 bg-neutral-50/50 p-12 transition-all hover:border-black/20 hover:bg-white hover:shadow-xl"
+          className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-[#c0b49c] bg-[#faf5e8] px-6 py-12 text-center"
         >
-          <FileSpreadsheet className="size-14 text-neutral-300 transition-colors group-hover:text-neutral-950" />
-          <span className="mt-5 text-lg font-black uppercase tracking-widest text-neutral-950">
+          <FileSpreadsheet className="size-10 text-[#1d1813]" />
+          <span className="mt-4 text-base font-semibold text-[#1d1813]">
             Choose CSV file
+          </span>
+          <span className="mt-2 max-w-md text-sm leading-6 text-[#6b6253]">
+            CSV is supported now. XLSX can be added later with a spreadsheet
+            parser dependency.
           </span>
           <Input
             id="invoice-file"
@@ -441,8 +440,8 @@ function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
             onChange={(event) => onFile(event.target.files?.[0])}
           />
         </Label>
-      </div>
-    </SectionCard>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -470,17 +469,25 @@ function MappingPanel({
   const suggestions = suggestColumnMappings(headers);
 
   return (
-    <SectionCard
-      title="Map columns"
-      description={`${fileName} · ${headers.length} columns detected`}
-      actions={
-        <div className="flex items-center gap-2 rounded-full border border-black/5 bg-neutral-100/50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-neutral-500">
-          <Wand2 className="size-3" />
-          Suggestions active
+    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="text-2xl">Map columns</CardTitle>
+            <CardDescription className="mt-1">
+              {fileName} · {headers.length} columns detected
+            </CardDescription>
+          </div>
+          <Badge
+            variant="outline"
+            className="w-fit rounded-full border-[#d4c9ae] bg-[#f3ecd8]"
+          >
+            <Wand2 className="size-3" />
+            deterministic suggestions
+          </Badge>
         </div>
-      }
-    >
-      <div className="space-y-3">
+      </CardHeader>
+      <CardContent className="space-y-3">
         {importFields.map((field) => {
           const required = requiredFields.includes(field);
           const suggestion = suggestions[field];
@@ -488,25 +495,25 @@ function MappingPanel({
           return (
             <div
               key={field}
-              className="grid gap-4 rounded-2xl border border-black/5 bg-neutral-50/50 p-4 sm:grid-cols-[200px_minmax(0,1fr)_120px]"
+              className="grid gap-3 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3 sm:grid-cols-[220px_minmax(0,1fr)_140px]"
             >
               <div>
-                <p className="text-sm font-black text-neutral-950">
+                <p className="text-sm font-medium text-[#1d1813]">
                   {importFieldLabels[field]}
-                  {required ? <span className="text-rose-600"> *</span> : null}
+                  {required ? <span className="text-red-600"> *</span> : null}
                 </p>
-                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-                  {required ? "Required" : "Optional"}
+                <p className="mt-1 text-xs text-[#8d8472]">
+                  {required ? "Required" : "Recommended"}
                 </p>
               </div>
               <Select
                 value={mappings[field] || "__unmapped__"}
                 onValueChange={(value) => onMappingChange(field, value)}
               >
-                <SelectTrigger className="w-full rounded-full border-black/5 bg-white text-sm font-bold shadow-sm ring-black/5 transition-all focus:ring-1">
+                <SelectTrigger className="w-full rounded-full bg-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-black/5 shadow-xl">
+                <SelectContent>
                   <SelectItem value="__unmapped__">Not mapped</SelectItem>
                   {headers.map((header) => (
                     <SelectItem key={`${field}-${header}`} value={header}>
@@ -521,61 +528,68 @@ function MappingPanel({
             </div>
           );
         })}
-        <div className="mt-8 flex flex-col gap-4 border-t border-black/5 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-[11px] font-medium leading-relaxed text-neutral-400">
-            Zentra uses deterministic matching for suggestions. AI-assisted mapping is available on Pro plans for complex files.
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+          <p className="mr-auto max-w-md text-xs leading-5 text-[#8d8472]">
+            Low-confidence mappings can later be sent to a server-side
+            AI-assisted mapper. This MVP does not require AI to import a file.
           </p>
-          <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
-              className="h-11 rounded-full border-black/5 bg-white px-6 text-xs font-black uppercase tracking-widest text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-950"
+              className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
               onClick={onSaveTemplate}
             >
-              {canSaveTemplate ? "Save template" : "Template locked"}
+              {canSaveTemplate ? "Save mapping template" : "Save mapping locked"}
             </Button>
-            <Button
-              className="h-11 rounded-full bg-neutral-950 px-8 text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-              onClick={onContinue}
-              disabled={hasErrors}
-            >
-              Preview
-              <ArrowRight className="ml-2 size-4" />
-            </Button>
-          </div>
+          <Button
+            className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]"
+            onClick={onContinue}
+            disabled={hasErrors}
+          >
+            Preview invoices
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
-      </div>
-    </SectionCard>
+      </CardContent>
+    </Card>
   );
 }
 
 function SampleRows({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <SectionCard title="Sample rows" description="First few rows from your file.">
-      <div className="overflow-x-auto rounded-2xl border border-black/5">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
-            <tr>
-              {headers.map((header) => (
-                <th key={header} className="whitespace-nowrap px-4 py-4 font-black">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5 bg-white">
-            {rows.map((row, index) => (
-              <tr key={index} className="transition-colors hover:bg-neutral-50/50">
-                {headers.map((header, cellIndex) => (
-                  <td key={`${header}-${cellIndex}`} className="whitespace-nowrap px-4 py-4 font-medium text-neutral-600">
-                    {row[cellIndex] || "-"}
-                  </td>
+    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <CardTitle>Sample rows</CardTitle>
+        <CardDescription>
+          Check the first rows before importing the full file.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae]">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-[#f3ecd8] text-xs uppercase tracking-[0.12em] text-[#8d8472]">
+              <tr>
+                {headers.map((header) => (
+                  <th key={header} className="px-3 py-3 font-medium">
+                    {header}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </SectionCard>
+            </thead>
+            <tbody className="divide-y divide-black/10 bg-[#faf5e8]">
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  {headers.map((header, cellIndex) => (
+                    <td key={`${header}-${cellIndex}`} className="px-3 py-3">
+                      {row[cellIndex] || "-"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -589,29 +603,34 @@ function ValidationPanel({ issues }: { issues: ImportValidationIssue[] }) {
   }
 
   return (
-    <SectionCard title="Validation" description="Fix errors before you can import.">
-      <div className="space-y-3">
-        {issues.slice(0, 10).map((issue) => (
+    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <CardTitle>Validation</CardTitle>
+        <CardDescription>
+          Errors must be fixed before import. Warnings can be imported with care.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {issues.slice(0, 12).map((issue) => (
           <div
             key={issue.id}
-            className={cn(
-              "flex gap-4 rounded-2xl border p-4 text-sm font-medium transition-all",
+            className={`flex gap-3 rounded-2xl border p-3 text-sm ${
               issue.severity === "error"
-                ? "border-rose-100 bg-rose-50/50 text-rose-900"
-                : "border-amber-100 bg-amber-50/50 text-amber-900"
-            )}
+                ? "border-red-200 bg-red-50 text-red-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
           >
-            <AlertTriangle className={cn("mt-0.5 size-4 shrink-0", issue.severity === "error" ? "text-rose-500" : "text-amber-500")} />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>{issue.message}</span>
           </div>
         ))}
-        {issues.length > 10 ? (
-          <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-            + {issues.length - 10} more issues detected
+        {issues.length > 12 ? (
+          <p className="text-xs text-[#8d8472]">
+            Showing 12 of {issues.length} validation messages.
           </p>
         ) : null}
-      </div>
-    </SectionCard>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -640,92 +659,91 @@ function PreviewPanel({
   );
 
   return (
-    <SectionCard
-      title="Preview invoices"
-      description={`${invoices.length} invoices detected · ${formatCurrency(total)} outstanding`}
-      actions={
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="h-9 rounded-full border-black/5 bg-white px-5 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-neutral-950"
-            onClick={onBack}
-          >
-            Back
-          </Button>
-          <Button
-            className="h-9 rounded-full bg-neutral-950 px-6 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-            onClick={onImport}
-            disabled={errors > 0 || isImporting}
-          >
-            {isImporting ? "Importing..." : "Process Import"}
-          </Button>
+    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="text-2xl">Preview import</CardTitle>
+            <CardDescription>
+              {invoices.length} invoices · {formatCurrency(total)} outstanding ·{" "}
+              {warnings} warnings
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+              onClick={onBack}
+            >
+              Back
+            </Button>
+            <Button
+              className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]"
+              onClick={onImport}
+              disabled={errors > 0 || isImporting}
+            >
+              {isImporting ? "Importing..." : "Import and view plan"}
+            </Button>
+          </div>
         </div>
-      }
-    >
-      <div className="space-y-6">
+      </CardHeader>
+      <CardContent>
         {diff ? <ImportDiffPreview diff={diff} /> : null}
         {!canViewDiff ? (
-          <LockedFeatureCard
-            title="Re-import comparison is locked"
-            description="Upgrade to compare this file with the previous import and see what changed."
-            feature="reimportComparison"
-          />
+          <div className="mb-5">
+            <LockedFeatureCard
+              title="Re-import comparison is locked on this plan."
+              description="Upgrade to compare this file with the previous import and see what changed."
+              feature="reimportComparison"
+            />
+          </div>
         ) : null}
-        
-        <div className="overflow-hidden rounded-2xl border border-black/5">
+        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae]">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+            <thead className="bg-[#f3ecd8] text-xs uppercase tracking-[0.12em] text-[#8d8472]">
               <tr>
-                <th className="px-4 py-4 font-black">Customer</th>
-                <th className="px-4 py-4 font-black">Invoice</th>
-                <th className="px-4 py-4 font-black text-right">Outstanding</th>
-                <th className="px-4 py-4 font-black">Status</th>
+                <th className="px-3 py-3 font-medium">Customer</th>
+                <th className="px-3 py-3 font-medium">Invoice</th>
+                <th className="px-3 py-3 font-medium">Due</th>
+                <th className="px-3 py-3 font-medium">Outstanding</th>
+                <th className="px-3 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/5 bg-white">
-              {invoices.slice(0, 10).map((invoice) => (
-                <tr key={`${invoice.rowNumber}-${invoice.invoiceNumber}`} className="transition-colors hover:bg-neutral-50/50">
-                  <td className="px-4 py-4 font-black text-neutral-950">
+            <tbody className="divide-y divide-black/10 bg-[#faf5e8]">
+              {invoices.slice(0, 12).map((invoice) => (
+                <tr key={`${invoice.rowNumber}-${invoice.invoiceNumber}`}>
+                  <td className="px-3 py-3 font-medium text-[#1d1813]">
                     {invoice.customerName}
                   </td>
-                  <td className="px-4 py-4 font-bold text-neutral-500">
-                    {invoice.invoiceNumber}
-                    <span className="ml-2 text-[10px] text-neutral-400">Due {formatDate(invoice.dueDate)}</span>
-                  </td>
-                  <td className="px-4 py-4 text-right font-black text-neutral-950">
+                  <td className="px-3 py-3">{invoice.invoiceNumber}</td>
+                  <td className="px-3 py-3">{formatDate(invoice.dueDate)}</td>
+                  <td className="px-3 py-3">
                     {formatCurrency(invoice.amountOutstanding)}
                   </td>
-                  <td className="px-4 py-4">
-                     <StatusBadge status={invoice.status} variant="neutral" />
-                  </td>
+                  <td className="px-3 py-3">{humanLabel(invoice.status)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {invoices.length > 10 && (
-            <div className="bg-neutral-50 p-3 text-center text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-              + {invoices.length - 10} more invoices in this file
-            </div>
-          )}
         </div>
-      </div>
-    </SectionCard>
+      </CardContent>
+    </Card>
   );
 }
 
 function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
   return (
-    <div className="mb-5 rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
+    <div className="mb-5 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
             What changed since last import
           </p>
-          <h3 className="mt-2 text-lg font-semibold text-neutral-950">
+          <h3 className="mt-2 text-lg font-semibold text-[#1d1813]">
             Zentra compared this file with the previous import
           </h3>
         </div>
-        <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-white/70">
+        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
           {diff.previousInvoiceCount} previous · {diff.currentInvoiceCount} current
         </Badge>
       </div>
@@ -745,9 +763,9 @@ function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
           {diff.topChanges.map((change) => (
             <div
               key={change.id}
-              className="rounded-xl border border-black/10 bg-white/70 p-3 text-sm text-neutral-700"
+              className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-[#3d3428]"
             >
-              <span className="font-medium text-neutral-950">
+              <span className="font-medium text-[#1d1813]">
                 {change.customerName} · {change.invoiceNumber}
               </span>{" "}
               {change.message}
@@ -761,11 +779,11 @@ function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
 
 function DiffStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-black/10 bg-white/70 p-3">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+    <div className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472]">
         {label}
       </p>
-      <p className="mt-2 text-base font-semibold text-neutral-950">{value}</p>
+      <p className="mt-2 text-base font-semibold text-[#1d1813]">{value}</p>
     </div>
   );
 }
@@ -776,7 +794,7 @@ function ConfidenceBadge({ value }: { value: string }) {
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : value === "medium"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-black/10 bg-neutral-100 text-neutral-600";
+        : "border-[#d4c9ae] bg-[#f3ecd8] text-[#6b6253]";
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>

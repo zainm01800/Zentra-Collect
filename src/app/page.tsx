@@ -1,387 +1,453 @@
-"use client";
-
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  getPlanConfig,
-  getPlanLimit,
-  type LimitValue,
-  type PlanId,
-} from "@/lib/account/plans";
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  ShieldCheck,
+} from "lucide-react";
+import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
 
 const answers = [
   "Who should I chase today?",
   "What should I ask for?",
-  "What should I ignore?",
   "What changed since last import?",
+  "Is it safe to chase this customer?",
   "What cash is likely this week?",
 ];
 
-const steps = [
-  {
-    num: "01",
-    title: "Upload invoice export",
-    desc: "Drop a CSV or Excel file from Xero, QuickBooks, FreeAgent, or any accounting tool.",
-  },
-  {
-    num: "02",
-    title: "Get a ranked action plan",
-    desc: "Zentra scores every invoice by urgency, risk, and safety — then tells you what to do first.",
-  },
-  {
-    num: "03",
-    title: "Review draft follow-ups",
-    desc: "AI drafts a message for every recommended chase. You review and approve before anything leaves.",
-  },
-  {
-    num: "04",
-    title: "Track promises & exceptions",
-    desc: "Log promises to pay, disputes, and remittance requests so nothing falls through the gaps.",
-  },
+const messyAr = [
+  "Payment reminders",
+  "Promise follow-ups",
+  "Dispute responses",
+  "Statement requests",
+  "AP-contact requests",
 ];
 
+const trustItems = [
+  { label: "Human approval before every send", Icon: ShieldCheck },
+  { label: "Activity history per invoice",      Icon: FileText },
+  { label: "Plain-English safety checks",       Icon: CheckCircle2 },
+  { label: "No legal or accounting advice",     Icon: ShieldCheck },
+];
+
+// 3 plans on the marketing page (not 5) — keeps the upgrade story simple
 const pricingPlanIds: PlanId[] = [
   "TRIAL",
   "SINGLE_BUSINESS",
   "BOOKKEEPER_STARTER",
-  "BOOKKEEPER_PRO",
 ];
 
-const pricingCtas: Record<PlanId, { label: string; href: string }> = {
-  DEMO: { label: "Try the demo", href: "/demo" },
-  TRIAL: { label: "Start free trial", href: "/login?plan=TRIAL" },
-  FOUNDING_SINGLE: { label: "Request founding access", href: "/request-access" },
-  FOUNDING_BOOKKEEPER: { label: "Request founding access", href: "/request-access" },
-  SINGLE_BUSINESS: { label: "Get started", href: "/pricing" },
-  BOOKKEEPER_STARTER: { label: "Get started", href: "/pricing" },
-  BOOKKEEPER_PRO: { label: "Get started", href: "/pricing" },
-};
-
 const pricingDescriptions: Record<PlanId, string> = {
-  DEMO: "Sample data only, so visitors can explore the product safely.",
-  TRIAL: "No card required. Upload real AR exports and see Zentra working on your own data.",
-  FOUNDING_SINGLE: "Early access for one business while the product is in beta.",
-  FOUNDING_BOOKKEEPER: "Early access for bookkeepers shaping portfolio workflows.",
-  SINGLE_BUSINESS: "For one small business running a practical, consistent chase process.",
-  BOOKKEEPER_STARTER: "For bookkeepers managing a handful of client ledgers every week.",
-  BOOKKEEPER_PRO: "For larger client portfolios that need more capacity and speed.",
+  DEMO:                "Sample data only.",
+  TRIAL:               "14 days, no card required. Upload your own AR exports.",
+  FOUNDING_SINGLE:     "Founding access for one business while we're in beta.",
+  FOUNDING_BOOKKEEPER: "Founding access for bookkeepers shaping the workflow.",
+  SINGLE_BUSINESS:     "For one small business running a practical chase process.",
+  BOOKKEEPER_STARTER:  "For bookkeepers managing a handful of client ledgers.",
+  BOOKKEEPER_PRO:      "For larger client portfolios that need more capacity.",
 };
 
 const faqs = [
   {
-    question: "Do I need Xero or QuickBooks?",
-    answer: "No. You can start immediately with CSV/Excel invoice exports from any accounting tool.",
+    q: "Do I need Xero or QuickBooks?",
+    a: "No. CSV/Excel exports work. Most accounting tools can produce one in two clicks.",
   },
   {
-    question: "Does Zentra send emails automatically?",
-    answer: "No. You review and approve every message before it leaves. Nothing is sent automatically.",
+    q: "Does Zentra send emails automatically?",
+    a: "No. Every message is reviewed and sent by you from your own inbox. There is no auto-send.",
   },
   {
-    question: "What happens after the trial?",
-    answer: "You can still view your existing data, but new imports and AI actions require an upgrade.",
+    q: "What happens after the trial?",
+    a: "Your data stays available. New imports and AI drafts pause until you upgrade — you can also export everything before then.",
   },
   {
-    question: "What counts as an AI action?",
-    answer: "Drafts, rewrites, reply classification, unknown import mapping, and digest summaries.",
+    q: "What counts as an AI action?",
+    a: "Drafts, rewrites, reply classification, mapping suggestions, and weekly brief summaries.",
   },
   {
-    question: "Is this legal or debt collection advice?",
-    answer: "No. Zentra is a decision-support and drafting tool, not a legal or accounting service.",
+    q: "Is this debt collection or legal advice?",
+    a: "No. Zentra is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
   },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#fbf8f1] text-neutral-950">
-
-      {/* ── Nav ─────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-black/8 bg-[#fbf8f1]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3 font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-base font-bold text-white">
-              Z
-            </span>
-            <span className="leading-tight">
-              <span className="block tracking-[0.18em]">ZENTRA</span>
-              <span className="block text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500">
-                Collect
-              </span>
+    <main
+      className="min-h-screen relative z-[1]"
+      style={{ background: "var(--zn-bg)", color: "var(--zn-ink)" }}
+    >
+      {/* ─── Top nav ─── */}
+      <header
+        className="sticky top-0 z-30 backdrop-blur"
+        style={{
+          background: "rgba(233,223,201,0.85)",
+          borderBottom: "1px solid var(--zn-line)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="zn-brand-mark">Z</span>
+            <span className="flex flex-col leading-[1.1]">
+              <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
-
-          <nav className="hidden items-center gap-7 md:flex">
-            <a href="#how-it-works" className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950">
-              How it works
-            </a>
-            <a href="#pricing" className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950">
-              Pricing
-            </a>
-            <Link href="/request-access" className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950">
-              Request access
-            </Link>
+          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428]">
+            <Link href="#how-it-works" className="hover:text-[#1d1813]">How it works</Link>
+            <Link href="#bookkeepers" className="hover:text-[#1d1813]">For bookkeepers</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
+            <Link href="#faq" className="hover:text-[#1d1813]">FAQ</Link>
           </nav>
-
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="hidden rounded-full border-black/12 bg-transparent text-sm sm:flex">
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button asChild className="rounded-full bg-neutral-950 px-5 text-sm font-medium text-white hover:bg-neutral-800">
-              <Link href="/demo">Try the demo</Link>
-            </Button>
+            <Link href="/login" className="zn-pill zn-pill-ghost">Sign in</Link>
+            <Link href="/demo" className="zn-pill">Try the demo</Link>
           </div>
         </div>
       </header>
 
-      {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.88fr)] lg:px-8 lg:pb-24 lg:pt-24">
+      {/* ─── Hero ─── */}
+      <section className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.85fr)] lg:px-8 lg:pb-20 lg:pt-20">
         <div className="min-w-0">
-          <p className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-600">
-            Collections decisioning for UK service businesses
-          </p>
-          <h1 className="mt-6 max-w-2xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-[3.75rem]">
+          <div className="zn-label !p-0 mb-3">Collections decisioning · for UK SMBs and bookkeepers</div>
+          <h1
+            className="max-w-3xl tracking-[-0.015em] text-[44px] leading-[1.02] sm:text-[60px] lg:text-[72px]"
+            style={{
+              fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+              fontWeight: 500,
+            }}
+          >
             Upload overdue invoices. Get a ranked chase plan in minutes.
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-neutral-600">
-            Know who to chase, what to say, and what to ignore. Zentra turns your AR export into a prioritised, explainable action plan — with draft messages ready to go.
+          <p className="mt-6 max-w-2xl text-[16px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
+            Zentra Collect turns AR ageing reports into clear next actions —
+            who to chase, what to ask for, what to ignore, what cash is likely
+            to land. Action + reason + draft message, in one calm workspace.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white shadow-sm hover:bg-neutral-800">
-              <Link href="/login">
-                Get started for free
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full border-black/12 bg-transparent px-6 text-sm font-semibold text-neutral-950 hover:bg-black/5">
-              <Link href="/demo">Try the demo</Link>
-            </Button>
+          <div className="mt-8 flex flex-wrap items-center gap-2">
+            <Link href="/demo" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
+              Try the demo <ArrowRight className="size-4" />
+            </Link>
+            <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
+              Start a free trial
+            </Link>
           </div>
-          <p className="mt-4 text-xs text-neutral-400">
-            No card required for the trial. No messages sent automatically.
-          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5" style={{ color: "var(--zn-safe)" }} />
+              Human approval before every send
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5" style={{ color: "var(--zn-safe)" }} />
+              No card for trial
+            </span>
+          </div>
         </div>
 
-        {/* Hero widget */}
-        <div className="min-w-0 rounded-[2rem] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="rounded-[1.5rem] border border-black/8 bg-[#fbf8f1] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-              Today&apos;s collections plan
-            </p>
-            <div className="mt-4 grid gap-3">
+        {/* Hero "screenshot" — recreates the dashboard onboarding card */}
+        <div className="min-w-0">
+          <div className="zn-card p-3 sm:p-4">
+            <div
+              className="rounded-[12px] p-5"
+              style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+            >
+              <div className="zn-label !p-0" style={{ color: "rgba(250,245,232,0.55)" }}>
+                Today&apos;s focus
+              </div>
+              <p
+                className="mt-1.5 text-[17px] leading-[1.4] italic"
+                style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif" }}
+              >
+                Recover £105,940 sitting overdue. Two calls likely move the needle most.
+              </p>
+            </div>
+            <div className="mt-3 grid gap-2.5">
               {[
-                { label: "Chase now", amount: "£18,420", note: "7 recommended actions", dot: "bg-red-500" },
-                { label: "Exceptions", amount: "£6,850", note: "3 need review first", dot: "bg-amber-400" },
-                { label: "Likely this week", amount: "£9,200", note: "4 promises to check", dot: "bg-emerald-500" },
-              ].map(({ label, amount, note, dot }) => (
-                <div key={label} className="flex items-center justify-between rounded-2xl border border-black/8 bg-white p-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`size-2 rounded-full ${dot}`} />
-                      <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">{label}</p>
+                { rank: 1, name: "Ashford Digital",    amount: "£12,750", sub: "54d overdue · Send payment reminder" },
+                { rank: 2, name: "BluePeak Design",    amount: "£8,900",  sub: "77d overdue · Call customer"        },
+                { rank: 3, name: "Northline Creative", amount: "£6,400",  sub: "63d overdue · No action needed"     },
+              ].map((row) => (
+                <div
+                  key={row.rank}
+                  className="flex items-center gap-3 rounded-[10px] p-3"
+                  style={{
+                    background: "var(--zn-surface)",
+                    border: "1px solid var(--zn-line-soft)",
+                  }}
+                >
+                  <span
+                    className="text-[16px] italic flex-shrink-0 w-5 text-center"
+                    style={{
+                      fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                      color: "var(--zn-ink-3)",
+                    }}
+                  >
+                    {row.rank}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold truncate text-[#1d1813]">{row.name}</div>
+                    <div className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
+                      {row.sub}
                     </div>
-                    <p className="mt-1.5 text-2xl font-semibold tracking-tight">{amount}</p>
                   </div>
-                  <p className="text-right text-xs text-neutral-400 max-w-[100px]">{note}</p>
+                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813]">
+                    {row.amount}
+                  </div>
+                  <span
+                    className="zn-pill flex-shrink-0"
+                    style={{ height: 24, fontSize: 11, padding: "0 10px" }}
+                  >
+                    Review
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-          <p className="mt-3 text-center text-xs text-neutral-400">Sample data — no real invoices shown</p>
         </div>
       </section>
 
-      {/* ── What it answers ─────────────────────────────────────────────────── */}
-      <Section eyebrow="What it answers" title="Five questions that AR chaos makes hard.">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* ─── Answers ─── */}
+      <Section eyebrow="What it answers" title="A focused decisioning layer for messy AR.">
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {answers.map((item) => (
-            <div key={item} className="rounded-3xl border border-black/10 bg-white/70 p-5 text-sm font-medium text-neutral-800">
+            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
               {item}
             </div>
           ))}
         </div>
       </Section>
 
-      {/* ── How it works ────────────────────────────────────────────────────── */}
-      <Section id="how-it-works" eyebrow="How it works" title="From export to action plan in four steps.">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step) => (
-            <div key={step.num} className="rounded-3xl border border-black/10 bg-white/70 p-6">
-              <span className="text-3xl font-bold tracking-tight text-neutral-200">{step.num}</span>
-              <p className="mt-4 font-semibold text-neutral-950">{step.title}</p>
-              <p className="mt-2 text-sm leading-6 text-neutral-500">{step.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ── Bookkeepers ─────────────────────────────────────────────────────── */}
-      <Section eyebrow="For bookkeepers" title="See which client ledgers need attention first.">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-[2rem] border border-black/10 bg-white/70 p-8">
-            <p className="text-lg leading-8 text-neutral-600">
-              Portfolio mode is designed for bookkeepers managing multiple small business clients: weekly client briefs, ledger-level risk ranking, and a clear queue for where to spend the next hour.
-            </p>
-            <Link href="/request-access" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-neutral-950 underline-offset-4 hover:underline">
-              Request bookkeeper access <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-          <div className="rounded-[2rem] border border-black/10 bg-white/70 p-8">
-            <div className="space-y-3">
-              {["Weekly client briefs", "Ledger-level risk scoring", "Portfolio chase queue", "Per-client import mapping"].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-                  <span className="text-sm font-medium text-neutral-800">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── Safety ──────────────────────────────────────────────────────────── */}
-      <Section eyebrow="Safety first" title="Every recommendation stays human-approved.">
+      {/* ─── How it works ─── */}
+      <Section id="how-it-works" eyebrow="How it works" title="From CSV to chase plan in four steps.">
         <div className="grid gap-3 md:grid-cols-4">
           {[
-            { title: "Human approval", desc: "Nothing is sent without your explicit sign-off." },
-            { title: "Safety checks", desc: "Disputes, promises, and high-value accounts are flagged before chasing." },
-            { title: "Audit history", desc: "Every action and draft is logged so you can explain your process." },
-            { title: "No legal advice", desc: "Zentra is a decision-support tool, not a legal or debt recovery service." },
-          ].map((item) => (
-            <div key={item.title} className="rounded-3xl border border-black/10 bg-white/70 p-5">
-              <CheckCircle2 className="size-5 text-emerald-600" />
-              <p className="mt-3 font-semibold text-neutral-950">{item.title}</p>
-              <p className="mt-1.5 text-sm leading-6 text-neutral-500">{item.desc}</p>
+            { n: 1, title: "Upload",   sub: "AR ageing or invoice export — CSV today, Excel soon." },
+            { n: 2, title: "Rank",     sub: "Rules-first ranking with reasons — not a black box." },
+            { n: 3, title: "Review",   sub: "Action + reason + draft message + safety checks." },
+            { n: 4, title: "Outcome",  sub: "Record what happened. Watch the queue update." },
+          ].map((step) => (
+            <div key={step.n} className="zn-card p-5">
+              <span
+                className="size-8 rounded-lg inline-flex items-center justify-center text-[13px] font-semibold"
+                style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+              >
+                {step.n}
+              </span>
+              <p className="mt-5 text-[14px] font-semibold text-[#1d1813]">{step.title}</p>
+              <p className="mt-1.5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>{step.sub}</p>
             </div>
           ))}
         </div>
       </Section>
 
-      {/* ── Pricing ─────────────────────────────────────────────────────────── */}
-      <Section id="pricing" eyebrow="Pricing" title="Simple plans for solo operators and bookkeeping practices.">
-        <div className="mb-8 flex items-center justify-between">
-          <p className="text-sm text-neutral-500">All plans include a 14-day free trial. No card required to start.</p>
-          <Link href="/pricing" className="hidden items-center gap-1.5 text-sm font-semibold text-neutral-950 underline-offset-4 hover:underline sm:flex">
-            See full pricing details <ArrowRight className="size-3.5" />
-          </Link>
+      {/* ─── Built for messy AR ─── */}
+      <Section eyebrow="Scenarios" title="Every overdue invoice gets a different chase.">
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+          {messyAr.map((item) => (
+            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
+              {item}
+            </div>
+          ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {pricingPlanIds.map((planId) => {
-            const plan = getPlanConfig(planId);
-            const cta = pricingCtas[planId];
-            const isHighlighted = planId === "SINGLE_BUSINESS";
+      </Section>
 
+      {/* ─── Bookkeepers ─── */}
+      <Section
+        id="bookkeepers"
+        eyebrow="For bookkeepers"
+        title="See which client ledgers need attention first."
+      >
+        <div className="zn-card p-6 lg:p-8">
+          <p className="max-w-3xl text-[15px] leading-[1.65]" style={{ color: "var(--zn-ink-3)" }}>
+            Portfolio mode is built for bookkeepers managing multiple small
+            business clients. One pane across every ledger, weekly client
+            briefs, ledger-level risk, and a clear queue for where to spend
+            the next hour.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              { kicker: "One pane",   value: "All clients",   sub: "Sortable by overdue, exceptions, or risk" },
+              { kicker: "Per client", value: "Weekly brief",  sub: "Email-ready summaries for client meetings" },
+              { kicker: "Pricing",    value: "From £49/mo",   sub: "Up to 5 client ledgers on Starter" },
+            ].map((m) => (
+              <div key={m.kicker} className="zn-stat">
+                <div className="zn-label">{m.kicker}</div>
+                <div className="zn-stat-num mt-2" style={{ fontSize: 22 }}>{m.value}</div>
+                <p className="text-[12px] mt-1" style={{ color: "var(--zn-ink-3)" }}>{m.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ─── Trust ─── */}
+      <Section eyebrow="Safety" title="Recommendations stay human-approved.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {trustItems.map((item) => {
+            const Ico = item.Icon;
             return (
-              <div
-                key={plan.id}
-                className={
-                  isHighlighted
-                    ? "relative flex flex-col rounded-[2rem] border-2 border-neutral-950 bg-white p-6 shadow-lg"
-                    : "flex flex-col rounded-[2rem] border border-black/10 bg-white/70 p-6"
-                }
-              >
-                {isHighlighted && (
-                  <span className="absolute -top-3.5 left-6 rounded-full bg-neutral-950 px-3 py-1 text-xs font-semibold text-white">
-                    Most popular
-                  </span>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-500">{plan.name}</p>
-                  <p className="mt-3 text-4xl font-semibold tracking-tight text-neutral-950">
-                    {formatPrice(plan.id)}
-                    {plan.priceMonthlyGbp > 0 && (
-                      <span className="text-base font-normal text-neutral-400">/mo</span>
-                    )}
-                  </p>
-                  <p className="mt-3 min-h-[3rem] text-sm leading-6 text-neutral-500">
-                    {pricingDescriptions[plan.id]}
-                  </p>
-                  <div className="mt-5 space-y-2.5">
-                    {getPricingBullets(plan.id).map((feature) => (
-                      <div key={feature} className="flex items-start gap-2.5">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-                        <span className="text-sm text-neutral-700">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-7">
-                  <Link
-                    href={cta.href}
-                    className={
-                      isHighlighted
-                        ? "flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
-                        : "flex w-full items-center justify-center gap-2 rounded-full border border-black/15 bg-transparent px-5 py-3 text-sm font-semibold text-neutral-950 transition-colors hover:bg-black/5"
-                    }
-                  >
-                    {cta.label}
-                    <ArrowRight className="size-3.5" />
-                  </Link>
-                </div>
+              <div key={item.label} className="zn-card p-4 flex items-center gap-3">
+                <span
+                  className="size-8 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                  style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                >
+                  <Ico className="size-4" />
+                </span>
+                <span className="text-[13.5px] font-medium text-[#1d1813]">{item.label}</span>
               </div>
             );
           })}
         </div>
-        <div className="mt-6 text-center">
-          <Link href="/pricing" className="text-sm font-medium text-neutral-500 underline-offset-4 hover:text-neutral-950 hover:underline">
-            View founding member pricing →
-          </Link>
-        </div>
       </Section>
 
-      {/* ── FAQ ─────────────────────────────────────────────────────────────── */}
-      <Section eyebrow="FAQ" title="Straight answers before you start.">
-        <div className="grid gap-4 md:grid-cols-2">
-          {faqs.map((faq) => (
-            <div key={faq.question} className="rounded-[2rem] border border-black/10 bg-white/70 p-6">
-              <p className="font-semibold text-neutral-950">{faq.question}</p>
-              <p className="mt-3 text-sm leading-6 text-neutral-500">{faq.answer}</p>
+      {/* ─── Pricing ─── */}
+      <Section
+        id="pricing"
+        eyebrow="Pricing"
+        title="Clear plans for small teams and bookkeepers."
+      >
+        <p className="-mt-2 mb-6 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
+          Start with the demo. Move to a 14-day trial when you&apos;re ready to
+          import your own data. Upgrade to a paid plan to keep going.
+        </p>
+        <div className="grid gap-3.5 md:grid-cols-3">
+          {pricingPlanIds.map((planId) => {
+            const plan = getPlanConfig(planId);
+            const isFeatured = planId === "SINGLE_BUSINESS";
+            return (
+              <div
+                key={plan.id}
+                className="zn-card p-5"
+                style={
+                  isFeatured
+                    ? { borderColor: "var(--zn-ink)", boxShadow: "0 1px 0 rgba(29,24,19,0.04), 0 4px 18px -8px rgba(29,24,19,0.18)" }
+                    : undefined
+                }
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[13.5px] font-semibold text-[#1d1813]">{plan.name}</span>
+                  {isFeatured ? (
+                    <span
+                      className="zn-chip"
+                      style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", borderColor: "transparent" }}
+                    >
+                      Recommended
+                    </span>
+                  ) : null}
+                </div>
+                <div
+                  className="mt-1 text-[34px] tracking-[-0.02em] tabular-nums"
+                  style={{
+                    fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                    fontWeight: 500,
+                  }}
+                >
+                  {formatPrice(plan.id)}
+                  <span className="text-[14px] ml-1" style={{ color: "var(--zn-ink-3)", fontFamily: "var(--font-geist-sans)" }}>
+                    {plan.priceMonthlyGbp === 0 ? "" : "/mo"}
+                  </span>
+                </div>
+                <p className="mt-3 text-[13px] leading-[1.5] min-h-[42px]" style={{ color: "var(--zn-ink-3)" }}>
+                  {pricingDescriptions[plan.id]}
+                </p>
+                <div className="mt-4 flex flex-col gap-2">
+                  {getPricingBullets(plan.id).map((feature) => (
+                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428]">
+                      <CheckCircle2 className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href={planId === "TRIAL" ? "/login?mode=signup" : "/request-access"}
+                  className={isFeatured ? "zn-pill mt-5 w-full justify-center" : "zn-pill zn-pill-ghost mt-5 w-full justify-center"}
+                >
+                  {planId === "TRIAL" ? "Start free trial" : "Request access"}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-6 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+          Founding access available for bookkeepers and single-business owners during beta. <Link href="/request-access" className="underline underline-offset-2">Talk to us</Link>.
+        </p>
+      </Section>
+
+      {/* ─── FAQ ─── */}
+      <Section id="faq" eyebrow="FAQ" title="Straight answers before you start.">
+        <div className="grid gap-3 md:grid-cols-2">
+          {faqs.map((f) => (
+            <div key={f.q} className="zn-card p-5">
+              <p className="text-[14px] font-semibold text-[#1d1813]">{f.q}</p>
+              <p className="mt-2 text-[13px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
+                {f.a}
+              </p>
             </div>
           ))}
         </div>
       </Section>
 
-      {/* ── CTA banner ──────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="rounded-[2rem] bg-neutral-950 p-10 text-white sm:p-14">
-          <div className="max-w-2xl">
-            <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+      {/* ─── Final CTA ─── */}
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div
+          className="zn-card overflow-hidden p-0"
+          style={{ background: "var(--zn-ink)", borderColor: "var(--zn-ink)" }}
+        >
+          <div className="p-8 lg:p-10" style={{ color: "var(--zn-surface)" }}>
+            <div className="zn-label !p-0 mb-2" style={{ color: "rgba(250,245,232,0.55)" }}>
+              Get started
+            </div>
+            <h2
+              className="max-w-3xl text-[32px] sm:text-[40px] leading-[1.1]"
+              style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+            >
               Turn overdue invoices into today&apos;s action plan.
             </h2>
-            <p className="mt-5 text-base leading-8 text-white/60">
-              14-day free trial. No card required. No messages sent without your approval.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="rounded-full bg-white px-6 text-sm font-semibold text-neutral-950 hover:bg-neutral-100">
-                <Link href="/login">
-                  Get started for free
-                  <ArrowRight className="ml-2 size-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-full border-white/20 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10">
-                <Link href="/demo">Try the demo first</Link>
-              </Button>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <Link
+                href="/demo"
+                className="zn-pill"
+                style={{
+                  height: 40, padding: "0 18px", fontSize: 14,
+                  background: "var(--zn-accent)", color: "var(--zn-accent-ink)",
+                }}
+              >
+                Try the demo <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/login?mode=signup"
+                className="zn-pill"
+                style={{
+                  height: 40, padding: "0 18px", fontSize: 14,
+                  background: "transparent", color: "var(--zn-surface)",
+                  border: "1px solid rgba(250,245,232,0.25)",
+                }}
+              >
+                Start a trial
+              </Link>
             </div>
+            <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6]" style={{ color: "rgba(250,245,232,0.55)" }}>
+              Zentra Collect is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-black/8 bg-[#fbf8f1]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-neutral-950 text-sm font-bold text-white">Z</span>
-            <span className="text-sm font-semibold">Zentra Collect</span>
+      {/* ─── Footer ─── */}
+      <footer className="border-t mt-4" style={{ borderColor: "var(--zn-line)" }}>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5">
+            <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
+            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Collect</span>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-neutral-500">
-            <a href="#how-it-works" className="hover:text-neutral-950">How it works</a>
-            <a href="#pricing" className="hover:text-neutral-950">Pricing</a>
-            <Link href="/request-access" className="hover:text-neutral-950">Request access</Link>
-            <Link href="/login" className="hover:text-neutral-950">Sign in</Link>
-            <Link href="/demo" className="hover:text-neutral-950">Try demo</Link>
-          </nav>
-          <p className="text-xs text-neutral-400">
-            Zentra Collect is a decision-support tool. Not legal or accounting advice.
-          </p>
+          <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            <Link href="/help"    className="hover:text-[#1d1813]">Help</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
+            <Link href="/login"   className="hover:text-[#1d1813]">Sign in</Link>
+            <Link href="/terms"   className="hover:text-[#1d1813]">Terms</Link>
+            <Link href="/privacy" className="hover:text-[#1d1813]">Privacy</Link>
+            <Link href="/cookies" className="hover:text-[#1d1813]">Cookies</Link>
+            <span>© {new Date().getFullYear()} Zentra</span>
+          </div>
         </div>
       </footer>
     </main>
@@ -400,12 +466,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mb-8 max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-400">
-          {eyebrow}
-        </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+    <section id={id} className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mb-6 max-w-3xl">
+        <div className="zn-label !p-0 mb-2">{eyebrow}</div>
+        <h2
+          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+          style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+        >
           {title}
         </h2>
       </div>
@@ -416,17 +483,17 @@ function Section({
 
 function formatPrice(planId: PlanId) {
   const plan = getPlanConfig(planId);
-  if (plan.priceMonthlyGbp === 0) return "Free";
+  if (plan.priceMonthlyGbp === 0) return "£0";
   return `£${plan.priceMonthlyGbp}`;
 }
 
-function formatLimit(value: LimitValue) {
+function formatLimit(value: number | "unlimited") {
   return value === "unlimited" ? "unlimited" : value.toLocaleString("en-GB");
 }
 
 function getPricingBullets(planId: PlanId) {
   const plan = getPlanConfig(planId);
-  const activeInvoices = formatLimit(getPlanLimit(planId, "activeInvoiceCount"));
+  const activeInvoices = formatLimit(getPlanLimit(planId, "activeInvoiceCount") as number | "unlimited");
   const clientLedgers = getPlanLimit(planId, "clientLedgerCount");
   const aiActions =
     planId === "TRIAL"
@@ -440,19 +507,20 @@ function getPricingBullets(planId: PlanId) {
   if (planId === "TRIAL") {
     return [
       "No card required",
-      "1 business",
       `${activeInvoices} active invoices`,
-      `${formatLimit(imports as LimitValue)} imports`,
-      `${formatLimit(aiActions as LimitValue)} AI actions`,
+      `${formatLimit(imports as number | "unlimited")} imports total`,
+      `${formatLimit(aiActions as number | "unlimited")} AI actions`,
+      "Export everything anytime",
     ];
   }
 
   return [
     plan.features.bookkeeperMode
-      ? `Up to ${formatLimit(clientLedgers)} client ledgers`
-      : "1 business",
+      ? `Up to ${formatLimit(clientLedgers as number | "unlimited")} client ledgers`
+      : `1 business`,
     `${activeInvoices} active invoices`,
-    `${formatLimit(imports as LimitValue)} imports/month`,
-    `${formatLimit(aiActions as LimitValue)} AI actions/month`,
+    `${formatLimit(imports as number | "unlimited")} imports / month`,
+    `${formatLimit(aiActions as number | "unlimited")} AI actions / month`,
+    "Weekly digest preview",
   ];
 }
