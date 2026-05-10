@@ -10,8 +10,11 @@ import {
   isArmingCountdownActive,
   getDemoPhase,
   startDemoArming,
+  startArming,
   disableDemoAutoSend,
 } from "@/lib/email/settings-store";
+import { AutoSendResumeModal } from "@/components/auto-send-resume-modal";
+import type { EmailUiSettings } from "@/lib/email/settings-store";
 import type { PlanId } from "@/lib/account/plans";
 import { getPlanConfig } from "@/lib/account/plans";
 
@@ -51,6 +54,8 @@ export function AutoSendToggle({
   const [isEnabled, setIsEnabled] = useState(false);
   const [isArming, setIsArming] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [resumeOpen, setResumeOpen] = useState(false);
+  const [savedSettings, setSavedSettings] = useState<EmailUiSettings | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   function sync() {
@@ -100,7 +105,13 @@ export function AutoSendToggle({
       sync();
       window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
     } else {
-      setModalOpen(true);
+      const settings = readEmailUiSettings();
+      if (settings.connectedEmail) {
+        setSavedSettings(settings);
+        setResumeOpen(true);
+      } else {
+        setModalOpen(true);
+      }
     }
   }
 
@@ -185,6 +196,27 @@ export function AutoSendToggle({
         }}
         isDemoMode={state === "demo"}
       />
+
+      {savedSettings && (
+        <AutoSendResumeModal
+          open={resumeOpen}
+          settings={savedSettings}
+          onEnable={() => {
+            setResumeOpen(false);
+            startArming();
+            sync();
+            window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
+          }}
+          onEdit={() => {
+            setResumeOpen(false);
+            setModalOpen(true);
+          }}
+          onClose={() => {
+            setResumeOpen(false);
+            sync();
+          }}
+        />
+      )}
     </>
   );
 }
