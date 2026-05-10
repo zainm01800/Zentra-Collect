@@ -68,10 +68,10 @@ function DemoPortfolio() {
       missedPromises,
       risk:
         exceptions + missedPromises >= 3
-          ? "high"
+          ? ("high" as const)
           : exceptions + missedPromises >= 1
-            ? "med"
-            : "low",
+            ? ("med" as const)
+            : ("low" as const),
     };
   });
 

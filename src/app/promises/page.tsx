@@ -19,7 +19,8 @@ export const metadata: Metadata = {
 //    currently in the chase queue but don't yet have a recorded promise date
 function deriveStatus(inv: typeof demoInvoices[number], promisedDate: Date): "due" | "kept" | "missed" {
   if (inv.status === "Paid") return "kept";
-  if (promisedDate.getTime() < Date.now() && inv.status !== "Paid") return "missed";
+  // After the early return above, status is already narrowed to "not Paid".
+  if (promisedDate.getTime() < Date.now()) return "missed";
   return "due";
 }
 

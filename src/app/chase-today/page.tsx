@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ChaseQueue } from "@/components/chase-queue";
 import { DashboardStats } from "@/components/dashboard-stats";
@@ -24,7 +25,9 @@ export default function ChaseTodayPage() {
           actions={<button className="zn-pill zn-pill-ghost">Export</button>}
         />
         <DashboardStats invoices={demoInvoices} />
-        <ChaseQueue initialInvoices={demoInvoices} onlyToday={false} />
+        <Suspense fallback={null}>
+          <ChaseQueue initialInvoices={demoInvoices} onlyToday={false} />
+        </Suspense>
       </div>
     </AppShell>
   );

@@ -23,7 +23,7 @@ function aggregateCustomers(): CustomerRow[] {
     map.set(key, cur);
   }
   return Array.from(map.entries())
-    .map(([name, v]) => ({
+    .map(([name, v]): CustomerRow => ({
       name,
       outstanding: v.outstanding,
       invoiceCount: v.count,
