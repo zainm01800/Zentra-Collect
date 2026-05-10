@@ -593,3 +593,70 @@ function safety(
 function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
+
+// ── Adapter: zentra Invoice → cashpilot Invoice ───────────────────────────────
+// Lets the ChaseQueue (typed to cashpilot Invoice) consume zentra demo data so
+// both the Dashboard and Collections tab show the same underlying invoices.
+
+import type { Invoice as CashpilotInvoice, InvoiceStatus, RelationshipType as CpRelationshipType } from "@/types/cashpilot";
+
+function zentraRelationshipToCashpilot(r: RelationshipType): CpRelationshipType {
+  switch (r) {
+    case "new customer":      return "new client";
+    case "high-value customer":
+    case "strategic account": return "high-value client";
+    case "slow payer":
+    case "problematic payer":
+    case "do not chase":      return "problematic payer";
+    case "regular customer":
+    default:                  return "regular client";
+  }
+}
+
+function zentraStatusToCashpilot(status: CollectionStatus): InvoiceStatus {
+  switch (status) {
+    case "paid":                return "Paid";
+    case "due_soon":            return "Due soon";
+    case "promised":            return "Promised payment";
+    case "missed_promise":      return "Needs call";
+    case "disputed":            return "Disputed";
+    case "awaiting_remittance": return "Reminder sent";
+    case "awaiting_statement":  return "Reminder sent";
+    case "needs_ap_contact":    return "Overdue";
+    case "do_not_chase":        return "Paid"; // exclude from chase queue
+    case "overdue":
+    default:                    return "Overdue";
+  }
+}
+
+export const demoCashpilotInvoices: CashpilotInvoice[] = demoInvoices.map((inv) => ({
+  id: inv.id,
+  customerName: inv.customerName,
+  customerEmail: inv.customerEmail ?? "",
+  invoiceNumber: inv.invoiceNumber,
+  amount: inv.amountOutstanding,
+  currency: "GBP",
+  issueDate: inv.invoiceDate,
+  dueDate: inv.dueDate ?? "",
+  daysOverdue: inv.daysOverdue,
+  status: zentraStatusToCashpilot(inv.status),
+  lastChasedAt: inv.lastChasedDate ?? null,
+  followUpDate: null,
+  promisedPaymentDate: inv.promisedPaymentDate ?? null,
+  chaseCount: inv.previousChaseCount,
+  relationshipType: zentraRelationshipToCashpilot(inv.relationshipType),
+  notes: inv.customerNotes ?? "",
+  paymentLink: "",
+  lineItems: inv.lineItems.map((li) => ({
+    description: li.description,
+    quantity: li.quantity,
+    unitPrice: li.unitPrice,
+  })),
+  activityHistory: inv.activityHistory.map((ev) => ({
+    id: ev.id,
+    type: "note" as const,
+    title: ev.title,
+    description: ev.description,
+    createdAt: ev.createdAt,
+  })),
+}));
