@@ -256,7 +256,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
                   >
                     account.microsoft.com/security
                   </a>
-                  {" "}→ Advanced security options → App passwords
+                  {" "}→ Manage how I sign in → turn on Two-step verification → App passwords
                 </p>
               </div>
               <div className="space-y-1.5">
