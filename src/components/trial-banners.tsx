@@ -24,11 +24,13 @@
  *   only. The copy says "scheduled for deletion" which is accurate in intent.
  */
 
+"use client";
+
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Clock, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatGraceDate } from "@/lib/usage/tracker";
-import { getUsageSnapshot, DEMO_ACCOUNT_ID } from "@/lib/usage/store";
+import { useLocalAccount } from "@/lib/billing/use-local-account";
 
 // ── Shared export placeholder ─────────────────────────────────────────────────
 
@@ -181,22 +183,29 @@ export function GracePeriodExpiredBanner() {
  *   session user's account ID.
  */
 export function TrialStatusBanner() {
-  // TODO: Replace DEMO_ACCOUNT_ID with session.user.accountId once auth is live
-  const snapshot = getUsageSnapshot(DEMO_ACCOUNT_ID);
+  const { user } = useLocalAccount();
 
-  // Only applies to expired trial accounts
-  if (!snapshot.isExpired) return null;
+  // Only relevant for trial accounts
+  if (!user || user.planId !== "trial") return null;
 
-  // Within grace period
-  if (snapshot.isInGracePeriod && snapshot.gracePeriodEndsAt) {
+  const trialEndsMs = user.trialEndsAt ? new Date(user.trialEndsAt).getTime() : 0;
+  const graceEndsMs = user.graceEndsAt ? new Date(user.graceEndsAt).getTime() : 0;
+  const now = Date.now();
+
+  // Trial still active — no banner (sidebar pill carries the countdown)
+  if (trialEndsMs > now) return null;
+
+  // Within grace period: trial ended, data still safe
+  if (graceEndsMs > now) {
+    const daysRemaining = Math.ceil((graceEndsMs - now) / 86_400_000);
     return (
       <TrialExpiredBanner
-        gracePeriodEndsAt={snapshot.gracePeriodEndsAt}
-        daysRemaining={snapshot.gracePeriodDaysRemaining ?? 0}
+        gracePeriodEndsAt={new Date(graceEndsMs).toISOString()}
+        daysRemaining={daysRemaining}
       />
     );
   }
 
-  // Grace period has ended
+  // Grace period over — data scheduled for deletion
   return <GracePeriodExpiredBanner />;
 }
