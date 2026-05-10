@@ -184,7 +184,7 @@ export function ZentraImportFlow() {
     setMessage("Mapping template saved for future imports in this browser.");
   }
 
-  function importRows() {
+  async function importRows() {
     if (errors.length) return;
     const user = readLocalAccount();
     const account = user ? toBillingAccount(user) : null;
@@ -234,19 +234,6 @@ export function ZentraImportFlow() {
       }),
     );
 
-    // Persist to Supabase in the background — does not block navigation.
-    // Silently ignored when Supabase is not configured or user is not authenticated.
-    saveImportBatchAction(
-      {
-        businessId: "default",
-        source: "csv",
-        fileName,
-        rowCount: validation.preview.length,
-        validInvoiceCount: invoices.length,
-        warningCount: 0,
-      },
-      invoices,
-    ).catch(() => null);
     incrementUsage("importBatches");
     incrementUsage("importsThisMonth");
     incrementImportUsage(accountState);
@@ -257,11 +244,28 @@ export function ZentraImportFlow() {
       ).length,
     );
 
-    window.setTimeout(() => {
-      setIsImporting(false);
-      setStep("complete");
-      router.push("/dashboard");
-    }, 300);
+    // Persist to Supabase — non-blocking. If it fails, pass a flag to dashboard.
+    let syncFailed = false;
+    try {
+      const result = await saveImportBatchAction(
+        {
+          businessId: "default",
+          source: "csv",
+          fileName,
+          rowCount: validation.preview.length,
+          validInvoiceCount: invoices.length,
+          warningCount: 0,
+        },
+        invoices,
+      );
+      if (!result?.success) syncFailed = true;
+    } catch {
+      syncFailed = true;
+    }
+
+    setIsImporting(false);
+    setStep("complete");
+    router.push(syncFailed ? "/dashboard?import_sync_failed=1" : "/dashboard");
   }
 
   return (
