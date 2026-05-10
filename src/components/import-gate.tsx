@@ -7,19 +7,51 @@ import { PageHeader } from "@/components/page-header";
 import { ZentraImportFlow } from "@/components/zentra-import-flow";
 
 /**
- * Demo accounts are blocked from importing real data.
+ * Import is gated for:
+ *  - Demo accounts (no real data, sample only)
+ *  - Trials whose 14-day window has ended (must upgrade to keep importing)
+ *
  * Showing the locked panel up-front (rather than at the final click of the
- * 4-step flow) is honest UX — they know what they need before investing time.
+ * 4-step flow) is honest UX — users know what they need before investing time.
  */
 export function ImportGate() {
-  const { account } = useLocalAccount();
+  const { user, account } = useLocalAccount();
   const isDemo = !account || account.planId === "demo";
 
-  if (isDemo) return <DemoLockedImport />;
+  // Trial expired? gate them out the same way as demo
+  const trialExpired =
+    user?.planId === "trial" &&
+    !!user.trialEndsAt &&
+    new Date(user.trialEndsAt).getTime() <= Date.now();
+
+  if (isDemo || trialExpired) {
+    return <LockedImport variant={trialExpired ? "trial-ended" : "demo"} />;
+  }
   return <ZentraImportFlow />;
 }
 
-function DemoLockedImport() {
+function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
+  const isTrial = variant === "trial-ended";
+  const copy = isTrial
+    ? {
+        kicker: "Trial ended",
+        title: "Upgrade to keep importing",
+        body:
+          "Your 14-day trial has ended. Your existing invoices and chase plan stay available for 30 days, but new imports and AI drafts need a paid plan. You can also export everything before it's deleted.",
+        primary: { href: "/#pricing", label: "View pricing", icon: true },
+        secondary: { href: "mailto:hello@zentracollect.co.uk?subject=Upgrade%20my%20Zentra%20trial", label: "Email support" },
+        safetyLine: "Your data is safe. Nothing is deleted during the 30-day grace period.",
+      }
+    : {
+        kicker: "Demo workspace",
+        title: "Importing your own data needs a trial or paid plan",
+        body:
+          "Demo accounts use sample data only — so you can explore the dashboard, review drawer and decisioning logic safely before connecting your own invoices. Start a 14-day trial (no card required) or pick a paid plan to upload real AR exports.",
+        primary: { href: "/login?mode=signup", label: "Start a free trial", icon: true },
+        secondary: { href: "/#pricing", label: "View pricing" },
+        safetyLine: "Your data stays yours. Trials don't require a card and you can export everything before they end.",
+      };
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -42,7 +74,7 @@ function DemoLockedImport() {
           >
             <Lock className="size-5" />
           </div>
-          <div className="zn-label !p-0 mb-1.5">Demo workspace</div>
+          <div className="zn-label !p-0 mb-1.5">{copy.kicker}</div>
           <h2
             className="text-[22px] leading-tight mb-2 text-[#1d1813]"
             style={{
@@ -50,21 +82,18 @@ function DemoLockedImport() {
               fontWeight: 500,
             }}
           >
-            Importing your own data needs a trial or paid plan
+            {copy.title}
           </h2>
           <p className="text-[13.5px] leading-relaxed text-[#6b6253] max-w-[480px]">
-            Demo accounts use sample data only — so you can explore the dashboard,
-            review drawer and decisioning logic safely before connecting your own
-            invoices. Start a 14-day trial (no card required) or pick a paid plan
-            to upload real AR exports.
+            {copy.body}
           </p>
 
           <div className="flex flex-wrap items-center gap-2 mt-5">
-            <Link href="/login?mode=signup" className="zn-pill">
-              Start a free trial <ArrowRight className="size-3.5" />
+            <Link href={copy.primary.href} className="zn-pill">
+              {copy.primary.label} {copy.primary.icon ? <ArrowRight className="size-3.5" /> : null}
             </Link>
-            <Link href="/#pricing" className="zn-pill zn-pill-ghost">
-              View pricing
+            <Link href={copy.secondary.href} className="zn-pill zn-pill-ghost">
+              {copy.secondary.label}
             </Link>
           </div>
 
@@ -77,14 +106,11 @@ function DemoLockedImport() {
             }}
           >
             <ShieldCheck className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
-            <span>
-              Your data stays yours. Trials don&apos;t require a card and you can
-              export everything before they end.
-            </span>
+            <span>{copy.safetyLine}</span>
           </div>
         </div>
 
-        {/* Right: what trial unlocks */}
+        {/* Right side panel — trial unlocks (demo) or paid-plan unlocks (trial-ended) */}
         <div
           className="lg:w-[320px] p-6 lg:p-7 flex flex-col gap-3"
           style={{
@@ -94,15 +120,24 @@ function DemoLockedImport() {
         >
           <div className="flex items-center gap-2 mb-1">
             <FileSpreadsheet className="size-4" style={{ color: "var(--zn-accent)" }} />
-            <div className="zn-label !p-0">Trial unlocks</div>
+            <div className="zn-label !p-0">{isTrial ? "Paid plan unlocks" : "Trial unlocks"}</div>
           </div>
-          {[
-            { label: "CSV / Excel imports", value: "5 / month" },
-            { label: "Active invoices", value: "100" },
-            { label: "AI draft messages", value: "25" },
-            { label: "Re-import comparison", value: "Included" },
-            { label: "Saved column mappings", value: "Included" },
-          ].map((row) => (
+          {(isTrial
+            ? [
+                { label: "CSV / Excel imports", value: "Unlimited" },
+                { label: "Active invoices",     value: "500+" },
+                { label: "AI draft messages",   value: "200+ / mo" },
+                { label: "Saved import mappings", value: "Included" },
+                { label: "Weekly digest history", value: "Included" },
+              ]
+            : [
+                { label: "CSV / Excel imports", value: "5 / month" },
+                { label: "Active invoices",     value: "100" },
+                { label: "AI draft messages",   value: "25" },
+                { label: "Re-import comparison", value: "Included" },
+                { label: "Saved column mappings", value: "Included" },
+              ]
+          ).map((row) => (
             <div
               key={row.label}
               className="flex items-center justify-between py-2"
@@ -117,21 +152,20 @@ function DemoLockedImport() {
         </div>
       </div>
 
-      {/* Sample data link */}
-      <div
-        className="zn-card p-5 flex flex-wrap items-center justify-between gap-3"
-      >
+      {/* Existing-data CTA — different framing per variant */}
+      <div className="zn-card p-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[13.5px] font-semibold text-[#1d1813]">
-            Want to see how an import looks?
+            {isTrial ? "Your existing data is still here" : "Want to see how an import looks?"}
           </div>
           <div className="text-[12.5px] text-[#6b6253] mt-0.5">
-            Open the demo dashboard — it&apos;s populated with realistic sample
-            invoices already mapped and ranked.
+            {isTrial
+              ? "Your invoices, customers and chase plan are all viewable. Pick up where you left off."
+              : "Open the demo dashboard — it's populated with realistic sample invoices already mapped and ranked."}
           </div>
         </div>
         <Link href="/dashboard" className="zn-pill zn-pill-ghost flex-shrink-0">
-          Open demo dashboard <ArrowRight className="size-3.5" />
+          {isTrial ? "Open dashboard" : "Open demo dashboard"} <ArrowRight className="size-3.5" />
         </Link>
       </div>
     </div>
