@@ -57,7 +57,9 @@ export function ChaseQueue({
       review.open(match);
       autoOpenedRef.current = true;
     }
-  }, [searchParams, invoices, review]);
+    // Same as above: depend on the stable callback identity, not the whole context.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, invoices, review.open]);
 
   // Wire the drawer's "Record outcome" buttons → update the queue
   useEffect(() => {
@@ -93,7 +95,11 @@ export function ChaseQueue({
         }),
       );
     });
-  }, [review]);
+    // Depend only on the stable callback identity, not the whole context value.
+    // Including `review` here would re-register on every provider render, which
+    // re-renders the provider, which … infinite loop. (Killed the router.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [review.registerOnOutcome]);
 
   // Keyboard navigation: j = next, k = prev, Enter = open, / = focus search
   const [highlightedIdx, setHighlightedIdx] = useState(0);
