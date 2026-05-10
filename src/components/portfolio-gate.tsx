@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { LockedFeatureCard } from "@/components/account-plan-ui";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePlanAccess } from "@/lib/account/access";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import {
@@ -34,15 +32,13 @@ export function PortfolioGate() {
   }
 
   return (
-    <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
-      <CardHeader>
-        <CardTitle>Bookkeeper portfolio</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm leading-6 text-neutral-600">
+    <div className="zn-card p-5">
+      <div className="text-[15px] font-semibold mb-1 text-[#1d1813]">Bookkeeper portfolio</div>
+      <p className="text-[13px] text-[#6b6253]">
         Portfolio access is enabled for this plan. The full multi-ledger backend
         is still demo-only until real tenancy and database storage are added.
-      </CardContent>
-    </Card>
+      </p>
+    </div>
   );
 }
 
@@ -67,15 +63,15 @@ function DemoPortfolio() {
     return {
       ...client,
       overdueAmount,
-      actionCount: invoices.filter((invoice) => invoice.amountOutstanding > 0).length,
+      actionCount: invoices.filter((i) => i.amountOutstanding > 0).length,
       exceptions,
       missedPromises,
       risk:
         exceptions + missedPromises >= 3
-          ? "High"
+          ? ("high" as const)
           : exceptions + missedPromises >= 1
-            ? "Medium"
-            : "Low",
+            ? ("med" as const)
+            : ("low" as const),
     };
   });
 
@@ -87,70 +83,127 @@ function DemoPortfolio() {
     (total, client) => total + client.actionCount,
     0,
   );
+  const totalExceptions = clients.reduce(
+    (total, client) => total + client.exceptions,
+    0,
+  );
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[2rem] border border-black/10 bg-white/70 p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Demo portfolio
+    <div className="flex flex-col gap-5">
+      <section>
+        <div className="zn-label mb-1.5">Bookkeeper mode</div>
+        <h1 className="zn-page-h1">Client portfolio</h1>
+        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+          One pane across every client ledger. Spot the ones that need you today.
         </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">
-          Sample bookkeeper portfolio
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-600">
-          This is sample data only. You can explore how Zentra ranks client
-          ledgers, but demo mode does not create permanent client records.
-        </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <PortfolioStat label="Total overdue" value={formatCurrency(totalOverdue)} />
-          <PortfolioStat label="Actions today" value={String(totalActions)} />
-          <PortfolioStat label="Client ledgers" value={String(clients.length)} />
-        </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        {clients.map((client) => (
-          <Card key={client.id} className="rounded-3xl border-black/10 bg-white/70 shadow-none">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle>{client.business.name}</CardTitle>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {client.portfolioLabel} - {client.primaryContactName}
-                  </p>
+      {/* Summary stats */}
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="zn-stat">
+          <div className="zn-label">Clients</div>
+          <div className="zn-stat-num mt-2">{clients.length}</div>
+        </div>
+        <div className="zn-stat">
+          <div className="zn-label">Total overdue</div>
+          <div className="zn-stat-num mt-2" style={{ color: "var(--zn-accent)" }}>
+            {formatCurrency(totalOverdue)}
+          </div>
+        </div>
+        <div className="zn-stat">
+          <div className="zn-label">Actions today</div>
+          <div className="zn-stat-num mt-2">{totalActions}</div>
+        </div>
+        <div className="zn-stat">
+          <div className="zn-label">Exceptions</div>
+          <div className="zn-stat-num mt-2" style={{ color: "var(--zn-risk)" }}>
+            {totalExceptions}
+          </div>
+        </div>
+      </div>
+
+      {/* Client cards grid */}
+      <section className="grid gap-3.5 lg:grid-cols-2">
+        {clients.map((client) => {
+          const initials = client.business.name
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((p) => p[0])
+            .join("")
+            .toUpperCase();
+          const riskClass =
+            client.risk === "high"
+              ? "zn-risk-high"
+              : client.risk === "med"
+                ? "zn-risk-med"
+                : "zn-risk-low";
+          const riskLabel =
+            client.risk === "high"
+              ? "High risk"
+              : client.risk === "med"
+                ? "Medium risk"
+                : "Low risk";
+          return (
+            <div key={client.id} className="zn-card p-[18px]">
+              <div className="flex items-start justify-between gap-3 mb-3.5">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span
+                    className="size-9 rounded-lg inline-flex items-center justify-center text-[12px] font-semibold flex-shrink-0"
+                    style={{
+                      background: "var(--zn-accent)",
+                      color: "var(--zn-accent-ink)",
+                    }}
+                  >
+                    {initials}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-semibold text-[#1d1813] truncate">
+                      {client.business.name}
+                    </div>
+                    <div className="text-[12px] text-[#6b6253] truncate">
+                      {client.portfolioLabel} · {client.primaryContactName}
+                    </div>
+                  </div>
                 </div>
-                <span className="rounded-full border border-black/10 bg-[#fbf8f1] px-3 py-1 text-xs font-medium text-neutral-600">
-                  {client.risk} risk
+                <span className={`zn-risk-chip ${riskClass} flex-shrink-0`}>
+                  <span className="zn-risk-dot" />
+                  {riskLabel}
                 </span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PortfolioStat label="Overdue" value={formatCurrency(client.overdueAmount)} />
-                <PortfolioStat label="Actions" value={String(client.actionCount)} />
-                <PortfolioStat label="Exceptions" value={String(client.exceptions)} />
-              </div>
-              <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
-                <Link href="/dashboard">
-                  Open sample chase plan
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-    </div>
-  );
-}
 
-function PortfolioStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
-      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
-        {label}
-      </p>
-      <p className="mt-2 text-xl font-semibold text-neutral-950">{value}</p>
+              <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+                {[
+                  { label: "Overdue", value: formatCurrency(client.overdueAmount), tone: "var(--zn-accent)" },
+                  { label: "Actions", value: String(client.actionCount), tone: "var(--zn-ink)" },
+                  { label: "Exceptions", value: String(client.exceptions), tone: client.exceptions > 0 ? "var(--zn-risk)" : "var(--zn-ink)" },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-[10px] p-2.5"
+                    style={{
+                      background: "var(--zn-surface-2)",
+                      border: "1px solid var(--zn-line-soft)",
+                    }}
+                  >
+                    <div className="zn-label !p-0" style={{ fontSize: 9.5 }}>{s.label}</div>
+                    <div className="text-[16px] font-semibold tabular-nums mt-1" style={{ color: s.tone }}>
+                      {s.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/dashboard"
+                className="zn-pill zn-pill-ghost w-full justify-center"
+              >
+                Open sample chase plan
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          );
+        })}
+      </section>
     </div>
   );
 }

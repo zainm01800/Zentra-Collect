@@ -91,7 +91,7 @@ export function SettingsForm() {
             <Switch />
           </div>
           <div className="flex justify-end sm:col-span-2">
-            <Button className="rounded-full bg-neutral-950 px-5 text-white hover:bg-neutral-800">
+            <Button className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]">
               <Save className="size-4" />
               Save settings
             </Button>

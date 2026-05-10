@@ -1,46 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
-  Bell,
+  ArrowRight,
   CalendarCheck,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
   Clipboard,
   Copy,
   FileText,
-  FileUp,
+  Flag,
   Loader2,
   MailPlus,
-  MoreVertical,
-  Search,
-  ShieldAlert,
   ShieldCheck,
-  Upload,
-  X,
+  TrendingUp,
+  Users,
 } from "lucide-react";
-import { ActionDrawerContent } from "@/components/action-drawer-content";
-import {
-  PageHeader,
-  MetricCard,
-  SectionCard,
-  StatusBadge,
-  SafetyBadge,
-  PillTabs,
-  EmptyState,
-  LoadingOverlay,
-} from "./zentra-ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   LockedFeatureCard,
   UpgradePromptModal,
 } from "@/components/billing-gates";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -82,9 +73,7 @@ import { incrementAIUsage } from "@/lib/account/usage";
 import {
   incrementUsage,
   readLocalAccount,
-  createUsageCounters,
 } from "@/lib/demo-auth";
-import type { BillingAccount } from "@/lib/billing/plans";
 import {
   demoCustomerBehaviourProfiles,
   demoCustomers,
@@ -108,8 +97,6 @@ import type {
   CustomerBehaviourProfile,
   Invoice,
 } from "@/types/zentra";
-import { fetchInvoicesFromDb, fetchAccountFromDb } from "@/lib/api/client-db";
-import { hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 
 const referenceDate = "2026-05-07";
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -220,25 +207,25 @@ const actionScenarioOptions: Array<{ value: ActionScenario; label: string }> = [
   { value: "THANK_YOU_AFTER_PAYMENT", label: "Send thank-you after payment" },
 ];
 
-function readImportedInvoices(demoMode: boolean) {
-  if (typeof window === "undefined") return demoMode ? demoInvoices : [];
+function readImportedInvoices() {
+  if (typeof window === "undefined") return demoInvoices;
 
   const localAccount = readLocalAccount();
   const storageKey =
-    demoMode
+    localAccount?.planId === "demo"
       ? demoInvoiceStateStorageKey
       : importedInvoicesStorageKey;
   const storedInvoices = window.localStorage.getItem(storageKey);
-  if (!storedInvoices) return demoMode ? demoInvoices : [];
+  if (!storedInvoices) return demoInvoices;
 
   try {
     const parsedInvoices = JSON.parse(storedInvoices) as Invoice[];
     return Array.isArray(parsedInvoices) && parsedInvoices.length
       ? parsedInvoices
-      : (demoMode ? demoInvoices : []);
+      : demoInvoices;
   } catch {
     window.localStorage.removeItem(storageKey);
-    return demoMode ? demoInvoices : [];
+    return demoInvoices;
   }
 }
 
@@ -280,22 +267,13 @@ function persistInvoices(nextInvoices: Invoice[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(nextInvoices));
 }
 
-export function ZentraDashboard({
-  initialInvoices,
-  demoMode = false,
-}: {
-  initialInvoices?: Invoice[];
-  demoMode?: boolean;
-} = {}) {
-  const { account: localAccount } = useLocalAccount();
-  const [supabaseAccount, setSupabaseAccount] = useState<BillingAccount | null>(null);
+export function ZentraDashboard() {
+  const { account } = useLocalAccount();
   const [upgradePrompt, setUpgradePrompt] = useState<{
     title: string;
     description: string;
   } | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>(
-    () => initialInvoices ?? readImportedInvoices(demoMode),
-  );
+  const [invoices, setInvoices] = useState<Invoice[]>(readImportedInvoices);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [planViewFilter, setPlanViewFilter] =
     useState<PlanViewFilter>("focus");
@@ -331,73 +309,7 @@ export function ZentraDashboard({
     "ready",
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [useInlineReviewPanel, setUseInlineReviewPanel] = useState(false);
-  const account = useMemo<BillingAccount | null>(() => {
-    if (supabaseAccount) return supabaseAccount;
-    if (localAccount) return localAccount;
-    if (!demoMode) return null;
-    const now = new Date().toISOString();
-    return {
-      planId: "demo",
-      accountType: "demo",
-      subscriptionStatus: "demo",
-      createdAt: now,
-      currentPeriodStartedAt: now,
-      usage: createUsageCounters({
-        activeInvoices: invoices.length,
-        aiActionsThisMonth: 0,
-      }),
-    };
-  }, [demoMode, invoices.length, localAccount, supabaseAccount]);
-
-  useEffect(() => {
-    if (!demoMode && hasSupabaseBrowserConfig()) {
-      setLoadState("loading");
-      
-      // Fetch invoices
-      fetchInvoicesFromDb()
-        .then((dbInvoices) => {
-          if (dbInvoices.length > 0) {
-            setInvoices(dbInvoices);
-          }
-          setLoadState("ready");
-        })
-        .catch((err) => {
-          console.error("Dashboard load failed:", err);
-          setLoadState("error");
-        });
-
-      // Fetch account state
-      fetchAccountFromDb().then(acc => {
-        if (acc) {
-          // Map DB account to BillingAccount type
-          let planId = acc.plan_id.toLowerCase();
-          if (planId === 'founding_single') planId = 'founding_single_business';
-          
-          setSupabaseAccount({
-            planId: planId as any,
-            accountType: acc.status === 'trialing' ? 'trial' : 'paid',
-            subscriptionStatus: acc.status as any,
-            createdAt: acc.created_at,
-            usage: {
-              activeInvoices: invoices.length,
-              importBatches: 0,
-              importsThisMonth: 0,
-              aiActionsThisMonth: 0,
-              clientLedgers: 0
-            }
-          });
-        }
-      });
-    }
-  }, [demoMode]);
-
-  useEffect(() => {
-    const check = () => setUseInlineReviewPanel(window.innerWidth >= 1800);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+  const [hideSidebar, setHideSidebar] = useState(false);
 
   const customers = useMemo(
     () => (importSummary ? inferCustomersFromInvoices(invoices) : demoCustomers),
@@ -516,7 +428,7 @@ export function ZentraDashboard({
             }
           : invoice,
       );
-      if (!demoMode) persistInvoices(next);
+      persistInvoices(next);
       return next;
     });
   }
@@ -583,7 +495,7 @@ export function ZentraDashboard({
             }
           : invoice,
       );
-      if (!demoMode) persistInvoices(next);
+      persistInvoices(next);
       return next;
     });
 
@@ -795,405 +707,592 @@ export function ZentraDashboard({
   }
 
   if (loadState === "loading") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <LoadingOverlay message="Analyzing your invoices..." />
-      </div>
-    );
+    return <DashboardLoadingState />;
   }
 
   if (loadState === "error") {
     return (
-      <EmptyState
-        title="Something went wrong"
-        description="We couldn't load your collections plan. Please try again."
-        icon={ShieldAlert}
-        action={
-          <Button onClick={() => setLoadState("ready")} className="rounded-full bg-black text-white">
-            Try again
-          </Button>
-        }
-      />
+      <DashboardErrorState onRetry={() => setLoadState("ready")} />
     );
   }
 
   if (!invoices.length) {
-    if (demoMode) return null; // Should never happen unless demo data is cleared
-    
-    return (
-      <EmptyState
-        title="Import your first invoice export"
-        description="Upload a CSV or Excel AR ageing report to generate your first ranked chase plan."
-        icon={FileUp}
-        action={
-          <Button asChild className="rounded-full bg-black text-white">
-            <Link href="/import">Import invoices</Link>
-          </Button>
-        }
-      />
-    );
+    return <DashboardEmptyState />;
   }
 
-  const hasOpenReview = Boolean(selectedPlanId && selectedPlan && selectedInvoice);
-
   return (
-    <div
-      className={cn(
-        "relative min-h-0",
-        hasOpenReview && useInlineReviewPanel
-          ? "grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)]"
-          : "flex gap-0",
-      )}
-    >
-      {/* Main content — only pushed by right panel at 2xl+ (>=1536px) */}
-      <div className={cn(
-        "min-w-0 space-y-6 transition-all duration-300",
-        hasOpenReview && useInlineReviewPanel ? "" : "flex-1"
-      )}>
-        <UpgradePromptModal
-          open={Boolean(upgradePrompt)}
-          title={upgradePrompt?.title ?? ""}
-          description={upgradePrompt?.description ?? ""}
-          onClose={() => setUpgradePrompt(null)}
-        />
+    <div className="flex flex-col gap-6">
+      <UpgradePromptModal
+        open={Boolean(upgradePrompt)}
+        title={upgradePrompt?.title ?? ""}
+        description={upgradePrompt?.description ?? ""}
+        onClose={() => setUpgradePrompt(null)}
+      />
 
-        {/* Page header */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-[26px] font-black tracking-tight text-neutral-950 leading-none lg:text-[32px]">Today&apos;s collections plan</h1>
-            <p className="mt-2 text-[14px] text-neutral-500 lg:text-[15px]">Know who to chase, what to do, and why.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button asChild className="hidden sm:flex h-9 rounded-full bg-neutral-950 px-5 text-[12px] font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95">
-              <Link href={demoMode ? "/login" : "/import"}>
-                <Upload className="mr-2 size-3.5" />
-                {demoMode ? "Upload your own file" : "Import invoices"}
-              </Link>
-            </Button>
-            <button className="relative flex size-9 items-center justify-center rounded-full bg-white transition-all hover:bg-neutral-50 border border-black/5 shadow-sm">
-              <Bell className="size-[18px] text-neutral-600" />
-              <span className="absolute right-[8px] top-[8px] flex size-[8px] rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
-          </div>
-        </div>
-
-        {importSummary ? (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <ShieldCheck className="size-4 text-emerald-600 flex-shrink-0" />
-            <p className="text-[13px] text-emerald-800">
-              Found <span className="font-bold">{formatCurrency(importSummary.cashNeedingAttention)}</span> needing
-              attention across <span className="font-bold">{importSummary.actionsRecommended}</span> actions.
-            </p>
-            <Button asChild variant="outline" className="ml-auto h-7 rounded-lg border-emerald-200 bg-white text-[12px] text-emerald-700 hover:bg-emerald-50 flex-shrink-0">
-              <Link href="/import/summary">View summary</Link>
-            </Button>
-          </div>
-        ) : null}
-
-        {importDiff && account && canUseFeature(account.planId, "reimportComparison") ? (
-          <ImportDiffDashboard diff={importDiff} />
-        ) : importDiff ? (
-          <LockedFeatureCard
-            title="Re-import comparison is locked"
-            description="Upgrade to compare this file with the previous import and see what changed."
-            feature="reimportComparison"
-          />
-        ) : null}
-
-        {/* KPI cards — 2 cols mobile, 3 tablet, 5 desktop — strong readable scale */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-          {summary.map((item) => (
+      {/* Onboarding hero — only shown in demo mode, closes the "what is this?" gap */}
+      {account?.planId === "demo" ? (
+        <section
+          className="zn-card overflow-hidden p-0 flex flex-col md:flex-row"
+          style={{ background: "var(--zn-ink)", borderColor: "var(--zn-ink)" }}
+        >
+          <div className="flex-1 p-6 md:p-7" style={{ color: "var(--zn-surface)" }}>
             <div
-              key={item.label}
-              className="flex flex-col rounded-2xl border border-black/8 bg-white p-5 xl:p-6"
+              className="zn-label !p-0 mb-2"
+              style={{ color: "rgba(250,245,232,0.55)" }}
             >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">{item.label}</p>
-                {item.icon && <item.icon className="size-4 text-neutral-300 flex-shrink-0" />}
-              </div>
-              <p className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950 leading-none lg:text-[26px]">{item.value}</p>
-              {item.detail && <p className="mt-1.5 text-[12px] text-neutral-400">{item.detail}</p>}
+              Welcome to Zentra Collect
             </div>
-          ))}
-        </div>
-
-        {/* Filter tabs row + Search + Sort — responsive */}
-        <div className="flex flex-col gap-2 rounded-[1.25rem] border border-black/8 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 overflow-x-auto flex-shrink-0">
-            {planViewFilters.map((f) => {
-              const count = f.id === "focus"
-                ? groups.chase_now.length + groups.promises_to_check.length + groups.exceptions_to_resolve.length
-                : groups[f.id as CollectionsDashboardGroup]?.length ?? 0;
-              const isActive = planViewFilter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setPlanViewFilter(f.id as PlanViewFilter)}
-                  className={cn(
-                    "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold transition-all",
-                    isActive
-                      ? "bg-neutral-950 text-white"
-                      : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-                  )}
-                >
-                  {f.label}
-                  <span className={cn(
-                    "inline-flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full text-[11px] font-bold",
-                    isActive ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
-                  )}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="hidden md:flex items-center gap-3 pr-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search customer or invoice..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-[220px] xl:w-[280px] rounded-full border border-black/10 bg-neutral-50 pl-9 pr-4 text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none focus:border-black/20 focus:bg-white transition-all"
-              />
-            </div>
-            <div className="h-5 w-px bg-black/10" />
-            <button
-              type="button"
-              className="flex size-9 items-center justify-center rounded-lg border border-black/10 bg-white text-neutral-500 hover:bg-neutral-50 transition-all"
+            <h2
+              className="text-[22px] md:text-[26px] leading-[1.15] mb-3"
+              style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-            </button>
+              Upload overdue invoices. Get a ranked chase plan in minutes.
+            </h2>
+            <p className="text-[13.5px] leading-relaxed" style={{ color: "rgba(250,245,232,0.7)" }}>
+              You&apos;re looking at sample data. Every recommendation shows{" "}
+              <span style={{ color: "var(--zn-surface)" }}>action + reason + draft message</span>{" "}
+              — and nothing goes out without you reviewing it first.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              <Link
+                href="/chase-today"
+                className="zn-pill"
+                style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+              >
+                Try the demo data <ArrowRight className="size-3.5" />
+              </Link>
+              <Link
+                href="/import"
+                className="zn-pill"
+                style={{
+                  background: "transparent",
+                  color: "var(--zn-surface)",
+                  border: "1px solid rgba(250,245,232,0.25)",
+                }}
+              >
+                Import your own CSV
+              </Link>
+            </div>
           </div>
-        </div>
-
-        {/* Invoice groups */}
-        <div className="space-y-2">
-          {filteredVisibleGroups.map((group) => (
-            <PlanGroup
-              key={group.id}
-              title={group.title}
-              description={group.description}
-              items={groups[group.id]}
-              invoices={invoices}
-              onReview={openReview}
-              initialVisibleCount={planViewFilter === "focus" ? 5 : 10}
-              selectedPlanId={selectedPlanId}
-              compact={hasOpenReview}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop Action Panel — fixed, fluid width, only on 2xl+ (>=1536px) */}
-      {selectedPlanId && selectedPlan && selectedInvoice && useInlineReviewPanel && (
-        <aside className="sticky top-0 hidden max-h-[calc(100dvh-2rem)] min-w-0 overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-xl 2xl:flex 2xl:flex-col">
-          <ActionDrawerContent
-            item={selectedPlan}
-            invoice={selectedInvoice}
-            customer={selectedCustomer}
-            behaviourProfile={
-              selectedInvoice
-                ? behaviourProfiles.find(
-                    (profile) => profile.customerId === selectedInvoice.customerId,
-                  ) ?? null
-                : null
-            }
-            canViewCustomerBehaviour={Boolean(
-              account &&
-                (account.planId === "demo" ||
-                  canUseFeature(account.planId, "customerBehaviourNotes")),
-            )}
-            subject={subject}
-            draft={draft}
-            actionScenario={actionScenario}
-            scenarioDetails={scenarioDetails}
-            allInvoices={invoices}
-            tone={selectedTone}
-            riskNotes={draftRiskNotes}
-            nextStep={draftNextStep}
-            draftConfidence={draftConfidence}
-            draftSource={draftSource}
-            replyText={replyText}
-            replyClassification={replyClassification}
-            isClassifyingReply={isClassifyingReply}
-            replyPromiseDate={replyPromiseDate}
-            replyPromiseAmount={replyPromiseAmount}
-            replyDisputeReason={replyDisputeReason}
-            isGenerating={isGenerating}
-            copied={copied}
-            onActionScenarioChange={(nextScenario) => {
-              if (!selectedPlan || !selectedInvoice) return;
-              setActionScenario(nextScenario);
-              const nextMeta = actionScenarioMeta(
-                nextScenario,
-                selectedInvoice,
-                invoices,
-                scenarioDetails,
-                selectedTone,
-              );
-              setSubject(defaultSubjectForAction(nextScenario, selectedPlan, selectedInvoice));
-              setDraft(
-                buildActionDraftMessage(
-                  nextScenario,
-                  selectedPlan,
-                  selectedInvoice,
-                  invoices,
-                  scenarioDetails,
-                ),
-              );
-              setDraftRiskNotes(formatSafetyRiskNotes(nextMeta.safetyResult));
-              setDraftNextStep(nextMeta.nextStep);
-              setDraftConfidence(nextMeta.confidence);
+          <div
+            className="hidden md:flex items-end justify-end px-7 pb-6 pt-8 flex-shrink-0"
+            style={{
+              width: 220,
+              background: "linear-gradient(180deg, rgba(184,72,31,0.08) 0%, rgba(184,72,31,0.18) 100%)",
+              borderLeft: "1px solid rgba(250,245,232,0.08)",
             }}
-            onScenarioDetailsChange={(patch) =>
-              setScenarioDetails((current) => ({ ...current, ...patch }))
-            }
-            onToneChange={setSelectedTone}
-            onSubjectChange={setSubject}
-            onDraftChange={setDraft}
-            onReplyTextChange={setReplyText}
-            onClassifyReply={classifyReply}
-            onApplyReplyClassification={applyReplyClassification}
-            onReplyPromiseDateChange={setReplyPromiseDate}
-            onReplyPromiseAmountChange={setReplyPromiseAmount}
-            onReplyDisputeReasonChange={setReplyDisputeReason}
-            onGenerate={generateDraft}
-            onCopy={copyMessage}
-            onMarkSent={() => updateInvoiceStatus("overdue", "Marked as sent")}
-            onMarkPromised={() =>
-              updateInvoiceStatus("promised", "Promise to pay recorded")
-            }
-            onMarkDisputed={() =>
-              updateInvoiceStatus("disputed", "Dispute recorded")
-            }
-            onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
-            onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
-            onDoNotChase={() =>
-              updateInvoiceStatus("do_not_chase", "Marked do not chase")
-            }
-            onClose={() => setSelectedPlanId(null)}
-            actionMeta={actionScenarioMeta(actionScenario, selectedInvoice, invoices, scenarioDetails, selectedTone)}
-            actionScenarioOptions={actionScenarioOptions}
-          />
-        </aside>
-      )}
+          >
+            <span
+              className="text-[64px] leading-none italic"
+              style={{
+                fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                color: "var(--zn-accent)",
+                opacity: 0.85,
+              }}
+            >
+              Z
+            </span>
+          </div>
+        </section>
+      ) : null}
 
-      {/* Mobile / Tablet Sheet Drawer — overlay below 2xl (1536px), full-screen on mobile */}
-      {selectedPlanId && !useInlineReviewPanel && (
-        <ActionDrawer
-          item={selectedPlan}
-          invoice={selectedInvoice}
-          customer={selectedCustomer}
-          behaviourProfile={
-            selectedInvoice
-              ? behaviourProfiles.find(
-                  (profile) => profile.customerId === selectedInvoice.customerId,
-                ) ?? null
-              : null
-          }
-          canViewCustomerBehaviour={Boolean(
-            account &&
-              (account.planId === "demo" ||
-                canUseFeature(account.planId, "customerBehaviourNotes")),
-          )}
-          subject={subject}
-          draft={draft}
-          actionScenario={actionScenario}
-          scenarioDetails={scenarioDetails}
-          allInvoices={invoices}
-          tone={selectedTone}
-          riskNotes={draftRiskNotes}
-          nextStep={draftNextStep}
-          draftConfidence={draftConfidence}
-          draftSource={draftSource}
-          replyText={replyText}
-          replyClassification={replyClassification}
-          isClassifyingReply={isClassifyingReply}
-          replyPromiseDate={replyPromiseDate}
-          replyPromiseAmount={replyPromiseAmount}
-          replyDisputeReason={replyDisputeReason}
-          isGenerating={isGenerating}
-          copied={copied}
-          onOpenChange={(open) => {
-            if (!open) setSelectedPlanId(null);
-          }}
-          onActionScenarioChange={(nextScenario) => {
-            if (!selectedPlan || !selectedInvoice) return;
-            setActionScenario(nextScenario);
-            const nextMeta = actionScenarioMeta(
+      <section className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="zn-label mb-1.5">
+            Overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          </div>
+          <h1 className="zn-page-h1 zn-page-h1-lg">
+            {account?.planId === "demo" ? "Today's collections plan." : "Good morning."}
+          </h1>
+          <p className="mt-1.5 max-w-[580px] text-[14px] text-[#6b6253]">
+            Your collections position at a glance — what&apos;s changed, what needs you today, and what you should chase this week.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/digest" className="zn-pill zn-pill-ghost">Open weekly brief</Link>
+          <Link href="/chase-today" className="zn-pill">Open queue</Link>
+        </div>
+      </section>
+
+      {importSummary ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            We found {formatCurrency(importSummary.cashNeedingAttention)} needing
+            attention, {importSummary.actionsRecommended} actions recommended,{" "}
+            {importSummary.exceptions} exceptions.
+          </span>
+          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-[#faf5e8]">
+            <Link href="/import/summary">View import summary</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {importDiff && account && canUseFeature(account.planId, "reimportComparison") ? (
+        <ImportDiffDashboard diff={importDiff} />
+      ) : importDiff ? (
+        <LockedFeatureCard
+          title="Re-import comparison is locked on this plan."
+          description="Upgrade to compare this file with the previous import and see what changed."
+          feature="reimportComparison"
+        />
+      ) : null}
+
+      {/* 5-stat row */}
+      <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+        {summary.map((item, index) => (
+          <div key={item.label} className="zn-stat">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="zn-label">{item.label}</span>
+              <item.icon className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+            </div>
+            <div
+              className="zn-stat-num"
+              style={{ color: index === 0 ? "var(--zn-accent)" : "var(--zn-ink)" }}
+            >
+              {item.value}
+            </div>
+            <p className="text-[12px] mt-1" style={{ color: "var(--zn-ink-3)" }}>
+              {item.detail}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      {/* Two-column body: focus & changes  ·  risk & weekly brief */}
+      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+
+        {/* LEFT */}
+        <div className="flex flex-col gap-5">
+
+          {/* Today's focus — Top 5 actions */}
+          <div className="zn-card p-[22px]">
+            <div className="flex flex-wrap items-end justify-between gap-3 mb-3.5">
+              <div>
+                <div className="zn-label !p-0 mb-1">Today&apos;s focus</div>
+                <h2 className="text-[18px] font-semibold text-[#1d1813]">
+                  Top 5 actions Zentra recommends
+                </h2>
+                <p className="text-[12.5px] text-[#6b6253] mt-1">
+                  Sorted by impact, confidence, and urgency. You decide if and when to send.
+                </p>
+              </div>
+              <Link
+                href="/chase-today"
+                className="zn-pill zn-pill-ghost"
+                style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+              >
+                View full queue <ChevronRight className="size-3" />
+              </Link>
+            </div>
+            <div className="flex flex-col" style={{ borderTop: "1px solid var(--zn-line-soft)" }}>
+              {plan
+                .filter((item) => item.dashboardGroup !== "do_not_chase")
+                .slice(0, 5)
+                .map((item, idx, arr) => {
+                  const inv = invoices.find((i) => i.id === item.invoiceId);
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 py-3.5"
+                      style={{
+                        borderBottom:
+                          idx === arr.length - 1 ? "none" : "1px solid var(--zn-line-soft)",
+                      }}
+                    >
+                      <div
+                        className="w-[36px] flex flex-col items-center flex-shrink-0"
+                      >
+                        <div
+                          className="text-[18px] italic leading-none"
+                          style={{
+                            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                            color: "var(--zn-ink-3)",
+                          }}
+                        >
+                          {idx + 1}
+                        </div>
+                        <div
+                          className="text-[9px] tabular-nums mt-1"
+                          title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
+                          style={{
+                            color: "var(--zn-accent)",
+                            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {Math.round(item.priorityScore)}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="text-[14px] font-semibold text-[#1d1813] truncate">
+                            {item.customerName}
+                          </div>
+                          {item.invoiceNumber ? (
+                            <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                              {item.invoiceNumber}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-[12.5px] text-[#6b6253] mt-0.5 line-clamp-1" title={item.reason}>
+                          {item.reason}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 whitespace-nowrap">
+                        <div className="text-[13px] font-semibold tabular-nums text-[#1d1813]">
+                          {formatCurrency(item.amountOutstanding)}
+                        </div>
+                        {inv && inv.daysOverdue ? (
+                          <div
+                            className="text-[11px] tabular-nums"
+                            style={{ color: "var(--zn-risk)" }}
+                          >
+                            {inv.daysOverdue}d overdue
+                          </div>
+                        ) : null}
+                      </div>
+                      <div
+                        className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
+                        style={{ color: "var(--zn-ink-2)" }}
+                      >
+                        {humanAction(item.recommendedAction)}
+                      </div>
+                      <Link
+                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                        className="zn-pill flex-shrink-0"
+                        style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                      >
+                        Review
+                      </Link>
+                    </div>
+                  );
+                })}
+              {plan.filter((item) => item.dashboardGroup !== "do_not_chase").length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-[#6b6253]">
+                  Nothing flagged for action right now.
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* What changed since last import */}
+          <div className="zn-card p-[22px]">
+            <div className="mb-3.5">
+              <div className="zn-label !p-0 mb-1">Since last import</div>
+              <h2 className="text-[18px] font-semibold text-[#1d1813]">What changed</h2>
+              <p className="text-[12.5px] text-[#6b6253] mt-1">
+                {importDiff
+                  ? "Compared with your snapshot from your previous import."
+                  : "Re-import your latest export to see what shifted."}
+              </p>
+            </div>
+            <div
+              className="grid grid-cols-3 gap-px rounded-xl overflow-hidden"
+              style={{ background: "var(--zn-line-soft)", border: "1px solid var(--zn-line-soft)" }}
+            >
+              {(importDiff
+                ? [
+                    {
+                      label: "Recovered cash",
+                      value: formatCurrency(importDiff.totalPaidAmount ?? 0),
+                      tone: "var(--zn-safe)",
+                    },
+                    {
+                      label: "Newly overdue",
+                      value: `${importDiff.newlyOverdue?.length ?? 0} invoices`,
+                      tone: "var(--zn-risk)",
+                    },
+                    {
+                      label: "Missed promises",
+                      value: String(importDiff.promisesMissed?.length ?? 0),
+                      tone: "var(--zn-ink-2)",
+                    },
+                  ]
+                : [
+                    {
+                      label: "Recovered cash",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                    {
+                      label: "Newly overdue",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                    {
+                      label: "Missed promises",
+                      value: "—",
+                      tone: "var(--zn-ink-3)",
+                    },
+                  ]
+              ).map((c) => (
+                <div key={c.label} className="bg-[#faf5e8] p-4">
+                  <div className="zn-label !p-0">{c.label}</div>
+                  <div
+                    className="text-[18px] font-semibold tabular-nums mt-1.5"
+                    style={{ color: c.tone }}
+                  >
+                    {c.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT */}
+        <div className="flex flex-col gap-5">
+
+          {/* Risk insights */}
+          <div className="zn-card p-5">
+            <div className="mb-3.5">
+              <div className="zn-label !p-0 mb-1">Risk insights</div>
+              <h2 className="text-[18px] font-semibold text-[#1d1813]">Where the risk sits</h2>
+            </div>
+            <div className="flex flex-col gap-4">
+              {(() => {
+                const overdue = invoices.filter((i) => i.daysOverdue > 0);
+                const byCustomer = new Map<string, { count: number; total: number; oldest: number }>();
+                overdue.forEach((i) => {
+                  const c = byCustomer.get(i.customerName) ?? { count: 0, total: 0, oldest: 0 };
+                  c.count += 1;
+                  c.total += i.amountOutstanding;
+                  c.oldest = Math.max(c.oldest, i.daysOverdue);
+                  byCustomer.set(i.customerName, c);
+                });
+                const ranked = Array.from(byCustomer.entries()).sort(
+                  (a, b) => b[1].total - a[1].total,
+                );
+                const top = ranked[0];
+                const repeatLate = ranked.filter(([, v]) => v.oldest > 30).length;
+                const missedPromises = invoices.filter((i) => i.status === "promised").length;
+
+                return [
+                  {
+                    Icon: AlertTriangle,
+                    kicker: "Highest exposure",
+                    name: top ? top[0] : "—",
+                    sub: top
+                      ? `${formatCurrency(top[1].total)} · ${top[1].count} invoices`
+                      : "No customers above threshold",
+                  },
+                  {
+                    Icon: TrendingUp,
+                    kicker: "Oldest overdue",
+                    name: top ? `${top[1].oldest} days` : "—",
+                    sub: top ? `${top[0]}` : "Nothing critical",
+                  },
+                  {
+                    Icon: Users,
+                    kicker: "Repeat late payers",
+                    name: `${repeatLate} customer${repeatLate === 1 ? "" : "s"}`,
+                    sub: ranked
+                      .slice(0, 4)
+                      .map(([n]) => n.split(" ")[0])
+                      .join(", "),
+                  },
+                  {
+                    Icon: Flag,
+                    kicker: "Promises to check",
+                    name: `${missedPromises} open`,
+                    sub: "Confirm dates before re-chasing",
+                  },
+                ].map((r, i) => {
+                  const Ico = r.Icon;
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <div
+                        className="size-7 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: "var(--zn-surface-2)",
+                          border: "1px solid var(--zn-line-soft)",
+                          color: "var(--zn-accent)",
+                        }}
+                      >
+                        <Ico className="size-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="zn-label !p-0 mb-0.5">{r.kicker}</div>
+                        <div className="text-[13.5px] font-semibold text-[#1d1813] truncate">
+                          {r.name}
+                        </div>
+                        <div className="text-[12px] text-[#6b6253] truncate">{r.sub}</div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+
+          {/* Weekly brief — ink black header card */}
+          <div className="zn-card overflow-hidden p-0">
+            <div
+              className="p-[18px]"
+              style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+            >
+              <div className="zn-label !p-0" style={{ color: "rgba(250,245,232,0.55)" }}>
+                Focus for this week
+              </div>
+              <p
+                className="mt-1.5 text-[17px] leading-[1.4] italic"
+                style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif" }}
+              >
+                Recover{" "}
+                {formatCurrency(
+                  plan
+                    .filter((item) => item.dashboardGroup !== "do_not_chase")
+                    .reduce((s, item) => s + item.amountOutstanding, 0),
+                )}{" "}
+                sitting overdue. The top calls likely move the needle most — aim for a
+                date, not a payment.
+              </p>
+            </div>
+            <div className="p-[18px]">
+              <div className="zn-label !p-0 mb-2.5">Top 3 attention needed</div>
+              <div className="flex flex-col gap-2">
+                {plan
+                  .filter((item) => item.dashboardGroup !== "do_not_chase")
+                  .slice(0, 3)
+                  .map((item) => {
+                    const inv = invoices.find((i) => i.id === item.invoiceId);
+                    return (
+                      <Link
+                        key={item.id}
+                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-[10px] text-left transition-colors hover:brightness-[0.98]"
+                        style={{
+                          background: "var(--zn-surface-2)",
+                          border: "1px solid var(--zn-line-soft)",
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold text-[#1d1813] truncate">
+                            {item.customerName}
+                          </div>
+                          <div className="text-[11.5px] text-[#6b6253]">
+                            {formatCurrency(item.amountOutstanding)}
+                            {inv?.daysOverdue ? ` · ${inv.daysOverdue}d` : ""}
+                          </div>
+                        </div>
+                        <ChevronRight className="size-4 text-[#6b6253] flex-shrink-0" />
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <ActionDrawer
+        item={selectedPlan}
+        invoice={selectedInvoice}
+        customer={selectedCustomer}
+        behaviourProfile={
+          selectedInvoice
+            ? behaviourProfiles.find(
+                (profile) => profile.customerId === selectedInvoice.customerId,
+              ) ?? null
+            : null
+        }
+        canViewCustomerBehaviour={Boolean(
+          account &&
+            (account.planId === "demo" ||
+              canUseFeature(account.planId, "customerBehaviourNotes")),
+        )}
+        subject={subject}
+        draft={draft}
+        actionScenario={actionScenario}
+        scenarioDetails={scenarioDetails}
+        allInvoices={invoices}
+        tone={selectedTone}
+        riskNotes={draftRiskNotes}
+        nextStep={draftNextStep}
+        draftConfidence={draftConfidence}
+        draftSource={draftSource}
+        replyText={replyText}
+        replyClassification={replyClassification}
+        isClassifyingReply={isClassifyingReply}
+        replyPromiseDate={replyPromiseDate}
+        replyPromiseAmount={replyPromiseAmount}
+        replyDisputeReason={replyDisputeReason}
+        isGenerating={isGenerating}
+        copied={copied}
+        onOpenChange={(open) => {
+          if (!open) setSelectedPlanId(null);
+        }}
+        onActionScenarioChange={(nextScenario) => {
+          if (!selectedPlan || !selectedInvoice) return;
+          setActionScenario(nextScenario);
+          const nextMeta = actionScenarioMeta(
+            nextScenario,
+            selectedInvoice,
+            invoices,
+            scenarioDetails,
+            selectedTone,
+          );
+          setSubject(defaultSubjectForAction(nextScenario, selectedPlan, selectedInvoice));
+          setDraft(
+            buildActionDraftMessage(
               nextScenario,
+              selectedPlan,
               selectedInvoice,
               invoices,
               scenarioDetails,
-              selectedTone,
-            );
-            setSubject(defaultSubjectForAction(nextScenario, selectedPlan, selectedInvoice));
-            setDraft(
-              buildActionDraftMessage(
-                nextScenario,
-                selectedPlan,
-                selectedInvoice,
-                invoices,
-                scenarioDetails,
-              ),
-            );
-            setDraftRiskNotes(formatSafetyRiskNotes(nextMeta.safetyResult));
-            setDraftNextStep(nextMeta.nextStep);
-            setDraftConfidence(nextMeta.confidence);
-          }}
-          onScenarioDetailsChange={(patch) =>
-            setScenarioDetails((current) => ({ ...current, ...patch }))
-          }
-          onToneChange={setSelectedTone}
-          onSubjectChange={setSubject}
-          onDraftChange={setDraft}
-          onReplyTextChange={setReplyText}
-          onClassifyReply={classifyReply}
-          onApplyReplyClassification={applyReplyClassification}
-          onReplyPromiseDateChange={setReplyPromiseDate}
-          onReplyPromiseAmountChange={setReplyPromiseAmount}
-          onReplyDisputeReasonChange={setReplyDisputeReason}
-          onGenerate={generateDraft}
-          onCopy={copyMessage}
-          onMarkSent={() => updateInvoiceStatus("overdue", "Marked as sent")}
-          onMarkPromised={() =>
-            updateInvoiceStatus("promised", "Promise to pay recorded")
-          }
-          onMarkDisputed={() =>
-            updateInvoiceStatus("disputed", "Dispute recorded")
-          }
-          onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
-          onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
-          onDoNotChase={() =>
-            updateInvoiceStatus("do_not_chase", "Marked do not chase")
-          }
-          open={Boolean(selectedPlanId)}
-        />
-      )}
-
-
+            ),
+          );
+          setDraftRiskNotes(formatSafetyRiskNotes(nextMeta.safetyResult));
+          setDraftNextStep(nextMeta.nextStep);
+          setDraftConfidence(nextMeta.confidence);
+        }}
+        onScenarioDetailsChange={(patch) =>
+          setScenarioDetails((current) => ({ ...current, ...patch }))
+        }
+        onToneChange={setSelectedTone}
+        onSubjectChange={setSubject}
+        onDraftChange={setDraft}
+        onReplyTextChange={setReplyText}
+        onClassifyReply={classifyReply}
+        onApplyReplyClassification={applyReplyClassification}
+        onReplyPromiseDateChange={setReplyPromiseDate}
+        onReplyPromiseAmountChange={setReplyPromiseAmount}
+        onReplyDisputeReasonChange={setReplyDisputeReason}
+        onGenerate={generateDraft}
+        onCopy={copyMessage}
+        onMarkSent={() => updateInvoiceStatus("overdue", "Marked as sent")}
+        onMarkPromised={() =>
+          updateInvoiceStatus("promised", "Promise to pay recorded")
+        }
+        onMarkDisputed={() =>
+          updateInvoiceStatus("disputed", "Dispute recorded")
+        }
+        onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
+        onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
+        onDoNotChase={() =>
+          updateInvoiceStatus("do_not_chase", "Marked do not chase")
+        }
+      />
     </div>
-
   );
 }
 
 function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-5">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
             What changed since last import
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-neutral-950">
+          <h2
+            className="mt-2 text-2xl text-[#1d1813]"
+            style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+          >
             Import movement summary
           </h2>
         </div>
-        <Button asChild variant="outline" className="rounded-full border-black/10 bg-[#fbf8f1]">
+        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-[#faf5e8]">
           <Link href="/import/summary">View import summary</Link>
         </Button>
       </div>
@@ -1209,9 +1308,9 @@ function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
           {diff.topChanges.map((change) => (
             <div
               key={change.id}
-              className="rounded-xl border border-black/10 bg-[#fbf8f1] p-3 text-sm leading-6 text-neutral-700"
+              className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]"
             >
-              <span className="font-medium text-neutral-950">
+              <span className="font-medium text-[#1d1813]">
                 {change.customerName} · {change.invoiceNumber}
               </span>{" "}
               {change.message}
@@ -1233,12 +1332,12 @@ function DiffCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border border-black/10 bg-[#fbf8f1] p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+    <div className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472]">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-semibold text-neutral-950">{value}</p>
-      <p className="mt-1 text-sm text-neutral-500">{detail}</p>
+      <p className="mt-3 text-2xl text-[#1d1813] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>{value}</p>
+      <p className="mt-1 text-sm text-[#8d8472]">{detail}</p>
     </div>
   );
 }
@@ -1277,8 +1376,6 @@ function PlanGroup({
   invoices,
   onReview,
   initialVisibleCount,
-  selectedPlanId,
-  compact,
 }: {
   title: string;
   description: string;
@@ -1286,252 +1383,125 @@ function PlanGroup({
   invoices: Invoice[];
   onReview: (item: CollectionsPlanItem) => void;
   initialVisibleCount: number;
-  selectedPlanId: string | null;
-  compact?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const visibleItems = showAll ? items : items.slice(0, initialVisibleCount);
   const hiddenCount = Math.max(0, items.length - visibleItems.length);
-  const planGridColumns =
-    "36px minmax(150px,1.45fr) minmax(96px,0.75fr) minmax(112px,0.75fr) minmax(78px,0.65fr) minmax(190px,1.35fr) minmax(190px,1fr)";
 
   return (
-      <div className="mb-9">
-        <div className="flex items-center justify-between gap-4 mb-3">
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-[20px] font-bold tracking-tight text-neutral-950">{title}</h2>
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-bold text-neutral-500">
-              {items.length}
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-[12px] font-medium text-neutral-400">Sort: Priority</span>
-            <ChevronDown className="size-3 text-neutral-400" />
+    <Card className="rounded-[1.75rem] border border-[#d4c9ae] bg-[#faf5e8] py-0 shadow-none ring-0">
+      <CardHeader className="border-b border-[#d4c9ae] p-4 sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
+              {title}
+              <span className="ml-2 rounded-full bg-[#f3ecd8] px-2 py-0.5 text-xs text-[#6b6253]">
+                {items.length}
+              </span>
+            </CardTitle>
+            <CardDescription className="mt-1 text-[#6b6253]">
+              {description}
+            </CardDescription>
           </div>
         </div>
-        <p className="text-[13px] text-neutral-500 mb-6">{description}</p>
-
-        {/* Table header — desktop only, wider minmax columns */}
-        <div className="hidden xl:grid items-center gap-x-4 px-5 pb-3 border-b border-black/10 text-[10px] font-bold uppercase tracking-widest text-neutral-500"
-          style={{ gridTemplateColumns: planGridColumns }}
-        >
-          <div className="text-center">#</div>
-          <div>Customer</div>
-          <div>Amount</div>
-          <div>Due Date</div>
-          <div className="text-right">Overdue</div>
-          <div>Recommended Action</div>
-          <div className="text-right">Review Status</div>
-        </div>
-
-        <div className="flex flex-col">
-          {items.length ? (
-            <>
-            {visibleItems.map((item, index) => {
-              const invoice = invoices.find((c) => c.id === item.invoiceId);
-              const isSelected = selectedPlanId === item.id;
-
-              const isCritical = item.urgencyLevel === "critical";
-              const isHigh = item.urgencyLevel === "high";
-              const urgencyStyle =
-                isCritical || isHigh
-                  ? "border-red-200 text-red-600"
-                  : item.urgencyLevel === "medium"
-                  ? "border-orange-200 text-orange-600"
-                  : "border-emerald-200 text-emerald-600";
-
-              // Safety badge styles  
-              const safetyStyle =
-                item.safetyStatus === "blocked"
-                  ? "border-red-200 text-red-600"
-                  : item.safetyStatus === "needs_review"
-                  ? "border-orange-200 text-orange-600"
-                  : "border-emerald-200 text-emerald-600";
-              const safetyLabel =
-                item.safetyStatus === "blocked"
-                  ? "Blocked"
-                  : item.safetyStatus === "needs_review"
-                  ? "Needs review"
-                  : "Safe";
-
-              // Risk level
-              const riskStyle =
-                isCritical || isHigh
-                  ? "border-red-200 text-red-600"
-                  : item.urgencyLevel === "medium"
-                  ? "border-orange-200 text-orange-600"
-                  : "border-neutral-200 text-neutral-600";
-              const riskLabel =
-                isCritical
-                  ? "High risk"
-                  : isHigh
-                  ? "High risk"
-                  : item.urgencyLevel === "medium"
-                  ? "Medium risk"
-                  : "Low risk";
-
-              const invoiceDueDate = invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "-";
+      </CardHeader>
+      <CardContent className="p-0">
+        {items.length ? (
+          <>
+          <div className="space-y-3 p-3 sm:p-4">
+            {visibleItems.map((item) => {
+              const invoice = invoices.find(
+                (current) => current.id === item.invoiceId,
+              );
 
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => onReview(item)}
-                  className={cn(
-                    "group w-full text-left transition-all duration-150",
-                    index < visibleItems.length - 1 ? "border-b border-black/6" : "",
-                    isSelected
-                      ? "bg-neutral-50 ring-1 ring-inset ring-black/10"
-                      : "hover:bg-neutral-50/70"
-                  )}
+                  className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
                 >
-                  {/* Desktop row — wider, more readable, taller rows */}
-                  <div className="hidden xl:grid items-center gap-x-4 px-5 py-4"
-                    style={{ gridTemplateColumns: planGridColumns }}
-                  >
-                    {/* Col 0: Index */}
-                    <div className="flex justify-center">
-                      <span className="flex size-5 items-center justify-center rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-500">
-                        {index + 1}
-                      </span>
-                    </div>
-
-                    {/* Col 1: Company + Invoice */}
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-semibold text-neutral-950">
-                        {item.customerName}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-neutral-400 font-medium">
-                        {item.invoiceNumber || "Balance Chase"}
-                      </p>
-                    </div>
-
-                    {/* Col 2: Amount */}
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-neutral-950 tabular-nums">
+                  <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+                    <p className="truncate text-base font-semibold text-[#1d1813]">
+                      {item.customerName}
+                    </p>
+                    <p className="mt-1 text-sm text-[#8d8472]">
+                      {item.invoiceNumber || "Customer balance"}
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <p className="text-base font-semibold text-[#1d1813]">
                         {formatCurrency(item.amountOutstanding)}
                       </p>
-                    </div>
-
-                    {/* Col 3: Due Date */}
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-bold text-neutral-950">
-                        {invoiceDueDate}
-                      </p>
-                    </div>
-
-                    {/* Col 4: Overdue */}
-                    <div className="min-w-0 text-right">
                       {invoice?.daysOverdue ? (
-                        <p className="text-[12px] font-bold text-red-600">
-                          {invoice.daysOverdue} days
+                        <p className="text-sm font-medium text-rose-600">
+                          {invoice.daysOverdue}d overdue
+                          <span className="ml-1.5 font-normal text-[#a09885]">
+                            · due {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
+                          </span>
                         </p>
-                      ) : <p className="text-[12px] font-bold text-neutral-400">-</p>}
-                    </div>
-
-                    {/* Col 5: Recommended Action + Context */}
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-neutral-950">
-                        {humanAction(item.recommendedAction)}
-                      </p>
-                      <p className="mt-0.5 truncate text-[12px] text-neutral-400">
-                        {item.reason.split(";")[0].trim().split("•").slice(0, 2).join(" •")}
-                      </p>
-                    </div>
-
-                    {/* Col 6: Review Status & Actions */}
-                    <div className="flex min-w-0 items-center justify-end gap-2">
-                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap", riskStyle)}>
-                          {riskLabel}
-                        </span>
-                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap", safetyStyle)}>
-                          {safetyLabel}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 pl-1">
-                        <span className="inline-flex h-7 items-center justify-center rounded-full bg-neutral-950 px-4 text-[11px] font-semibold text-white transition-colors group-hover:bg-neutral-800">
-                          Review
-                        </span>
-                        <button type="button" className="flex size-7 items-center justify-center rounded-full hover:bg-neutral-100 text-neutral-400 transition-colors">
-                          <MoreVertical className="size-3.5" />
-                        </button>
-                      </div>
+                      ) : (
+                        <p className="text-sm text-[#8d8472]">
+                          {invoice?.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "Not overdue"}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  {/* Mobile card — clean, premium feel */}
-                  <div className="flex xl:hidden items-center gap-3 px-4 py-3.5">
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="truncate text-[14px] font-semibold text-neutral-950">{item.customerName}</p>
-                        <p className="text-[14px] font-bold text-neutral-950 tabular-nums flex-shrink-0">{formatCurrency(item.amountOutstanding)}</p>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] text-neutral-400">{item.invoiceNumber}</p>
-                        {invoice?.daysOverdue ? (
-                          <p className="text-[11px] font-semibold text-red-600 flex-shrink-0">{invoice.daysOverdue}d overdue</p>
-                        ) : null}
-                      </div>
-                      <p className="text-[12px] font-semibold text-neutral-800 leading-snug">{humanAction(item.recommendedAction)}</p>
-                      <div className="flex flex-wrap gap-1">
-                        <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", urgencyStyle)}>
-                          {item.urgencyLevel === "critical" ? "Critical" : item.urgencyLevel === "high" ? "High" : "Medium"}
-                        </span>
-                        <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", safetyStyle)}>
-                          {safetyLabel}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="inline-flex h-8 flex-shrink-0 items-center justify-center rounded-full bg-neutral-950 px-4 text-[11px] font-semibold text-white">
-                      Review
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-[#1d1813]">
+                      {humanAction(item.recommendedAction)}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                      {item.reason.split(";")[0].trim()}
+                    </p>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-start gap-2 md:max-w-48 md:justify-end">
+                    <StatusBadge value={item.urgencyLevel} />
+                    <SafetyBadge value={item.safetyStatus} />
+                    <span className="mt-1 w-full rounded-full bg-[#1d1813] px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-[#3d3428]">
+                      Review action
                     </span>
                   </div>
                 </button>
               );
             })}
-
-            {hiddenCount ? (
-              <div className="flex items-center justify-center border-t border-black/8 py-4">
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-[11px] text-neutral-400 font-medium">Showing 1 to {visibleItems.length} of {items.length} results</p>
-                  <button
-                    type="button"
-                    onClick={() => setShowAll(true)}
-                    className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-[12px] font-bold text-neutral-700 hover:bg-neutral-50 transition-all shadow-sm"
-                  >
-                    Load more
-                    <ChevronDown className="size-3 text-neutral-400" />
-                  </button>
-                </div>
-              </div>
-            ) : showAll && items.length > initialVisibleCount ? (
-              <div className="flex items-center justify-center border-t border-black/8 py-4">
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-[11px] text-neutral-400 font-medium">Showing all {items.length} results</p>
-                  <button
-                    type="button"
-                    onClick={() => setShowAll(false)}
-                    className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-[12px] font-bold text-neutral-700 hover:bg-neutral-50 transition-all shadow-sm"
-                  >
-                    Show fewer
-                  </button>
-                </div>
-              </div>
-            ) : null}
+          </div>
+          {hiddenCount ? (
+            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={() => setShowAll(true)}
+              >
+                Show {hiddenCount} more in {title.toLowerCase()}
+              </Button>
+            </div>
+          ) : showAll && items.length > initialVisibleCount ? (
+            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={() => setShowAll(false)}
+              >
+                Show fewer
+              </Button>
+            </div>
+          ) : null}
           </>
         ) : (
-          <div className="py-12 text-center">
-            <p className="text-[13px] font-medium text-neutral-400">
+          <div className="flex flex-col items-center gap-2 p-6 text-center">
+            <p className="text-sm font-medium text-[#6b6253]">
               {title === "Wait / low priority"
                 ? "No low-priority items right now."
+                : title === "Do not chase"
+                ? "No invoices are set to 'do not chase'. Items marked here are hidden from the ranked plan."
                 : `Nothing in ${title.toLowerCase()} right now.`}
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1579,7 +1549,6 @@ function ActionDrawer({
   onMarkPaid,
   onSnooze,
   onDoNotChase,
-  open,
 }: {
   item: CollectionsPlanItem | null;
   invoice: Invoice | null;
@@ -1624,69 +1593,396 @@ function ActionDrawer({
   onMarkPaid: () => void;
   onSnooze: () => void;
   onDoNotChase: () => void;
-  open?: boolean;
 }) {
-  const isOpen = open ?? Boolean(item && invoice);
-  if (!item || !invoice) return null;
+  const open = Boolean(item && invoice);
+  const actionMeta =
+    item && invoice
+      ? actionScenarioMeta(actionScenario, invoice, allInvoices, scenarioDetails, tone)
+      : null;
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="w-full overflow-y-auto border-black/10 bg-[#fbf8f1] p-0 sm:max-w-xl"
+        className="w-full overflow-y-auto border-[#d4c9ae] bg-[#faf5e8] p-0 sm:max-w-xl"
         side="right"
+        style={{ boxShadow: "-8px 0 32px rgba(0,0,0,0.08)" }}
       >
-        <ActionDrawerContent
-          item={item}
-          invoice={invoice}
-          customer={customer}
-          behaviourProfile={behaviourProfile}
-          canViewCustomerBehaviour={canViewCustomerBehaviour}
-          subject={subject}
-          draft={draft}
-          actionScenario={actionScenario}
-          scenarioDetails={scenarioDetails}
-          allInvoices={allInvoices}
-          tone={tone}
-          riskNotes={riskNotes}
-          nextStep={nextStep}
-          draftConfidence={draftConfidence}
-          draftSource={draftSource}
-          replyText={replyText}
-          replyClassification={replyClassification}
-          isClassifyingReply={isClassifyingReply}
-          replyPromiseDate={replyPromiseDate}
-          replyPromiseAmount={replyPromiseAmount}
-          replyDisputeReason={replyDisputeReason}
-          isGenerating={isGenerating}
-          copied={copied}
-          onActionScenarioChange={onActionScenarioChange}
-          onScenarioDetailsChange={onScenarioDetailsChange}
-          onToneChange={onToneChange}
-          onSubjectChange={onSubjectChange}
-          onDraftChange={onDraftChange}
-          onReplyTextChange={onReplyTextChange}
-          onClassifyReply={onClassifyReply}
-          onApplyReplyClassification={onApplyReplyClassification}
-          onReplyPromiseDateChange={onReplyPromiseDateChange}
-          onReplyPromiseAmountChange={onReplyPromiseAmountChange}
-          onReplyDisputeReasonChange={onReplyDisputeReasonChange}
-          onGenerate={onGenerate}
-          onCopy={onCopy}
-          onMarkSent={onMarkSent}
-          onMarkPromised={onMarkPromised}
-          onMarkDisputed={onMarkDisputed}
-          onMarkPaid={onMarkPaid}
-          onSnooze={onSnooze}
-          onDoNotChase={onDoNotChase}
-          onClose={() => onOpenChange(false)}
-          actionMeta={actionScenarioMeta(actionScenario, invoice, allInvoices, scenarioDetails, tone)}
-          actionScenarioOptions={actionScenarioOptions}
-        />
+        {item && invoice ? (
+          <>
+            <SheetHeader className="border-b border-[#d4c9ae] p-5">
+              <SheetTitle className="text-2xl text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
+                {invoice.customerName}
+              </SheetTitle>
+              <SheetDescription className="text-[#6b6253]">
+                Invoice {invoice.invoiceNumber} ·{" "}
+                {formatCurrency(invoice.amountOutstanding)} outstanding
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="space-y-5 p-5">
+              <section className="grid gap-3 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+                <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
+                <InfoLine
+                  label="Days overdue"
+                  value={invoice.daysOverdue ? `${invoice.daysOverdue}` : "0"}
+                />
+                <InfoLine
+                  label="Contact"
+                  value={customer?.apEmail ?? invoice.customerEmail ?? "Missing"}
+                />
+                <InfoLine label="Relationship" value={invoice.relationshipType} />
+              </section>
+
+              {canViewCustomerBehaviour ? (
+                <CustomerBehaviourCard profile={behaviourProfile} />
+              ) : (
+                <LockedFeatureCard
+                  title="Customer behaviour summaries are locked."
+                  description="Upgrade to use previous imports for payment behaviour notes, suggested tone, and customer memory."
+                  feature="customerBehaviourNotes"
+                />
+              )}
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                  Recommendation
+                </p>
+                <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
+                  {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                  {actionMeta?.explanation ?? item.reason}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <StatusBadge value={item.urgencyLevel} />
+                  <StatusBadge
+                    value={actionMeta?.confidence ?? item.confidenceLevel}
+                    prefix="confidence"
+                  />
+                  <SafetyBadge value={actionMeta?.safetyStatus ?? item.safetyStatus} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                      What do you need to do?
+                    </p>
+                    <p className="mt-1 text-sm text-[#6b6253]">
+                      Choose the job first. Zentra adjusts the reason, safety
+                      checks, fields, and draft.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Action Scenario</label>
+                      <Select
+                        value={actionScenario}
+                        onValueChange={(value) => {
+                          const next = value as ActionScenario;
+                          onActionScenarioChange(next);
+                        }}
+                      >
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {actionScenarioOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Message Tone</label>
+                      <Select
+                        value={tone}
+                        onValueChange={(value) => onToneChange(value as DraftTone)}
+                      >
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="friendly">Friendly</SelectItem>
+                          <SelectItem value="neutral">Neutral</SelectItem>
+                          <SelectItem value="firm">Firm</SelectItem>
+                          <SelectItem value="final">Final</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <ScenarioFields
+                scenario={actionScenario}
+                details={scenarioDetails}
+                invoice={invoice}
+                allInvoices={allInvoices}
+                onChange={onScenarioDetailsChange}
+              />
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                      Draft message
+                    </p>
+                    <p className="mt-1 text-sm text-[#6b6253]">
+                      Copy-only in MVP. Review before sending.
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-[#d4c9ae] bg-[#f3ecd8]"
+                  >
+                    {draftSource ?? "template"} · {draftConfidence}
+                  </Badge>
+                </div>
+                <div className="mt-4 space-y-2" id="draft-section">
+                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+                    Subject
+                  </label>
+                  <Input
+                    value={subject}
+                    onChange={(event) => onSubjectChange(event.target.value)}
+                    className="rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+                  />
+                </div>
+                <Textarea
+                  className="mt-4 min-h-64 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
+                  value={draft}
+                  onChange={(event) => onDraftChange(event.target.value)}
+                />
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                  <p className="font-semibold">Human review required</p>
+                  <p className="mt-1">{riskNotes}</p>
+                  <p className="mt-2">{nextStep}</p>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                  Safety checks
+                </p>
+                <div className="mt-3 space-y-3">
+                  {actionMeta?.safetyResult.checks.length ? (
+                    actionMeta.safetyResult.checks.map((check) => (
+                      <div
+                        key={`${check.label}-${check.message}`}
+                        className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-[#1d1813]">
+                            {check.label}
+                          </p>
+                          <SafetyBadge value={check.status} />
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-[#6b6253]">
+                          {check.message}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-[#3d3428]">
+                      <ShieldCheck className="size-4" />
+                      No blocking safety issues found.
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                      Classify customer reply
+                    </p>
+                    <p className="mt-1 text-sm text-[#6b6253]">
+                      Paste a reply to turn it into an AR state and next action.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {replyText.trim() && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="rounded-full px-3 text-[#8d8472] hover:text-[#1d1813]"
+                        onClick={() => onReplyTextChange("")}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                      onClick={onClassifyReply}
+                      disabled={!replyText.trim() || isClassifyingReply}
+                    >
+                      {isClassifyingReply ? "Classifying..." : "Classify"}
+                    </Button>
+                  </div>
+                </div>
+                <Textarea
+                  className="mt-4 min-h-28 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
+                  value={replyText}
+                  onChange={(event) => onReplyTextChange(event.target.value)}
+                  placeholder="Paste the customer reply here..."
+                />
+                {replyClassification ? (
+                  <div className="mt-4 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-[#1d1813]">
+                          {humanLabel(replyClassification.classification)}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-[#6b6253]">
+                          {replyClassification.reason}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+                        {replyClassification.source} · {replyClassification.confidence}
+                      </Badge>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+                      <InfoLine
+                        label="Suggested status"
+                        value={replyClassification.suggestedStatusUpdate}
+                      />
+                      <InfoLine
+                        label="Next action"
+                        value={replyClassification.suggestedNextAction}
+                      />
+                    </div>
+                    {replyClassification.classification === "promise_to_pay" ? (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+                        <FieldInput
+                          label="Promised payment date"
+                          type="date"
+                          value={replyPromiseDate}
+                          onChange={onReplyPromiseDateChange}
+                        />
+                        <FieldInput
+                          label="Promised amount"
+                          value={replyPromiseAmount}
+                          onChange={onReplyPromiseAmountChange}
+                        />
+                      </div>
+                    ) : null}
+                    {replyClassification.classification === "dispute" ? (
+                      <div className="mt-4">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+                          Dispute reason
+                        </label>
+                        <Textarea
+                          value={replyDisputeReason}
+                          onChange={(event) =>
+                            onReplyDisputeReasonChange(event.target.value)
+                          }
+                          className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+                        />
+                      </div>
+                    ) : null}
+                    {replyClassification.classification === "already_paid_claim" ? (
+                      <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                        Customer claims payment was made. Zentra recommends
+                        requesting remittance advice before sending another
+                        reminder.
+                      </p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      className="mt-4 rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
+                      onClick={onApplyReplyClassification}
+                    >
+                      Apply update
+                    </Button>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                  Activity history
+                </p>
+                <div className="mt-3 space-y-3">
+                  {invoice.activityHistory.map((event) => (
+                    <div key={event.id} className="flex gap-3">
+                      <span className="mt-1 size-2 rounded-full bg-[#1d1813]" />
+                      <div>
+                        <p className="text-sm font-medium text-[#1d1813]">
+                          {event.title}
+                        </p>
+                        <p className="text-xs leading-5 text-[#6b6253]">
+                          {event.description}
+                        </p>
+                        <p className="mt-1 text-xs text-[#a09885]">
+                          {formatDate(event.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="sticky bottom-0 grid gap-2 border-t border-[#d4c9ae] bg-[#faf5e8]/95 p-4 backdrop-blur sm:grid-cols-2">
+              <Button
+                className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
+                onClick={onGenerate}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <MailPlus className="size-4" />
+                )}
+                Generate draft
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                onClick={onCopy}
+              >
+                <Copy className="size-4" />
+                {copied ? "Copied" : "Copy message"}
+              </Button>
+              <div className="sm:col-span-2">
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    if (val === "sent") onMarkSent();
+                    if (val === "promised") onMarkPromised();
+                    if (val === "disputed") onMarkDisputed();
+                    if (val === "paid") onMarkPaid();
+                    if (val === "snooze") onSnooze();
+                    if (val === "do_not_chase") onDoNotChase();
+                  }}
+                >
+                  <SelectTrigger className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8] font-medium">
+                    <SelectValue placeholder="Change status →" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sent">Mark as sent</SelectItem>
+                    <SelectItem value="promised">Mark promised</SelectItem>
+                    <SelectItem value="disputed">Mark disputed</SelectItem>
+                    <SelectItem value="paid">Mark paid</SelectItem>
+                    <SelectItem value="snooze">Snooze</SelectItem>
+                    <SelectItem value="do_not_chase">Do not chase</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        ) : null}
       </SheetContent>
     </Sheet>
   );
 }
-
 
 function ScenarioFields({
   scenario,
@@ -1732,13 +2028,13 @@ function ScenarioFields({
         <FieldInput label="Owner / responsible person" value={details.disputeOwner} onChange={(value) => onChange({ disputeOwner: value })} />
         <FieldInput label="Next resolution date" type="date" value={details.nextResolutionDate} onChange={(value) => onChange({ nextResolutionDate: value })} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Notes
           </label>
           <Textarea
             value={details.disputeNotes}
             onChange={(event) => onChange({ disputeNotes: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1751,13 +2047,13 @@ function ScenarioFields({
         <InfoLine label="Open invoices" value={`${customerInvoices.length}`} />
         <InfoLine label="Total outstanding" value={formatCurrency(customerInvoices.reduce((sum, item) => sum + item.amountOutstanding, 0))} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Statement summary
           </label>
           <Textarea
             value={details.statementSummary}
             onChange={(event) => onChange({ statementSummary: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1778,13 +2074,13 @@ function ScenarioFields({
       <ScenarioFieldCard title="Internal escalation">
         <FieldInput label="Account manager / owner" value={details.internalOwner} onChange={(value) => onChange({ internalOwner: value })} />
         <div>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
             Escalation note
           </label>
           <Textarea
             value={details.escalationNote}
             onChange={(event) => onChange({ escalationNote: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-black/10 bg-[#fbf8f1]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
           />
         </div>
       </ScenarioFieldCard>
@@ -1801,14 +2097,14 @@ function CustomerBehaviourCard({
 }) {
   if (!profile || profile.totalInvoices < 2 || profile.riskLabel === "unknown") {
     return (
-      <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+      <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
           Customer behaviour
         </p>
-        <h3 className="mt-3 text-lg font-semibold text-neutral-950">
+        <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
           Not enough history yet.
         </h3>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
+        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
           Based on previous imported data, Zentra needs more invoice history
           before suggesting a customer pattern.
         </p>
@@ -1817,27 +2113,27 @@ function CustomerBehaviourCard({
   }
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
             Customer behaviour
           </p>
-          <h3 className="mt-3 text-lg font-semibold text-neutral-950">
+          <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
             Based on previous imported data, this customer looks{" "}
             {profile.riskLabel}.
           </h3>
         </div>
-        <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-[#f7f2ea]">
+        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#f3ecd8]">
           {profile.riskLabel}
         </Badge>
       </div>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">
+      <p className="mt-2 text-sm leading-6 text-[#6b6253]">
         {profile.memoryNotes[0]}
       </p>
       {profile.averageDaysLate === 0 && profile.invoicesPaidLate === 0 && profile.missedPromisesCount === 0 && profile.disputesCount === 0 ? (
-        <div className="mt-4 rounded-xl border border-black/10 bg-[#fbf8f1] p-3">
-          <p className="text-sm text-neutral-700">Clean payment history. No missed promises or disputes recorded.</p>
+        <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
+          <p className="text-sm text-[#3d3428]">Clean payment history. No missed promises or disputes recorded.</p>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
@@ -1873,21 +2169,21 @@ function CustomerBehaviourCard({
           />
         </div>
       )}
-      <div className="mt-4 rounded-xl border border-black/10 bg-[#fbf8f1] p-3 text-sm leading-6 text-neutral-700">
+      <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]">
         <p>
-          <span className="font-medium text-neutral-950">Payment behaviour:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Payment behaviour:</span>{" "}
           {profile.lastPaymentBehaviour}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Suggested tone:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Suggested tone:</span>{" "}
           {humanLabel(profile.preferredToneSuggestion)}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Recommendation:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Recommendation:</span>{" "}
           {profile.recommendation}.
         </p>
         <p className="mt-2">
-          <span className="font-medium text-neutral-950">Terms note:</span>{" "}
+          <span className="font-medium text-[#1d1813]">Terms note:</span>{" "}
           {profile.paymentTermsRecommendation}
         </p>
       </div>
@@ -1903,8 +2199,8 @@ function ScenarioFieldCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
         {title}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">{children}</div>
@@ -1925,14 +2221,14 @@ function FieldInput({
 }) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
+      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
         {label}
       </label>
       <Input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 rounded-2xl border-black/10 bg-[#fbf8f1]"
+        className="mt-2 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
       />
     </div>
   );
@@ -1941,16 +2237,16 @@ function FieldInput({
 function DashboardLoadingState() {
   return (
     <div className="space-y-6">
-      <div className="h-32 animate-pulse rounded-3xl bg-white/70" />
+      <div className="h-32 animate-pulse rounded-3xl bg-[#faf5e8]" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="h-36 animate-pulse rounded-2xl bg-white/70"
+            className="h-36 animate-pulse rounded-2xl bg-[#faf5e8]"
           />
         ))}
       </div>
-      <div className="h-96 animate-pulse rounded-2xl bg-white/70" />
+      <div className="h-96 animate-pulse rounded-2xl bg-[#faf5e8]" />
     </div>
   );
 }
@@ -1958,18 +2254,18 @@ function DashboardLoadingState() {
 function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-md rounded-3xl border border-black/10 bg-white/75 p-8 text-center">
-        <AlertTriangle className="mx-auto size-8 text-neutral-950" />
-        <h1 className="mt-4 text-2xl font-semibold text-neutral-950">
+      <div className="max-w-md rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
+        <AlertTriangle className="mx-auto size-8 text-[#1d1813]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
           Collections plan could not load
         </h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-600">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
           The import data or ranking rules failed to load. No messages have been
           generated or sent.
         </p>
         <Button
           onClick={onRetry}
-          className="mt-5 rounded-full bg-neutral-950 px-5 text-white"
+          className="mt-5 rounded-full bg-[#1d1813] px-5 text-white"
         >
           Try again
         </Button>
@@ -1981,16 +2277,16 @@ function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
 function DashboardEmptyState() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-lg rounded-3xl border border-black/10 bg-white/75 p-8 text-center">
-        <FileText className="mx-auto size-9 text-neutral-950" />
-        <h1 className="mt-4 text-2xl font-semibold text-neutral-950">
+      <div className="max-w-lg rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
+        <FileText className="mx-auto size-9 text-[#1d1813]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
           Import invoices to build a collections plan
         </h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-600">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
           Zentra needs an overdue invoice export before it can rank actions,
           explain reasons, and prepare safe draft messages.
         </p>
-        <Button asChild className="mt-5 rounded-full bg-neutral-950 px-5 text-white">
+        <Button asChild className="mt-5 rounded-full bg-[#1d1813] px-5 text-white">
           <Link href="/import">Import invoices</Link>
         </Button>
       </div>
@@ -2009,11 +2305,11 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 overflow-hidden">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400 truncate">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
         {label}
       </p>
-      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5 text-neutral-950" title={value}>{value}</p>
-      {detail ? <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-neutral-500" title={detail}>{detail}</p> : null}
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5 text-[#1d1813]" title={value}>{value}</p>
+      {detail ? <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[#8d8472]" title={detail}>{detail}</p> : null}
     </div>
   );
 }
@@ -2021,17 +2317,52 @@ function Metric({
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 overflow-hidden">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-neutral-400 truncate">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
         {label}
       </p>
-      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-neutral-950" title={value}>
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-[#1d1813]" title={value}>
         {value}
       </p>
     </div>
   );
 }
 
-// Removed redundant badge functions (using zentra-ui components instead)
+function StatusBadge({
+  value,
+  prefix,
+}: {
+  value: string;
+  prefix?: string;
+}) {
+  const label = `${prefix ? `${prefix}: ` : ""}${humanLabel(value)}`;
+  const tone =
+    value === "critical" || value === "high"
+      ? "border-red-200 bg-red-50 text-red-700"
+      : value === "medium"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-[#d4c9ae] bg-[#f3ecd8] text-[#3d3428]";
+
+  return (
+    <Badge variant="outline" className={`rounded-full ${tone}`}>
+      {label}
+    </Badge>
+  );
+}
+
+function SafetyBadge({ value }: { value: string }) {
+  const tone =
+    value === "blocked"
+      ? "border-red-200 bg-red-50 text-red-700"
+      : value === "needs_review" || value === "review"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+  return (
+    <Badge variant="outline" className={`rounded-full ${tone}`}>
+      {humanLabel(value)}
+    </Badge>
+  );
+}
 
 function formatSafetyRiskNotes(result: UnifiedSafetyResult) {
   return `${result.warningMessage} ${result.checks

@@ -33,8 +33,6 @@ import {
   type PendingIdentity,
 } from "@/lib/demo-auth";
 import type { PlanId } from "@/lib/billing/plans";
-import { createSupabaseAccountAction } from "@/actions/account";
-import { hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 
 type Option = {
   type: OnboardingAccountType;
@@ -215,23 +213,6 @@ export function OnboardingFlow() {
     }
 
     if (option.type === "trial") {
-      if (hasSupabaseBrowserConfig()) {
-        createSupabaseAccountAction({
-          businessName,
-          planId: option.planId,
-          accountingSoftware,
-          monthlyInvoiceVolume,
-          mainArPainPoint
-        }).then((res) => {
-          if (res.success) {
-            router.push("/import");
-          } else {
-            setError(res.error || "Failed to create production account. Please try again.");
-          }
-        });
-        return;
-      }
-
       const account = createLocalAccount({
         name: identity.name,
         email: identity.email,

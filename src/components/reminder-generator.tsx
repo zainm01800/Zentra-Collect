@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Loader2, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { Copy, Loader2, Send, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,6 @@ import type {
   ReminderOptions,
   ReminderTone,
 } from "@/types/cashpilot";
-import { cn } from "@/lib/utils";
 
 export function ReminderGenerator({
   invoice,
@@ -98,20 +97,20 @@ export function ReminderGenerator({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <div>
-          <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Tone of voice</Label>
-          <p className="mt-1 text-xs font-medium text-neutral-500">
-            Automatically matched to customer pattern. You stay in control.
+          <Label>Tone</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Recommended from days overdue and customer status. You stay in control.
           </p>
         </div>
         <ToneSelector value={tone} onChange={changeTone} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-2">
         <ReminderSwitch
-          label="Previous reminder"
+          label="Mention previous reminder"
           checked={options.mentionPreviousReminder}
           onCheckedChange={(checked) =>
             updateOption("mentionPreviousReminder", checked)
@@ -128,67 +127,57 @@ export function ReminderGenerator({
           onCheckedChange={(checked) => updateOption("includePaymentLink", checked)}
         />
         <ReminderSwitch
-          label="Warm relationship"
+          label="Keep relationship warm"
           checked={options.keepRelationshipWarm}
           onCheckedChange={(checked) => updateOption("keepRelationshipWarm", checked)}
         />
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 text-xs font-medium text-emerald-900">
-        <ShieldCheck className="size-4 shrink-0 text-emerald-500" />
-        Drafts avoid aggressive threats and prioritize warm client relations.
+      <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" />
+              Drafts are review-first. Zentra avoids aggressive legal threats and
+        keeps late-fee wording out unless you deliberately add it.
       </div>
 
       {error ? (
-        <Alert variant="destructive" className="rounded-2xl border-rose-100 bg-rose-50 text-rose-900">
-          <AlertTitle className="text-sm font-black uppercase tracking-widest">Generation failed</AlertTitle>
-          <AlertDescription className="text-xs font-medium">{error}</AlertDescription>
+        <Alert variant="destructive">
+          <AlertTitle>Generation failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="space-y-6 rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm">
-        <div className="space-y-2">
-          <Label htmlFor="subject" className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Subject line</Label>
-          <Input
-            id="subject"
-            value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            className="h-11 rounded-xl border-black/5 bg-neutral-50 px-4 text-sm font-bold shadow-none transition-all focus-visible:bg-white focus-visible:shadow-xl"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="body" className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Email content</Label>
-          <Textarea
-            id="body"
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            className="min-h-[350px] resize-none rounded-2xl border-black/5 bg-neutral-50 p-4 text-sm font-medium leading-relaxed shadow-none transition-all focus-visible:bg-white focus-visible:shadow-xl"
-          />
-        </div>
-        
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button 
-            className="h-12 flex-1 rounded-full bg-neutral-950 px-8 text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-            onClick={generateReminder} 
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
-            {loading ? "Polishing..." : "AI Improve Draft"}
-          </Button>
-          <Button 
-            variant="outline" 
-            className="h-12 rounded-full border-black/5 bg-white px-8 text-xs font-black uppercase tracking-widest text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-950"
-            onClick={copyEmail}
-          >
-            <Copy className="mr-2 size-4" />
-            Copy Email
-          </Button>
-        </div>
-        
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-neutral-400">
-          Source: {source === "openai" ? "Zentra AI (Pro)" : "Smart Template"}
-        </p>
+      <div className="space-y-2">
+        <Label htmlFor="subject">Subject</Label>
+        <Input
+          id="subject"
+          value={subject}
+          onChange={(event) => setSubject(event.target.value)}
+        />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="body">Email body</Label>
+        <Textarea
+          id="body"
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          className="min-h-72 resize-y"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button onClick={generateReminder} disabled={loading}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          Improve draft
+        </Button>
+        <Button variant="outline" onClick={copyEmail}>
+          <Copy className="size-4" />
+          Copy email
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Draft source: {source === "openai" ? "OpenAI" : "template fallback"}.
+        Review before sending.
+      </p>
     </div>
   );
 }
@@ -203,9 +192,9 @@ function ReminderSwitch({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="group flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-neutral-50/50 px-4 py-3 transition-all hover:bg-white hover:shadow-md cursor-pointer">
-      <span className="text-xs font-bold text-neutral-600 transition-colors group-hover:text-neutral-950">{label}</span>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} className="data-[state=checked]:bg-neutral-950" />
+    <label className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm">
+      <span>{label}</span>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </label>
   );
 }

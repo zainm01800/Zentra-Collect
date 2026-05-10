@@ -40,15 +40,43 @@ export function DemoEntry() {
         planId: "demo",
       }),
     );
-    router.replace("/dashboard");
+    // Brief pause so the splash actually registers — feels intentional, not a flash.
+    const t = setTimeout(() => router.replace("/dashboard"), 1500);
+    return () => clearTimeout(t);
   }, [router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#fbf8f1] px-4 text-neutral-950">
-      <div className="max-w-md rounded-[2rem] border border-black/10 bg-white/80 p-6 text-center shadow-sm">
-        <p className="text-sm font-medium text-neutral-600">
-          Opening the Zentra Collect demo with sample data...
+    <main
+      className="min-h-screen flex items-center justify-center px-4 relative z-[1]"
+      style={{ background: "var(--zn-bg)", color: "var(--zn-ink)" }}
+    >
+      <div className="zn-card max-w-[420px] w-full p-8 text-center">
+        <div
+          className="size-14 mx-auto rounded-lg inline-flex items-center justify-center mb-5"
+          style={{
+            background: "var(--zn-ink)",
+            color: "var(--zn-surface)",
+            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+            fontStyle: "italic",
+            fontWeight: 600,
+            fontSize: 26,
+          }}
+        >
+          Z
+        </div>
+        <div className="zn-label !p-0 mb-2">Setting up your workspace</div>
+        <h1
+          className="text-[24px] tracking-[-0.015em] leading-[1.2] text-[#1d1813]"
+          style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+        >
+          Opening the demo with sample data…
+        </h1>
+        <p className="mt-3 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+          Loading 18 sample invoices, 8 customers, and a ranked chase plan.
         </p>
+        <div className="mt-6 flex justify-center">
+          <span className="zn-pulse" />
+        </div>
       </div>
     </main>
   );
