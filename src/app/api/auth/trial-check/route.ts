@@ -2,18 +2,20 @@
  * POST /api/auth/trial-check
  *
  * Server-side gate before a trial signup proceeds.
- * Checks:
- *  - email is not on the disposable-domain blocklist
- *  - this email hasn't started a trial in the last 30 days
- *  - this IP hasn't started > 3 trials in the last 30 days
- *  - signup attempts are rate-limited (5 per IP per hour)
+ * Checks (in order, fail-fast):
+ *  1. Body shape — email + businessName present
+ *  2. Per-IP rate limit (5 attempts / hour) — in-memory, OK for serverless
+ *  3. Disposable / temporary email domain
+ *  4. This email hasn't started a trial in the last 30 days (Supabase)
+ *  5. This IP hash hasn't started > 3 trials in the last 30 days (Supabase)
+ *
+ * On pass, the signup is recorded in `public.trial_signup_history`.
  *
  * Returns: { allowed: boolean, reason?: string }
  *
  * Production hardening to add later:
  *  - Cloudflare Turnstile / hCaptcha token validation
- *  - Persist trial history to Supabase (currently in-memory)
- *  - Email verification before activation (Supabase already supports)
+ *  - Email verification *required* before counting against the limit
  */
 
 import { NextResponse } from "next/server";
@@ -82,8 +84,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // One trial per email in the last 30 days
-  if (hasRecentTrialForEmail(email)) {
+  // One trial per email in the last 30 days (Supabase-backed)
+  if (await hasRecentTrialForEmail(email)) {
     return NextResponse.json(
       {
         allowed: false,
@@ -93,8 +95,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // Max 3 trials per IP in the last 30 days
-  if (hasRecentTrialForIp(ipHash)) {
+  // Max 3 trials per IP in the last 30 days (Supabase-backed)
+  if (await hasRecentTrialForIp(ipHash)) {
     return NextResponse.json(
       {
         allowed: false,
@@ -104,8 +106,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // All checks pass — record the trial start
-  recordTrialSignup(email, ipHash);
+  // All checks pass — persist the signup (Supabase or in-memory fallback)
+  await recordTrialSignup(email, ipHash, {
+    businessName,
+    userAgent: req.headers.get("user-agent") ?? undefined,
+  });
 
   return NextResponse.json({ allowed: true });
 }

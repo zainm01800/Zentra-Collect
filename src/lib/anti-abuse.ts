@@ -128,24 +128,109 @@ if (typeof globalThis !== "undefined") {
 // ──────────────────────────────────────────────────────────────────────────────
 // Trial history check (in-memory store; replace with Supabase in production)
 // ──────────────────────────────────────────────────────────────────────────────
+// Persistent trial-history checks via Supabase
+//
+// Reads/writes the `public.trial_signup_history` table using the service-role
+// key so RLS doesn't get in the way. Falls back to the in-memory store if
+// Supabase isn't configured (local dev without env vars), so the dev server
+// still runs without errors.
+// ──────────────────────────────────────────────────────────────────────────────
 
-type TrialRecord = { email: string; ipHash: string; createdAt: number };
-const trialHistory: TrialRecord[] = [];
+import { createClient } from "@supabase/supabase-js";
 
 const TRIAL_REUSE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TRIAL_REUSE_WINDOW_DAYS = 30;
+const MAX_TRIALS_PER_IP = 3;
 
-export function hasRecentTrialForEmail(email: string): boolean {
-  const cutoff = Date.now() - TRIAL_REUSE_WINDOW_MS;
-  return trialHistory.some(
-    (r) => r.email.toLowerCase() === email.toLowerCase() && r.createdAt > cutoff,
-  );
+// Lazy-init: don't construct the admin client until first use, so importing
+// this module on the client (where it shouldn't even reach) doesn't crash.
+let adminClient: ReturnType<typeof createClient> | null | undefined;
+function getAdmin() {
+  if (adminClient !== undefined) return adminClient;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    adminClient = null;
+    return null;
+  }
+  adminClient = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return adminClient;
 }
 
-export function hasRecentTrialForIp(ipHash: string): boolean {
-  const cutoff = Date.now() - TRIAL_REUSE_WINDOW_MS;
-  return trialHistory.filter((r) => r.ipHash === ipHash && r.createdAt > cutoff).length >= 3;
+// Fallback in-memory store — used only when Supabase isn't configured
+type TrialRecord = { email: string; ipHash: string; createdAt: number };
+const memoryHistory: TrialRecord[] = [];
+
+export async function hasRecentTrialForEmail(email: string): Promise<boolean> {
+  const admin = getAdmin();
+  if (!admin) {
+    const cutoff = Date.now() - TRIAL_REUSE_WINDOW_MS;
+    return memoryHistory.some(
+      (r) => r.email.toLowerCase() === email.toLowerCase() && r.createdAt > cutoff,
+    );
+  }
+  const cutoffIso = new Date(Date.now() - TRIAL_REUSE_WINDOW_MS).toISOString();
+  const { data, error } = await admin
+    .from("trial_signup_history")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .gte("created_at", cutoffIso)
+    .limit(1);
+  if (error) {
+    // On DB error, FAIL OPEN (better to allow signup than to lock everyone out
+    // because of a transient Supabase issue). The other checks still apply.
+    console.error("[anti-abuse] hasRecentTrialForEmail query failed:", error.message);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
 }
 
-export function recordTrialSignup(email: string, ipHash: string) {
-  trialHistory.push({ email, ipHash, createdAt: Date.now() });
+export async function hasRecentTrialForIp(ipHash: string): Promise<boolean> {
+  const admin = getAdmin();
+  if (!admin) {
+    const cutoff = Date.now() - TRIAL_REUSE_WINDOW_MS;
+    return memoryHistory.filter((r) => r.ipHash === ipHash && r.createdAt > cutoff).length >= MAX_TRIALS_PER_IP;
+  }
+  const cutoffIso = new Date(Date.now() - TRIAL_REUSE_WINDOW_MS).toISOString();
+  const { count, error } = await admin
+    .from("trial_signup_history")
+    .select("id", { count: "exact", head: true })
+    .eq("ip_hash", ipHash)
+    .gte("created_at", cutoffIso);
+  if (error) {
+    console.error("[anti-abuse] hasRecentTrialForIp query failed:", error.message);
+    return false;
+  }
+  return (count ?? 0) >= MAX_TRIALS_PER_IP;
 }
+
+export async function recordTrialSignup(
+  email: string,
+  ipHash: string,
+  meta: { businessName?: string; userAgent?: string } = {},
+): Promise<void> {
+  const admin = getAdmin();
+  if (!admin) {
+    memoryHistory.push({ email: email.toLowerCase(), ipHash, createdAt: Date.now() });
+    return;
+  }
+  const businessDomain = emailDomain(email);
+  const { error } = await admin.from("trial_signup_history").insert({
+    email: email.toLowerCase(),
+    ip_hash: ipHash,
+    business_domain: businessDomain || null,
+    business_name: meta.businessName ?? null,
+    user_agent: meta.userAgent?.slice(0, 200) ?? null,
+  });
+  if (error) {
+    console.error("[anti-abuse] recordTrialSignup insert failed:", error.message);
+  }
+}
+
+// Export for tests / metrics
+export const ANTI_ABUSE_LIMITS = {
+  TRIAL_REUSE_WINDOW_DAYS,
+  MAX_TRIALS_PER_IP,
+};
