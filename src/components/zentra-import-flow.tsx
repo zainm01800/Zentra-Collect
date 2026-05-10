@@ -429,8 +429,7 @@ function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
             Choose CSV file
           </span>
           <span className="mt-2 max-w-md text-sm leading-6 text-[#6b6253]">
-            CSV is supported now. XLSX can be added later with a spreadsheet
-            parser dependency.
+            CSV files supported. Excel (.xlsx) coming soon.
           </span>
           <Input
             id="invoice-file"
