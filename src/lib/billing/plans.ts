@@ -16,6 +16,8 @@ export type PlanId =
 
 export type PlanTier = "free" | "trial" | "paid";
 
+export type AccountType = "demo" | "trial" | "founding" | "paid";
+
 export type SubscriptionStatus =
   | "demo"
   | "trialing"
@@ -28,10 +30,13 @@ export interface Plan {
   id: PlanId;
   name: string;
   tier: PlanTier;
+  accountType: AccountType;
   tagline: string;
   price: number;
   priceDisplay: string;
   periodDisplay: string;
+  trialDays?: number;
+  graceDays?: number;
   cta: string;
   href: string;
   highlight: boolean;
@@ -45,6 +50,39 @@ export interface Plan {
     savedImportMappings: number;
   };
 }
+
+export type BillingAccountLike = {
+  planId: PlanId;
+  accountType?: AccountType;
+  subscriptionStatus?: SubscriptionStatus;
+  createdAt?: string;
+  trialStartedAt?: string;
+  trialEndsAt?: string;
+  graceEndsAt?: string;
+  gracePeriodEndsAt?: string;
+  currentPeriodStartedAt?: string;
+  usage: UsageCounters;
+};
+
+export type BillingAccount = BillingAccountLike;
+
+export type UsageType =
+  | keyof Plan["limits"]
+  | "activeInvoices"
+  | "importBatches"
+  | "importsThisMonth"
+  | "aiActionsThisMonth"
+  | "clientLedgers";
+
+export type UsageCounters = {
+  activeInvoices: number;
+  importBatches: number;
+  importsThisMonth: number;
+  aiActionsThisMonth: number;
+  clientLedgers: number;
+} & Partial<Record<UsageType, number>>;
+
+export type PlanFeature = string;
 
 export type ComparisonCellValue = string | number | boolean;
 
@@ -67,25 +105,17 @@ export function getPlan(planId: PlanId): Plan {
   const centralId = centralPlanMap[planId];
   const central = getCentralPlanConfig(centralId);
 
-  // Guard: if plan config not found, return a safe fallback
-  if (!central) {
-    return {
-      id: planId,
-      name: planId,
-      tier: "free",
-      price: 0,
-      priceDisplay: "£0",
-      periodDisplay: "",
-      tagline: "",
-      limits: { activeInvoices: 10, importsPerMonth: 1, aiActionsPerMonth: 0, ledgers: 1, savedImportMappings: 0 },
-      features: [],
-      comparisonRows: [],
-    } as unknown as Plan;
-  }
-
-  const tier: PlanTier =
-    planId === "demo" ? "free" :
+  const tier: PlanTier = 
+    planId === "demo" ? "free" : 
     planId === "trial" ? "trial" : "paid";
+  const accountType: AccountType =
+    planId === "demo"
+      ? "demo"
+      : planId === "trial"
+        ? "trial"
+        : planId.startsWith("founding")
+          ? "founding"
+          : "paid";
 
   const price = central.priceMonthlyGbp;
   const priceDisplay = price === 0 ? "£0" : `£${price}`;
@@ -127,12 +157,15 @@ export function getPlan(planId: PlanId): Plan {
     id: planId,
     name: central.name,
     tier,
+    accountType,
     tagline: taglineMap[planId] || central.description,
     price,
     priceDisplay,
     periodDisplay,
+    trialDays: central.trialDays,
+    graceDays: central.gracePeriodDays,
     cta: planId === "demo" ? "Try demo" : planId === "trial" ? "Start trial" : "Request access",
-    href: planId === "demo" ? "/dashboard" : planId === "trial" ? "/import" : "/request-access",
+    href: planId === "demo" ? "/demo" : planId === "trial" ? "/login" : "/request-access",
     highlight: planId === "single_business" || planId === "bookkeeper_starter",
     highlightLabel: planId === "single_business" ? "Recommended" : undefined,
     features: featuresMap[planId] || [],
@@ -244,19 +277,22 @@ export function canUseFeature(planId: PlanId, feature: string) {
   return plan.features.some(f => f.toLowerCase().includes(feature.toLowerCase()));
 }
 
-export function getRemainingUsage(account: any, usageType: string) {
-  const limit = getPlan(account.planId).limits[usageType as keyof Plan["limits"]];
+export function getRemainingUsage(
+  account: BillingAccountLike,
+  usageType: keyof Plan["limits"],
+) {
+  const limit = getPlan(account.planId).limits[usageType];
   if (limit === null) return "unlimited";
   const used = account.usage[usageType] || 0;
-  return Math.max(0, (limit as number) - used);
+  return Math.max(0, limit - used);
 }
 
-export function isTrialExpired(account: any) {
+export function isTrialExpired(account: BillingAccountLike) {
   if (account.planId.toLowerCase() !== "trial" || !account.trialEndsAt) return false;
   return new Date(account.trialEndsAt).getTime() <= Date.now();
 }
 
-export function getTrialState(account: any): string {
+export function getTrialState(account: BillingAccountLike): string {
   if (account.planId.toLowerCase() !== "trial") return "not_trial";
   if (!isTrialExpired(account)) return "active";
   

@@ -42,11 +42,11 @@ export const DEMO_ACCOUNT_ID = "demo";
 const accounts = new Map<string, AccountUsage>();
 
 function createDemoAccount(): AccountUsage {
-  // Initialised with "single" plan and realistic demo usage so that the
+  // Initialised with Single Business plan and realistic demo usage so that the
   // settings meters show something meaningful out of the box.
   return {
     id: DEMO_ACCOUNT_ID,
-    planId: "single",
+    planId: "single_business",
     monthlyPeriodKey: currentPeriodKey(),
     // Pre-seeded with realistic demo usage
     importsThisMonth: 3,
@@ -55,7 +55,7 @@ function createDemoAccount(): AccountUsage {
     activeInvoices: 23,
     clientLedgers: 1,
     savedImportMappings: 2,
-    // Trial fields — not used for "single" plan but kept for completeness
+    // Trial fields — not used for Single Business plan but kept for completeness
     trialImportsUsed: 0,
     trialAIActionsUsed: 0,
     trialStartedAt: null,

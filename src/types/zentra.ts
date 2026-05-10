@@ -32,6 +32,38 @@ export type CollectionScenario =
   | "WAIT"
   | "INTERNAL_REVIEW";
 
+export type ActionScenario =
+  | "SEND_PAYMENT_REMINDER"
+  | "ASK_FOR_PAYMENT_DATE"
+  | "REQUEST_REMITTANCE"
+  | "STATEMENT_OF_ACCOUNT"
+  | "CONFIRM_INVOICE_RECEIVED"
+  | "ASK_FOR_AP_CONTACT"
+  | "PROMISE_FOLLOW_UP"
+  | "RESOLVE_DISPUTE"
+  | "INTERNAL_ESCALATION"
+  | "THANK_YOU_AFTER_PAYMENT";
+
+export interface ScenarioDetails {
+  promisedDate: string;
+  promisedAmount: string;
+  promisedBy: string;
+  paymentClaimDate: string;
+  paymentReference: string;
+  amountClaimedPaid: string;
+  disputeReason: string;
+  disputeOwner: string;
+  nextResolutionDate: string;
+  disputeNotes: string;
+  includeMultipleInvoices: boolean;
+  totalOutstanding: string;
+  statementSummary: string;
+  currentContact: string;
+  requestedContactRole: string;
+  internalOwner: string;
+  escalationNote: string;
+}
+
 export type CollectionStatus =
   | "overdue"
   | "due_soon"

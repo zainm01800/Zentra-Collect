@@ -68,11 +68,11 @@ export function AccountPlanSettings() {
   return (
     <section className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-[#8d8472]">Account & plan</p>
+        <p className="text-sm font-medium text-neutral-500">Account & plan</p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">
           Plan settings
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6b6253]">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
           Billing is represented by internal plan state for this MVP. Payments
           are not live yet.
         </p>
@@ -80,11 +80,11 @@ export function AccountPlanSettings() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div>
                 <CardTitle>Current plan</CardTitle>
-                <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                <p className="mt-2 text-sm leading-6 text-neutral-600">
                   {plan.description}
                 </p>
               </div>
@@ -94,8 +94,8 @@ export function AccountPlanSettings() {
               <PlanFact label="Plan" value={plan.name} />
               <PlanFact label="Price" value={formatPrice(plan.priceMonthlyGbp)} />
               <PlanFact label="Status" value={formatStatus(accountState)} />
-              <div className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#8d8472]">
+              <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
                   Trial
                 </p>
                 <div className="mt-2">
@@ -117,10 +117,10 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Usage this month</CardTitle>
-              <p className="text-sm leading-6 text-[#6b6253]">
+              <p className="text-sm leading-6 text-neutral-600">
                 Usage is tracked locally in this MVP and should move to server
                 rollups before production.
               </p>
@@ -137,7 +137,7 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Trial & grace period</CardTitle>
             </CardHeader>
@@ -165,7 +165,7 @@ export function AccountPlanSettings() {
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm leading-6 text-[#6b6253]">
+                <p className="text-sm leading-6 text-neutral-600">
                   This account is not currently in a trial.
                 </p>
               )}
@@ -180,33 +180,33 @@ export function AccountPlanSettings() {
             recommendedPlan={recommendedUpgrade ? getPlanConfig(recommendedUpgrade).name : undefined}
           />
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Safety controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {safetyControls.map((item) => (
-                <div key={item} className="flex items-center gap-3 text-sm text-[#3d3428]">
-                  <ShieldCheck className="size-4 text-[#1d1813]" />
+                <div key={item} className="flex items-center gap-3 text-sm text-neutral-700">
+                  <ShieldCheck className="size-4 text-neutral-950" />
                   <span>{item}</span>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Billing placeholder</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-3 text-sm leading-6 text-[#6b6253]">
-                <CreditCard className="mt-1 size-4 shrink-0 text-[#1d1813]" />
+              <div className="flex gap-3 text-sm leading-6 text-neutral-600">
+                <CreditCard className="mt-1 size-4 shrink-0 text-neutral-950" />
                 <p>
                   Stripe billing is not connected yet. This is currently using
                   internal plan state.
                 </p>
               </div>
-              <div className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4 text-xs leading-5 text-[#8d8472]">
+              <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4 text-xs leading-5 text-neutral-500">
                 TODO: connect Stripe subscriptions and Supabase account records
                 before accepting payments or relying on plan state for real
                 billing.
@@ -214,7 +214,7 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none">
+          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Data controls</CardTitle>
             </CardHeader>
@@ -222,12 +222,12 @@ export function AccountPlanSettings() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-full border-[#d4c9ae] bg-transparent"
+                className="w-full rounded-full border-black/10 bg-transparent"
               >
                 <FileDown className="size-4" />
                 Export data placeholder
               </Button>
-              <p className="text-xs leading-5 text-[#8d8472]">
+              <p className="text-xs leading-5 text-neutral-500">
                 TODO: implement account export and deletion with Supabase
                 storage and audit logs.
               </p>
@@ -241,11 +241,11 @@ export function AccountPlanSettings() {
 
 function PlanFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-      <p className="text-xs uppercase tracking-[0.16em] text-[#8d8472]">
+    <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-[#1d1813]">{value}</p>
+      <p className="mt-2 text-lg font-semibold text-neutral-950">{value}</p>
     </div>
   );
 }

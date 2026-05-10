@@ -14,6 +14,7 @@ import {
   type BetaRequest,
   type WouldPay,
 } from "@/lib/beta/store";
+import { createSupabaseServerClient, hasSupabaseServerConfig } from "@/lib/supabase/server";
 
 type RequestBody = Omit<BetaRequest, "id" | "submittedAt">;
 
@@ -148,27 +149,70 @@ export async function POST(request: Request) {
 
   // ── Store ─────────────────────────────────────────────────────────────────
 
-  const entry = addBetaRequest({
-    name: body.name.trim(),
-    email: body.email.trim().toLowerCase(),
-    businessName: body.businessName.trim(),
-    isBookkeeper: body.isBookkeeper,
-    clientLedgersManaged: body.clientLedgersManaged ?? "",
-    accountingSoftware: Array.isArray(body.accountingSoftware)
-      ? body.accountingSoftware
-      : [],
-    approximateInvoicesPerMonth: body.approximateInvoicesPerMonth ?? "",
-    biggestArPain: Array.isArray(body.biggestArPain) ? body.biggestArPain : [],
-    wouldUploadSampleFile: Boolean(body.wouldUploadSampleFile),
-    wouldPayFoundingPricing: body.wouldPayFoundingPricing ?? "maybe",
-    message: body.message?.trim() ?? "",
-  });
+  let entryId = `beta-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-  // Server-side log for ops visibility — safe to log (no financial data).
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data, error } = await supabase.from('zentra_beta_access_requests').insert({
+        name: body.name.trim(),
+        email: body.email.trim().toLowerCase(),
+        business_name: body.businessName.trim(),
+        is_bookkeeper: body.isBookkeeper,
+        client_ledgers_managed: body.clientLedgersManaged ? parseInt(body.clientLedgersManaged.split('-')[0]) : null,
+        accounting_software: Array.isArray(body.accountingSoftware) ? body.accountingSoftware.join(', ') : '',
+        approximate_invoices_per_month: body.approximateInvoicesPerMonth ?? "",
+        biggest_ar_pain: Array.isArray(body.biggestArPain) ? body.biggestArPain.join(', ') : '',
+        would_upload_sample_file: Boolean(body.wouldUploadSampleFile),
+        would_pay_founding_pricing: body.wouldPayFoundingPricing ?? "maybe",
+        optional_message: body.message?.trim() ?? "",
+      }).select('id').single();
+      
+      if (error) throw error;
+      entryId = data.id;
+    } catch (err) {
+      console.error("Failed to insert beta request into Supabase:", err);
+      // Fallback to local store if DB fails during early testing
+      const localEntry = addBetaRequest({
+        name: body.name.trim(),
+        email: body.email.trim().toLowerCase(),
+        businessName: body.businessName.trim(),
+        isBookkeeper: body.isBookkeeper,
+        clientLedgersManaged: body.clientLedgersManaged ?? "",
+        accountingSoftware: Array.isArray(body.accountingSoftware) ? body.accountingSoftware : [],
+        approximateInvoicesPerMonth: body.approximateInvoicesPerMonth ?? "",
+        biggestArPain: Array.isArray(body.biggestArPain) ? body.biggestArPain : [],
+        wouldUploadSampleFile: Boolean(body.wouldUploadSampleFile),
+        wouldPayFoundingPricing: body.wouldPayFoundingPricing ?? "maybe",
+        message: body.message?.trim() ?? "",
+      });
+      entryId = localEntry.id;
+    }
+  } else {
+    // ── Local Mock Store ──────────────────────────────────────────────────────
+    const entry = addBetaRequest({
+      name: body.name.trim(),
+      email: body.email.trim().toLowerCase(),
+      businessName: body.businessName.trim(),
+      isBookkeeper: body.isBookkeeper,
+      clientLedgersManaged: body.clientLedgersManaged ?? "",
+      accountingSoftware: Array.isArray(body.accountingSoftware)
+        ? body.accountingSoftware
+        : [],
+      approximateInvoicesPerMonth: body.approximateInvoicesPerMonth ?? "",
+      biggestArPain: Array.isArray(body.biggestArPain) ? body.biggestArPain : [],
+      wouldUploadSampleFile: Boolean(body.wouldUploadSampleFile),
+      wouldPayFoundingPricing: body.wouldPayFoundingPricing ?? "maybe",
+      message: body.message?.trim() ?? "",
+    });
+    entryId = entry.id;
+  }
+
+  // Server-side log for ops visibility
   // TODO: Replace with structured observability logging.
   console.log(
-    `[beta-request] #${entry.id} — ${entry.name} <${entry.email}> | ${entry.businessName} | bookkeeper: ${entry.isBookkeeper}`,
+    `[beta-request] #${entryId} — ${body.name} <${body.email}> | ${body.businessName} | bookkeeper: ${body.isBookkeeper}`,
   );
 
-  return NextResponse.json({ success: true, id: entry.id }, { status: 201 });
+  return NextResponse.json({ success: true, id: entryId }, { status: 201 });
 }

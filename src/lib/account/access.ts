@@ -120,6 +120,7 @@ export function toAccountState(
 
   const legacyAccount = account as LegacyBillingAccount;
   const planId = legacyPlanMap[legacyAccount.planId];
+  const createdAt = legacyAccount.createdAt ?? new Date().toISOString();
   const persistedUsage = readLocalUsageCounters(`local-${legacyAccount.planId}`);
 
   return {
@@ -135,12 +136,12 @@ export function toAccountState(
             : legacyAccount.subscriptionStatus === "expired"
               ? "expired"
               : "active",
-    createdAt: legacyAccount.createdAt,
+    createdAt,
     trialStartedAt: legacyAccount.trialStartedAt,
     trialEndsAt: legacyAccount.trialEndsAt,
     gracePeriodEndsAt: legacyAccount.graceEndsAt,
     currentPeriodStartedAt:
-      legacyAccount.currentPeriodStartedAt ?? legacyAccount.createdAt,
+      legacyAccount.currentPeriodStartedAt ?? createdAt,
     usage: {
       importsUsedThisMonth:
         persistedUsage?.importsUsedThisMonth ??

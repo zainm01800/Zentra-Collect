@@ -12,8 +12,8 @@ function MeterBar({ meter }: { meter: UsageMeter }) {
     // Unlimited — informational counter only
     return (
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[#6b6253]">{meter.label}</span>
-        <span className="font-medium tabular-nums text-[#1d1813]">{meter.used.toLocaleString("en-GB")}</span>
+        <span className="text-neutral-600">{meter.label}</span>
+        <span className="font-medium tabular-nums text-neutral-950">{meter.used.toLocaleString("en-GB")}</span>
       </div>
     );
   }
@@ -26,28 +26,28 @@ function MeterBar({ meter }: { meter: UsageMeter }) {
       ? "bg-amber-400"
       : "bg-emerald-500";
   const textColor =
-    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-[#8d8472]";
+    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-500";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[#3d3428]">{meter.label}</span>
-        <span className={`font-medium tabular-nums ${pct >= 80 ? textColor : "text-[#8d8472]"}`}>
+        <span className="text-neutral-700">{meter.label}</span>
+        <span className={`font-medium tabular-nums ${pct >= 80 ? textColor : "text-neutral-500"}`}>
           {meter.used.toLocaleString("en-GB")}
-          <span className="font-normal text-[#a09885]">
+          <span className="font-normal text-neutral-400">
             {" / "}
             {meter.limit.toLocaleString("en-GB")}
           </span>
         </span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f3ecd8]">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(100, pct)}%` }}
         />
       </div>
       {meter.resetsMonthly && meter.remaining !== null && (
-        <p className="text-xs text-[#a09885]">
+        <p className="text-xs text-neutral-400">
           {meter.remaining.toLocaleString("en-GB")} remaining this month
         </p>
       )}
@@ -88,12 +88,12 @@ function TrialBanner({ snapshot }: { snapshot: UsageSnapshot }) {
       className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${
         urgency
           ? "border-amber-200 bg-amber-50"
-          : "border-black/8 bg-[#faf5e8]"
+          : "border-black/8 bg-neutral-50"
       }`}
     >
-      <Clock className={`mt-0.5 size-4 shrink-0 ${urgency ? "text-amber-500" : "text-[#a09885]"}`} />
+      <Clock className={`mt-0.5 size-4 shrink-0 ${urgency ? "text-amber-500" : "text-neutral-400"}`} />
       <div>
-        <p className={`text-sm font-semibold ${urgency ? "text-amber-800" : "text-[#3d3428]"}`}>
+        <p className={`text-sm font-semibold ${urgency ? "text-amber-800" : "text-neutral-700"}`}>
           {days === 0 ? "Trial ends today" : `${days} day${days === 1 ? "" : "s"} left in trial`}
         </p>
         {urgency && (
@@ -121,12 +121,12 @@ function PlanBadge({ snapshot }: { snapshot: UsageSnapshot }) {
 
   const style =
     snapshot.tier === "paid"
-      ? "bg-[#1d1813] text-white"
-      : "bg-[#f3ecd8] text-[#6b6253]";
+      ? "bg-neutral-950 text-white"
+      : "bg-neutral-100 text-neutral-600";
 
   return (
     <div className="flex items-center justify-between">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a09885]">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
         Plan &amp; usage
       </p>
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${style}`}>
@@ -154,7 +154,7 @@ export function UsageMeters() {
 
   if (error) {
     return (
-      <p className="text-xs text-[#a09885]">
+      <p className="text-xs text-neutral-400">
         Usage data unavailable.
       </p>
     );
@@ -162,7 +162,7 @@ export function UsageMeters() {
 
   if (!snapshot) {
     return (
-      <div className="flex items-center gap-2 text-xs text-[#a09885]">
+      <div className="flex items-center gap-2 text-xs text-neutral-400">
         <Loader2 className="size-3.5 animate-spin" />
         Loading usage…
       </div>
@@ -218,7 +218,7 @@ export function UsageMeters() {
 
       {/* Period note */}
       {periodLabel && !snapshot.isTrial && (
-        <p className="text-xs text-[#a09885]">
+        <p className="text-xs text-neutral-400">
           Monthly counters reset at the start of each month.
           Current period: {periodLabel}.
         </p>
@@ -228,7 +228,7 @@ export function UsageMeters() {
       {snapshot.tier !== "paid" && !snapshot.isExpired && (
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6b6253] transition-colors hover:text-[#1d1813]"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-600 transition-colors hover:text-neutral-950"
         >
           View paid plans <ArrowRight className="size-3.5" />
         </Link>

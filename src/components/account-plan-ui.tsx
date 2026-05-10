@@ -26,7 +26,7 @@ export function PlanBadge({ account }: { account: AccountLike }) {
   const plan = getPlanConfig(accountState.planId);
 
   return (
-    <span className="inline-flex items-center rounded-full border border-[#d4c9ae] bg-[#faf5e8] px-3 py-1 text-xs font-medium text-[#3d3428]">
+    <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
       {plan.name}
     </span>
   );
@@ -38,7 +38,7 @@ export function TrialCountdownBadge({ account }: { account: AccountLike }) {
 
   if (accountState.planId === "DEMO") {
     return (
-      <span className="inline-flex items-center rounded-full border border-[#d4c9ae] bg-[#faf5e8] px-3 py-1 text-xs font-medium text-[#3d3428]">
+      <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
         Demo sample data
       </span>
     );
@@ -73,17 +73,17 @@ export function UsageMeter({
   const percent = limit === "unlimited" ? 0 : Math.min(100, (used / limit) * 100);
 
   return (
-    <div className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
+    <div className="rounded-2xl border border-black/10 bg-white/70 p-3">
       <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-[#3d3428]">{label}</span>
-        <span className="text-[#8d8472]">
+        <span className="font-medium text-neutral-700">{label}</span>
+        <span className="text-neutral-500">
           {used} / {limit === "unlimited" ? "unlimited" : limit}
         </span>
       </div>
       {limit !== "unlimited" ? (
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
           <div
-            className="h-full rounded-full bg-[#1d1813]"
+            className="h-full rounded-full bg-neutral-950"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -107,16 +107,16 @@ export function LimitReachedModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[2rem] border border-[#d4c9ae] bg-[#faf5e8] p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-[2rem] border border-black/10 bg-[#fbf8f1] p-5 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-lg font-semibold text-[#1d1813]">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+            <p className="text-lg font-semibold text-neutral-950">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
               {result?.reason ??
                 "You've reached a plan limit. Upgrade to continue using this feature."}
             </p>
             {typeof result?.limit === "number" ? (
-              <p className="mt-3 text-xs text-[#8d8472]">
+              <p className="mt-3 text-xs text-neutral-500">
                 Used {result.used ?? 0} of {result.limit}
               </p>
             ) : null}
@@ -124,18 +124,18 @@ export function LimitReachedModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[#d4c9ae] bg-[#faf5e8] p-2"
+            className="rounded-full border border-black/10 bg-white/70 p-2"
             aria-label="Close limit reached modal"
           >
             <X className="size-4" />
           </button>
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Button asChild className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]">
+          <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
             <Link href="/#pricing">Upgrade</Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-transparent">
-            <Link href="/#pricing">View pricing</Link>
+          <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
+            <Link href="/pricing">View pricing</Link>
           </Button>
         </div>
       </div>
@@ -153,19 +153,19 @@ export function UpgradePromptCard({
   recommendedPlan?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-6">
-      <p className="text-lg font-semibold text-[#1d1813]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#6b6253]">{description}</p>
+    <div className="rounded-3xl border border-black/10 bg-white/70 p-6">
+      <p className="text-lg font-semibold text-neutral-950">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
       {recommendedPlan ? (
-        <p className="mt-3 text-xs uppercase tracking-[0.16em] text-[#a09885]">
+        <p className="mt-3 text-xs uppercase tracking-[0.16em] text-neutral-400">
           Recommended: {recommendedPlan}
         </p>
       ) : null}
       <div className="mt-5 flex flex-wrap gap-3">
-        <Button asChild className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]">
+        <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
           <Link href="/#pricing">View pricing</Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-transparent">
+        <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
           <Link href="/beta-request">Request founding access</Link>
         </Button>
       </div>
@@ -175,31 +175,52 @@ export function UpgradePromptCard({
 
 export function DemoModeBanner() {
   return (
-    <div className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-[#1d1813] shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#1d1813] text-white">
-            <BarChart3 className="size-4" />
+    <div className="rounded-xl border border-black/10 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white">
+            <BarChart3 className="size-3.5" />
           </span>
-          <div>
-            <p className="text-sm font-semibold">Demo workspace</p>
-            <p className="mt-1 text-sm leading-6 text-[#6b6253]">
-              Sample data only: {"\u00A3"}18,420 needing attention, 7 actions,
-              3 exceptions, and 2 promises to check.
-            </p>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-neutral-950">Demo workspace</p>
+            <p className="hidden text-[12px] text-neutral-500 sm:block">You&apos;re viewing sample data. Start a trial to upload your own invoices.</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button asChild size="sm" className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]">
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild size="sm" className="h-8 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
             <Link href="/onboarding">Start 14-day trial</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="rounded-full border-[#d4c9ae] bg-transparent">
-            <Link href="/beta-request">Request bookkeeper beta</Link>
-          </Button>
-          <Button asChild size="sm" variant="ghost" className="rounded-full text-[#6b6253]">
+          <Button asChild size="sm" variant="outline" className="hidden h-8 rounded-full border-black/10 bg-transparent px-4 text-[12px] font-semibold sm:flex">
             <Link href="/#pricing">View pricing</Link>
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function ActiveTrialBanner({ account }: { account: AccountLike }) {
+  const accountState = toAccountState(account);
+  const trialState = getTrialState(accountState);
+  if (trialState !== "active") return null;
+
+  const daysLeft = getTrialDaysRemaining(accountState);
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+            <Clock3 className="size-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-amber-950">Trial: {daysLeft} days left</p>
+            <p className="hidden text-[12px] text-amber-800 sm:block">Imports and AI actions are limited during trial.</p>
+          </div>
+        </div>
+        <Button asChild size="sm" className="h-8 shrink-0 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
+          <Link href="/pricing">Upgrade</Link>
+        </Button>
       </div>
     </div>
   );
@@ -214,22 +235,20 @@ export function TrialExpiredBanner({ account }: { account: AccountLike }) {
   const afterGrace = trialState === "expired_after_grace";
 
   return (
-    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <Clock3 className="mt-0.5 size-4 shrink-0" />
-          <div>
-            <p className="font-semibold">
-              {afterGrace ? "Your trial data is scheduled for deletion." : "Your trial has ended."}
-            </p>
-            <p className="mt-1 text-sm leading-6 text-amber-900">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Clock3 className="size-4 shrink-0 text-amber-700" />
+          <p className="text-[13px] font-semibold text-amber-950">
+            {afterGrace ? "Your trial data is scheduled for deletion." : "Your trial has ended."}
+            <span className="ml-2 hidden font-normal text-amber-800 sm:inline">
               {afterGrace
-                ? "Export or upgrade to keep it. New imports and AI actions require an upgrade."
-                : "You can still view your data, but new imports and AI actions require an upgrade."}
-            </p>
-          </div>
+                ? "Export or upgrade to keep it."
+                : "You can still view your data, but new imports need an upgrade."}
+            </span>
+          </p>
         </div>
-        <Button asChild className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]">
+        <Button asChild size="sm" className="h-8 shrink-0 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
           <Link href="/#pricing">Upgrade</Link>
         </Button>
       </div>
@@ -250,10 +269,10 @@ export function GracePeriodWarning({ account }: { account: AccountLike }) {
     : "the end of your grace period";
 
   return (
-    <div className="rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-      <div className="flex gap-3">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />
-        <p className="text-sm leading-6 text-[#6b6253]">
+    <div className="rounded-xl border border-black/10 bg-white/80 px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+        <p className="text-[12px] text-neutral-600">
           Your trial data remains available until {date}. Export or upgrade to keep using Zentra.
         </p>
       </div>
@@ -275,19 +294,19 @@ export function LockedFeatureCard({
   const result = account ? requirePlanAccess(account, action) : null;
 
   return (
-    <div className="rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-6">
-      <div className="flex size-10 items-center justify-center rounded-2xl bg-[#faf5e8] text-[#1d1813]">
+    <div className="rounded-3xl border border-black/10 bg-white/70 p-6">
+      <div className="flex size-10 items-center justify-center rounded-2xl bg-[#fbf8f1] text-neutral-950">
         <LockKeyhole className="size-4" />
       </div>
-      <p className="mt-5 text-lg font-semibold text-[#1d1813]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+      <p className="mt-5 text-lg font-semibold text-neutral-950">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600">
         {result?.reason ?? description}
       </p>
       <div className="mt-5 flex flex-wrap gap-3">
-        <Button asChild className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]">
+        <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
           <Link href="/#pricing">View pricing</Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-transparent">
+        <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
           <Link href="/beta-request">Request founding access</Link>
         </Button>
       </div>

@@ -64,7 +64,9 @@ function computeUpgradeRecommendation(
   if (tier === "trial") {
     const hasMultipleClients = meters.clientLedgers.used > 1;
     return {
-      plan: getPlan(hasMultipleClients ? "starter" : "single"),
+      plan: getPlan(
+        hasMultipleClients ? "bookkeeper_starter" : "single_business",
+      ),
       reason: isExpired
         ? "Your trial has expired. Upgrade to resume imports and AI actions."
         : hasMultipleClients
@@ -75,14 +77,14 @@ function computeUpgradeRecommendation(
   }
 
   // Single business → suggest Starter if at ledger limit or high usage
-  if (planId === "single") {
+  if (planId === "single_business") {
     const atLedgerLimit = meters.clientLedgers.isAtLimit;
     const aiPct = meters.aiActions.percentUsed ?? 0;
     const invoicePct = meters.activeInvoices.percentUsed ?? 0;
 
     if (atLedgerLimit) {
       return {
-        plan: getPlan("starter"),
+        plan: getPlan("bookkeeper_starter"),
         reason:
           "You've reached your client ledger limit. Bookkeeper Starter supports up to 5.",
         urgency: "high",
@@ -90,14 +92,14 @@ function computeUpgradeRecommendation(
     }
     if (aiPct >= 75) {
       return {
-        plan: getPlan("starter"),
+        plan: getPlan("bookkeeper_starter"),
         reason: `You've used ${aiPct}% of your AI actions this month. Bookkeeper Starter has 2.5× more.`,
         urgency: aiPct >= 90 ? "high" : "normal",
       };
     }
     if (invoicePct >= 80) {
       return {
-        plan: getPlan("starter"),
+        plan: getPlan("bookkeeper_starter"),
         reason: `You're at ${invoicePct}% of your active invoice limit. Starter supports 2,000.`,
         urgency: invoicePct >= 95 ? "high" : "normal",
       };
@@ -106,13 +108,13 @@ function computeUpgradeRecommendation(
   }
 
   // Bookkeeper Starter → suggest Pro if at ledger limit or high AI usage
-  if (planId === "starter") {
+  if (planId === "bookkeeper_starter") {
     const atLedgerLimit = meters.clientLedgers.isAtLimit;
     const aiPct = meters.aiActions.percentUsed ?? 0;
 
     if (atLedgerLimit) {
       return {
-        plan: getPlan("pro"),
+        plan: getPlan("bookkeeper_pro"),
         reason:
           "You've reached your ledger limit. Bookkeeper Pro supports up to 20 clients.",
         urgency: "high",
@@ -120,7 +122,7 @@ function computeUpgradeRecommendation(
     }
     if (aiPct >= 75) {
       return {
-        plan: getPlan("pro"),
+        plan: getPlan("bookkeeper_pro"),
         reason: `You've used ${aiPct}% of your AI actions this month. Bookkeeper Pro has 3× more.`,
         urgency: aiPct >= 90 ? "high" : "normal",
       };
@@ -136,7 +138,7 @@ function computeUpgradeRecommendation(
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a09885]">
+    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
       {children}
     </p>
   );
@@ -161,7 +163,7 @@ function StatusBadge({ snapshot }: { snapshot: UsageSnapshot }) {
   }
   if (snapshot.tier === "free") {
     return (
-      <span className="rounded-full bg-[#f3ecd8] px-2.5 py-0.5 text-xs font-semibold text-[#6b6253]">
+      <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-600">
         Demo
       </span>
     );
@@ -181,13 +183,13 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
     return (
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-[#6b6253]">{meter.label}</span>
-          <span className="tabular-nums text-[#1d1813]">
+          <span className="text-neutral-600">{meter.label}</span>
+          <span className="tabular-nums text-neutral-950">
             {meter.used.toLocaleString("en-GB")}
-            <span className="text-[#a09885]"> / included</span>
+            <span className="text-neutral-400"> / included</span>
           </span>
         </div>
-        <div className="h-1 w-full rounded-full bg-[#f3ecd8]">
+        <div className="h-1 w-full rounded-full bg-neutral-100">
           <div className="h-full w-1/3 rounded-full bg-emerald-200" />
         </div>
       </div>
@@ -198,21 +200,21 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
   const barColor =
     pct >= 95 ? "bg-red-500" : pct >= 80 ? "bg-amber-400" : "bg-emerald-500";
   const valueColor =
-    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-[#1d1813]";
+    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-950";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[#6b6253]">{meter.label}</span>
-        <span className={`tabular-nums font-medium ${pct >= 80 ? valueColor : "text-[#1d1813]"}`}>
+        <span className="text-neutral-600">{meter.label}</span>
+        <span className={`tabular-nums font-medium ${pct >= 80 ? valueColor : "text-neutral-950"}`}>
           {meter.used.toLocaleString("en-GB")}
-          <span className="font-normal text-[#a09885]">
+          <span className="font-normal text-neutral-400">
             {" / "}
             {meter.limit.toLocaleString("en-GB")}
           </span>
         </span>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-[#f3ecd8]">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-100">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(100, pct)}%` }}
@@ -287,7 +289,7 @@ export function AccountBilling() {
 
   if (!snapshot) {
     return (
-      <div className="flex items-center gap-2 py-16 text-sm text-[#a09885]">
+      <div className="flex items-center gap-2 py-16 text-sm text-neutral-400">
         <Loader2 className="size-4 animate-spin" />
         Loading account…
       </div>
@@ -325,19 +327,19 @@ export function AccountBilling() {
             {/* Plan name + status */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-2xl font-semibold text-[#1d1813]">
+                <p className="text-2xl font-semibold text-neutral-950">
                   {currentPlan.name}
                 </p>
-                <p className="mt-0.5 text-sm leading-6 text-[#8d8472]">
+                <p className="mt-0.5 text-sm leading-6 text-neutral-500">
                   {currentPlan.tagline}
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <StatusBadge snapshot={snapshot} />
                 {currentPlan.price > 0 && (
-                  <p className="tabular-nums text-lg font-semibold text-[#1d1813]">
+                  <p className="tabular-nums text-lg font-semibold text-neutral-950">
                     {currentPlan.priceDisplay}
-                    <span className="text-sm font-normal text-[#a09885]">
+                    <span className="text-sm font-normal text-neutral-400">
                       {currentPlan.periodDisplay}
                     </span>
                   </p>
@@ -386,9 +388,9 @@ export function AccountBilling() {
 
             {/* Founding price lock (paid plans only) */}
             {snapshot.tier === "paid" && (
-              <div className="flex items-center gap-2.5 rounded-lg border border-black/8 bg-[#faf5e8] px-3.5 py-2.5">
-                <Lock className="size-3.5 shrink-0 text-[#a09885]" />
-                <p className="text-xs text-[#6b6253]">
+              <div className="flex items-center gap-2.5 rounded-lg border border-black/8 bg-neutral-50 px-3.5 py-2.5">
+                <Lock className="size-3.5 shrink-0 text-neutral-400" />
+                <p className="text-xs text-neutral-600">
                   Founding access —{" "}
                   <span className="font-semibold">
                     {currentPlan.priceDisplay}{currentPlan.periodDisplay}
@@ -406,10 +408,10 @@ export function AccountBilling() {
             <div className="flex items-center justify-between">
               <SectionLabel>Usage</SectionLabel>
               {periodLabel && !snapshot.isTrial && (
-                <span className="text-xs text-[#a09885]">{periodLabel}</span>
+                <span className="text-xs text-neutral-400">{periodLabel}</span>
               )}
               {snapshot.isTrial && (
-                <span className="text-xs text-[#a09885]">Lifetime trial totals</span>
+                <span className="text-xs text-neutral-400">Lifetime trial totals</span>
               )}
             </div>
           </CardHeader>
@@ -431,13 +433,13 @@ export function AccountBilling() {
 
             {/* Period note */}
             {!snapshot.isTrial && periodLabel && (
-              <p className="text-xs leading-5 text-[#a09885]">
+              <p className="text-xs leading-5 text-neutral-400">
                 AI actions and imports reset monthly. Active invoices, ledgers, and
                 templates reflect current state and do not reset.
               </p>
             )}
             {snapshot.isTrial && (
-              <p className="text-xs leading-5 text-[#a09885]">
+              <p className="text-xs leading-5 text-neutral-400">
                 Trial counters are lifetime totals — not monthly. They reset when you
                 upgrade to a paid plan.
               </p>
@@ -465,30 +467,30 @@ export function AccountBilling() {
                   className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
                     recommendation.urgency === "high"
                       ? "bg-red-100"
-                      : "bg-[#f3ecd8]"
+                      : "bg-neutral-100"
                   }`}
                 >
                   <TrendingUp
                     className={`size-4 ${
                       recommendation.urgency === "high"
                         ? "text-red-600"
-                        : "text-[#6b6253]"
+                        : "text-neutral-600"
                     }`}
                   />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-base font-semibold text-[#1d1813]">
+                    <p className="text-base font-semibold text-neutral-950">
                       {recommendation.plan.name}
                     </p>
                     {recommendation.plan.price > 0 && (
-                      <span className="text-sm text-[#8d8472]">
+                      <span className="text-sm text-neutral-500">
                         {recommendation.plan.priceDisplay}
                         {recommendation.plan.periodDisplay}
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-sm leading-6 text-[#6b6253]">
+                  <p className="mt-0.5 text-sm leading-6 text-neutral-600">
                     {recommendation.reason}
                   </p>
                 </div>
@@ -496,7 +498,7 @@ export function AccountBilling() {
               <div className="flex items-center gap-3">
                 <Button
                   asChild
-                  className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
+                  className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
                 >
                   <Link href={recommendation.plan.href}>
                     {recommendation.plan.tier === "trial"
@@ -507,7 +509,7 @@ export function AccountBilling() {
                 </Button>
                 <Link
                   href="/pricing"
-                  className="text-sm font-medium text-[#8d8472] underline underline-offset-2 hover:text-[#3d3428]"
+                  className="text-sm font-medium text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
                 >
                   See all plans
                 </Link>
@@ -518,13 +520,13 @@ export function AccountBilling() {
 
         {/* Within limits — no upgrade nudge */}
         {!recommendation && snapshot.tier === "paid" && (
-          <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-[#faf5e8] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-neutral-50 px-4 py-3">
             <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-            <p className="text-sm text-[#6b6253]">
+            <p className="text-sm text-neutral-600">
               You&apos;re comfortably within your plan limits.{" "}
               <Link
                 href="/pricing"
-                className="font-medium text-[#1d1813] underline underline-offset-2 hover:text-[#3d3428]"
+                className="font-medium text-neutral-950 underline underline-offset-2 hover:text-neutral-700"
               >
                 Compare plans
               </Link>{" "}
@@ -547,13 +549,13 @@ export function AccountBilling() {
             {/* Trial — grace period explanation */}
             {snapshot.isTrial && !snapshot.isExpired && (
               <div className="space-y-1.5">
-                <p className="text-sm font-medium text-[#3d3428]">
+                <p className="text-sm font-medium text-neutral-800">
                   Trial grace period
                 </p>
-                <p className="text-xs leading-5 text-[#8d8472]">
+                <p className="text-xs leading-5 text-neutral-500">
                   When your trial ends, your imported invoices and chase plan stay
                   visible for{" "}
-                  <span className="font-medium text-[#3d3428]">30 days</span>.
+                  <span className="font-medium text-neutral-700">30 days</span>.
                   New imports and AI actions pause until you upgrade. After 30 days,
                   data is queued for deletion.
                 </p>
@@ -596,7 +598,7 @@ export function AccountBilling() {
 
             {/* Paid — retention assurance */}
             {snapshot.tier === "paid" && (
-              <p className="text-xs leading-5 text-[#8d8472]">
+              <p className="text-xs leading-5 text-neutral-500">
                 Data is retained while your plan is active. Cancellation starts a
                 30-day wind-down period before any deletion occurs.
               </p>
@@ -604,7 +606,7 @@ export function AccountBilling() {
 
             {/* Demo — no personal data */}
             {snapshot.tier === "free" && (
-              <p className="text-xs leading-5 text-[#8d8472]">
+              <p className="text-xs leading-5 text-neutral-500">
                 Demo mode uses only pre-loaded sample data. No personal or business
                 data is stored or retained.
               </p>
@@ -612,16 +614,16 @@ export function AccountBilling() {
 
             {/* Export / delete placeholders */}
             <div className="border-t border-black/6 pt-3 space-y-2">
-              <p className="text-xs font-medium text-[#8d8472]">Account actions</p>
+              <p className="text-xs font-medium text-neutral-500">Account actions</p>
               <Button
                 variant="outline"
                 size="sm"
                 disabled
-                className="w-full justify-start gap-2 rounded-lg text-[#a09885] disabled:opacity-60"
+                className="w-full justify-start gap-2 rounded-lg text-neutral-400 disabled:opacity-60"
               >
                 <Download className="size-3.5" />
                 Export all data (CSV)
-                <span className="ml-auto rounded bg-[#f3ecd8] px-1.5 py-0.5 text-[0.65rem] font-medium text-[#a09885]">
+                <span className="ml-auto rounded bg-neutral-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
                   Coming soon
                 </span>
               </Button>
@@ -629,11 +631,11 @@ export function AccountBilling() {
                 variant="outline"
                 size="sm"
                 disabled
-                className="w-full justify-start gap-2 rounded-lg text-[#a09885] disabled:opacity-60"
+                className="w-full justify-start gap-2 rounded-lg text-neutral-400 disabled:opacity-60"
               >
                 <Trash2 className="size-3.5" />
                 Delete account &amp; data
-                <span className="ml-auto rounded bg-[#f3ecd8] px-1.5 py-0.5 text-[0.65rem] font-medium text-[#a09885]">
+                <span className="ml-auto rounded bg-neutral-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
                   Coming soon
                 </span>
               </Button>
@@ -649,12 +651,12 @@ export function AccountBilling() {
           <CardContent className="space-y-4">
             {SAFETY_CONTROLS.map(({ Icon, label, detail }) => (
               <div key={label} className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f3ecd8]">
-                  <Icon className="size-3.5 text-[#6b6253]" />
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100">
+                  <Icon className="size-3.5 text-neutral-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#3d3428]">{label}</p>
-                  <p className="text-xs leading-5 text-[#8d8472]">{detail}</p>
+                  <p className="text-sm font-medium text-neutral-800">{label}</p>
+                  <p className="text-xs leading-5 text-neutral-500">{detail}</p>
                 </div>
               </div>
             ))}
@@ -667,7 +669,7 @@ export function AccountBilling() {
             <SectionLabel>Billing</SectionLabel>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm leading-6 text-[#8d8472]">
+            <p className="text-sm leading-6 text-neutral-500">
               Billing is managed manually during the founding period. You won&apos;t be charged until billing goes live.
             </p>
 
@@ -676,7 +678,7 @@ export function AccountBilling() {
               <Button
                 asChild
                 variant="outline"
-                className="w-full rounded-full border-black/15 hover:bg-[#faf5e8]"
+                className="w-full rounded-full border-black/15 hover:bg-neutral-50"
               >
                 <Link href="/request-access">
                   Request founding access
@@ -687,11 +689,11 @@ export function AccountBilling() {
 
             {/* Paid — managed note */}
             {snapshot.tier === "paid" && (
-              <div className="flex items-center gap-2.5 rounded-lg bg-[#faf5e8] px-3.5 py-2.5">
-                <Lock className="size-3.5 shrink-0 text-[#a09885]" />
-                <p className="text-xs text-[#6b6253]">
+              <div className="flex items-center gap-2.5 rounded-lg bg-neutral-50 px-3.5 py-2.5">
+                <Lock className="size-3.5 shrink-0 text-neutral-400" />
+                <p className="text-xs text-neutral-600">
                   Your billing is managed directly.{" "}
-                  <a href="mailto:hello@zentra.co" className="underline underline-offset-2 hover:text-[#1d1813]">
+                  <a href="mailto:hello@zentra.co" className="underline underline-offset-2 hover:text-neutral-900">
                     Email us
                   </a>{" "}
                   to make changes to your plan.
@@ -700,7 +702,7 @@ export function AccountBilling() {
             )}
 
             {/* TODO: Replace with <StripePortalButton accountId={...} /> when Stripe is live */}
-            <p className="text-xs text-[#a09885]">
+            <p className="text-xs text-neutral-400">
               VAT included where applicable · No contract · Cancel anytime
             </p>
           </CardContent>

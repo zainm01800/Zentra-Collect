@@ -192,7 +192,11 @@ export function readLocalAccount() {
 
 export function writeLocalAccount(user: DemoUser) {
   window.localStorage.setItem(demoUserStorageKey, JSON.stringify(user));
-  window.dispatchEvent(new StorageEvent("storage", { key: demoUserStorageKey }));
+  try {
+    window.dispatchEvent(new StorageEvent("storage", { key: demoUserStorageKey }));
+  } catch {
+    window.dispatchEvent(new Event("storage"));
+  }
   window.dispatchEvent(new Event("zentra-account-change"));
 }
 

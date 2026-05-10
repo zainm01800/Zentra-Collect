@@ -110,7 +110,7 @@ export function requireFeature(
         return {
           ...base,
           allowed: false,
-          upgradeTarget: "single",
+          upgradeTarget: "single_business",
           reason: "Your trial has expired. Upgrade to continue importing.",
         };
       }
@@ -127,7 +127,7 @@ export function requireFeature(
         return {
           ...base,
           allowed: false,
-          upgradeTarget: "single",
+          upgradeTarget: "single_business",
           reason: "The weekly digest is included in Single Business and above.",
         };
       }
@@ -135,15 +135,15 @@ export function requireFeature(
 
     case "bookkeeper_portfolio":
       // Portfolio requires Starter or Pro.
-      if (planId === "starter" || planId === "pro") {
+      if (planId === "bookkeeper_starter" || planId === "bookkeeper_pro") {
         return { ...base, allowed: true, upgradeTarget: null };
       }
       return {
         ...base,
         allowed: false,
-        upgradeTarget: "starter",
+        upgradeTarget: "bookkeeper_starter",
         reason:
-          planId === "single"
+          planId === "single_business"
             ? "The portfolio view is a Bookkeeper feature. You're on Single Business."
             : "The portfolio view is included in Bookkeeper Starter and above.",
       };
@@ -180,11 +180,11 @@ export function requirePlanCapability(
       return { ...base, allowed: true, upgradeTarget: null };
     }
     const upgradeTarget: PlanId | null = isExpired
-      ? "single"
+      ? "single_business"
       : tier === "free"
         ? "trial"
-        : planId === "single" || planId === "trial"
-          ? "starter"
+        : planId === "single_business" || planId === "trial"
+          ? "bookkeeper_starter"
           : null;
     return {
       ...base,
@@ -203,13 +203,13 @@ export function requirePlanCapability(
     return { ...base, allowed: true, upgradeTarget: null };
   }
   const upgradeTarget: PlanId | null = isExpired
-    ? "single"
+    ? "single_business"
     : tier === "free"
       ? "trial"
-      : planId === "single"
-        ? "starter"
-        : planId === "starter"
-          ? "pro"
+      : planId === "single_business"
+        ? "bookkeeper_starter"
+        : planId === "bookkeeper_starter"
+          ? "bookkeeper_pro"
           : null;
   return {
     ...base,
@@ -290,14 +290,14 @@ export function getRedirectOrUpgradePrompt(
           "Missed promises and pending disputes",
           "Ready to share with the business owner",
         ],
-        upgradeTarget: "single",
+        upgradeTarget: "single_business",
         ctaPrimary: { text: "Request founding access", href: "/request-access" },
         ctaSecondary: { text: "See all plans", href: "/pricing" },
       };
 
     case "bookkeeper_portfolio": {
       // Single Business — they can see the most relevant upgrade context
-      if (planId === "single") {
+      if (planId === "single_business") {
         return {
           heading: "Multi-client portfolio",
           description:
@@ -308,7 +308,7 @@ export function getRedirectOrUpgradePrompt(
             "Risk level and overdue total per client",
             "Up to 5 clients on Starter, 20 on Pro",
           ],
-          upgradeTarget: "starter",
+          upgradeTarget: "bookkeeper_starter",
           ctaPrimary: { text: "Request founding access", href: "/request-access" },
           ctaSecondary: { text: "Compare plans", href: "/pricing" },
         };
@@ -324,7 +324,7 @@ export function getRedirectOrUpgradePrompt(
           "Risk-sorted client list",
           "Weekly summaries per client",
         ],
-        upgradeTarget: "starter",
+        upgradeTarget: "bookkeeper_starter",
         ctaPrimary: {
           text: tier === "free" ? "Start free trial" : "Request founding access",
           href: "/request-access",
@@ -359,3 +359,4 @@ export function upgradeTargetLabel(planId: PlanId): string {
   if (plan.price === 0) return plan.name;
   return `${plan.name} · ${plan.priceDisplay}${plan.periodDisplay}`;
 }
+
