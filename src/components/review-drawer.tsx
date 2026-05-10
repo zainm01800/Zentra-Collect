@@ -262,7 +262,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
 
   return (
     <aside
-      className="fixed top-4 bottom-4 z-30 flex flex-col"
+      className="fixed top-4 bottom-4 z-50 flex flex-col"
       style={{
         right: isOpen ? 16 : -520,
         width,

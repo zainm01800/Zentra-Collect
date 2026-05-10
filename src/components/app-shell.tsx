@@ -77,7 +77,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* ── Sidebar ── */}
       <aside
-        className="hidden md:flex md:flex-col sticky top-0 h-screen z-10 border-r"
+        className="hidden md:flex md:flex-col sticky top-0 h-screen z-40 border-r"
         style={{
           background: "var(--zn-bg-2)",
           borderColor: "var(--zn-line)",
@@ -172,7 +172,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Mobile top bar (sm only) */}
         <header
-          className="md:hidden sticky top-0 z-20 flex items-center justify-between border-b backdrop-blur px-4 py-3"
+          className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b backdrop-blur px-4 py-3"
           style={{
             background: "rgba(233,223,201,0.95)",
             borderColor: "var(--zn-line)",
@@ -196,7 +196,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Mobile bottom nav — first 4 items + a real "More" sheet trigger */}
         <nav
-          className="md:hidden fixed bottom-0 inset-x-0 z-20 flex border-t backdrop-blur"
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t backdrop-blur"
           style={{
             background: "rgba(250,245,232,0.95)",
             borderColor: "var(--zn-line)",
@@ -239,11 +239,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => setMoreOpen(false)}
               aria-label="Close menu"
-              className="md:hidden fixed inset-0 z-30 backdrop-blur-[2px]"
+              className="md:hidden fixed inset-0 z-50 backdrop-blur-[2px]"
               style={{ background: "rgba(29,24,19,0.32)", animation: "fadeIn 200ms ease" }}
             />
             <div
-              className="md:hidden fixed bottom-0 inset-x-0 z-40 rounded-t-[18px]"
+              className="md:hidden fixed bottom-0 inset-x-0 z-[60] rounded-t-[18px]"
               style={{
                 background: "var(--zn-surface)",
                 borderTop: "1px solid var(--zn-line)",
