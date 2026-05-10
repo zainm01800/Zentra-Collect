@@ -195,11 +195,11 @@ export function ChaseQueue({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:gap-5">
 
       {/* Search + sort row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative max-w-[360px] flex-1 min-w-[260px]">
+        <div className="relative max-w-[480px] flex-1 min-w-[260px]">
           <Search
             className="absolute left-[11px] top-1/2 size-4 -translate-y-1/2"
             style={{ color: "var(--zn-ink-3)" }}
@@ -262,16 +262,26 @@ export function ChaseQueue({
           className="border-collapse"
           style={{ tableLayout: "fixed", width: "100%", minWidth: 880 }}
         >
+          <colgroup>
+            <col style={{ width: 44 }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 84 }} />
+            <col style={{ width: "24%" }} />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 108 }} />
+          </colgroup>
           <thead>
             <tr>
-              <th className="zn-label text-left" style={{ width: 44, padding: "12px 22px" }}></th>
+              <th className="zn-label text-left" style={{ padding: "12px 22px" }}></th>
               <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Customer</th>
-              <th className="zn-label text-left" style={{ width: 110, padding: "12px 10px" }}>Amount</th>
-              <th className="zn-label text-left" style={{ width: 120, padding: "12px 10px" }}>Due</th>
-              <th className="zn-label text-left" style={{ width: 90, padding: "12px 10px" }}>Overdue</th>
-              <th className="zn-label text-left" style={{ width: 200, padding: "12px 10px" }}>Recommended action</th>
-              <th className="zn-label text-left" style={{ width: 110, padding: "12px 10px" }}>Risk</th>
-              <th className="zn-label text-left" style={{ width: 110, padding: "12px 22px" }}></th>
+              <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Amount</th>
+              <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Due</th>
+              <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Overdue</th>
+              <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Recommended action</th>
+              <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Risk</th>
+              <th className="zn-label text-left" style={{ padding: "12px 22px" }}></th>
             </tr>
           </thead>
           <tbody>
