@@ -253,9 +253,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         ) : null}
 
         {/* Page content — drawer always overlays, no shift needed */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-7 pt-6 pb-24 md:pb-6">
-          <TrialStatusBanner />
-          {children}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 pb-24 md:pb-8">
+          <div className="mx-auto w-full max-w-[1360px]">
+            <TrialStatusBanner />
+            {children}
+          </div>
         </main>
       </div>
 

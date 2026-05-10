@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function ChaseTodayPage() {
   return (
     <AppShell>
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 lg:gap-6">
         <DemoModeBanner />
         <PageHeader
           kicker="Working queue"
