@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { CustomerProfileDrawer } from "@/components/customer-profile-drawer";
 import { AddInvoiceDrawer } from "@/components/add-invoice-drawer";
@@ -36,10 +36,17 @@ export function ChaseQueue({
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const review = useReview();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const autoOpenedRef = useRef(false);
 
   // Deep-link: ?customer=Name auto-opens that customer's most pressing invoice.
   // Used by dashboard Top 5 / Top 3 buttons.
+  //
+  // After consuming the param we strip it from the URL so:
+  //   - Coming back to /chase-today via the nav doesn't re-fire the auto-fill
+  //   - Browser back/forward doesn't replay the auto-open + search-fill
+  //   - The search box stays in sync with what the user actually typed
   useEffect(() => {
     if (autoOpenedRef.current) return;
     const customer = searchParams?.get("customer");
@@ -57,6 +64,8 @@ export function ChaseQueue({
       review.open(match);
       autoOpenedRef.current = true;
     }
+    // Clean the URL so the param doesn't replay
+    router.replace(pathname ?? "/chase-today", { scroll: false });
     // Same as above: depend on the stable callback identity, not the whole context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, invoices, review.open]);

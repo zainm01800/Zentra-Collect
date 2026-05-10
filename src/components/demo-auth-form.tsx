@@ -99,11 +99,8 @@ export function DemoAuthForm() {
           }
         }
       } catch (caught) {
-        const message =
-          caught instanceof Error
-            ? caught.message
-            : "Authentication failed. Check your credentials and try again.";
-        setError(message);
+        const raw = caught instanceof Error ? caught.message : "";
+        setError(humaniseAuthError(raw));
         setIsSubmitting(false);
         return;
       }
@@ -313,4 +310,42 @@ function Field({
       />
     </div>
   );
+}
+
+/**
+ * Translate Supabase / network error strings into something a non-technical
+ * UK bookkeeper can act on. Keeps the original message as a fallback so
+ * legitimately new failure modes still surface.
+ */
+function humaniseAuthError(raw: string): string {
+  const msg = raw.toLowerCase();
+
+  // Supabase rejects email when the domain has no MX records / fails its
+  // basic format check. Don't say "invalid" — bookkeepers will assume their
+  // email IS fine. Nudge them to double-check.
+  if (msg.includes("email") && (msg.includes("invalid") || msg.includes("not valid"))) {
+    return "We couldn't verify that email. Double-check the spelling, or try a different address. If this is your real work email and you're sure it's correct, contact support.";
+  }
+  // Already-registered email
+  if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("user already")) {
+    return "An account with this email already exists. Try signing in instead.";
+  }
+  // Supabase / SMTP rate limit on confirmation emails
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "We're sending too many confirmation emails right now. Please wait a few minutes and try again.";
+  }
+  // Wrong password during sign-in
+  if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
+    return "That email and password don't match. Check both, or reset your password.";
+  }
+  // Weak password
+  if (msg.includes("password") && (msg.includes("weak") || msg.includes("at least"))) {
+    return "Pick a stronger password — at least 8 characters, mix of letters and numbers.";
+  }
+  // Network / unknown
+  if (!raw.trim()) {
+    return "Couldn't reach our auth service. Check your connection and try again.";
+  }
+  // Default — keep raw message but soften the framing
+  return `Something went wrong: ${raw}. Try again or contact support.`;
 }

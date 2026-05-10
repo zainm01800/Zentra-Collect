@@ -66,60 +66,146 @@ const OUTCOMES: { k: Outcome; label: string; Icon: React.ComponentType<{ classNa
   { k: "snooze",   label: "Snooze",       Icon: Minimize2 },
 ];
 
-function templateFor(scenario: Scenario, inv: Invoice): { subject: string; body: string; reason: string } {
+// Tone shapes the greeting, body verbs, and signoff. Same scenario, four
+// distinct messages — so changing the tone toggle visibly changes the draft.
+const TONE_GREETING: Record<ReminderTone, string> = {
+  Friendly:       "Hi there,",
+  Neutral:        "Hi,",
+  Firm:           "Hello,",
+  "Final notice": "Hello,",
+};
+
+const TONE_SIGNOFF: Record<ReminderTone, string> = {
+  Friendly:       "Thanks so much,",
+  Neutral:        "Thanks,",
+  Firm:           "Regards,",
+  "Final notice": "Regards,",
+};
+
+// Subject prefix per tone — sets the customer's expectation in the inbox preview
+const TONE_SUBJECT_PREFIX: Record<ReminderTone, string> = {
+  Friendly:       "Quick reminder",
+  Neutral:        "Payment reminder",
+  Firm:           "Action required",
+  "Final notice": "Final notice",
+};
+
+// A short closing line that varies by tone — added before the signoff for
+// reminder-style scenarios to make the urgency feel right.
+const TONE_CLOSER: Record<ReminderTone, string> = {
+  Friendly:       "Appreciate it — let me know if I can help in any way.",
+  Neutral:        "Please let me know when we can expect payment.",
+  Firm:           "Please prioritise this and confirm a payment date.",
+  "Final notice": "Please treat this as a final notice and confirm urgent settlement.",
+};
+
+function templateFor(
+  scenario: Scenario,
+  inv: Invoice,
+  tone: ReminderTone,
+): { subject: string; body: string; reason: string } {
   const ref = inv.invoiceNumber;
   const amount = formatCurrency(inv.amount);
   const due = formatDate(inv.dueDate);
   const days = inv.daysOverdue || 0;
   const customer = inv.customerName;
+  const greet = TONE_GREETING[tone];
+  const signoff = TONE_SIGNOFF[tone];
 
   switch (scenario) {
-    case "reminder":
+    case "reminder": {
+      // Body opening adapts per tone
+      const opener =
+        tone === "Friendly" ? `Just a quick nudge — invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue.` :
+        tone === "Neutral"  ? `I'm writing to follow up on invoice ${ref} (${amount}), which was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue.` :
+        tone === "Firm"     ? `Invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue. We've yet to receive payment.` :
+                              `Invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue. This invoice has not been settled despite earlier follow-ups.`;
       return {
-        subject: `Friendly reminder: invoice ${ref}`,
-        body: `Hi,\n\nJust a friendly nudge that invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue.\n\nCould you let me know when we can expect payment?\n\nThanks,\n${customer}`,
-        reason: `${days}d overdue · no recent reply · standard reminder cadence`,
+        subject: `${TONE_SUBJECT_PREFIX[tone]}: invoice ${ref}`,
+        body:    `${greet}\n\n${opener}\n\n${TONE_CLOSER[tone]}\n\n${signoff}`,
+        reason:  `${days}d overdue · no recent reply · standard reminder cadence`,
       };
-    case "ask_date":
+    }
+    case "ask_date": {
+      const opener =
+        tone === "Friendly" ? `Whenever you get a moment — could you share a likely date for payment of invoice ${ref} (${amount})? It's just easier on both sides than the back-and-forth.` :
+        tone === "Neutral"  ? `Could you confirm a payment date for invoice ${ref} (${amount})? A clear date helps us plan and saves you repeated reminders.` :
+        tone === "Firm"     ? `Please confirm a firm payment date for invoice ${ref} (${amount}). We'd prefer a clear date over further reminders.` :
+                              `Please confirm an immediate payment date for invoice ${ref} (${amount}) so we can close this out.`;
       return {
-        subject: `Quick question on ${ref}`,
-        body: `Hi,\n\nCould you give me a date when we can expect payment of invoice ${ref} (${amount})?\n\nWe'd rather have a clear date than chase repeatedly — thanks for understanding.\n\nBest,`,
-        reason: `Customer typically late · asking for a date prevents repeated chases`,
+        subject: tone === "Friendly" ? `Quick question on ${ref}` : `Payment date for ${ref}`,
+        body:    `${greet}\n\n${opener}\n\n${signoff}`,
+        reason:  `Customer typically late · asking for a date prevents repeated chases`,
       };
-    case "promise":
+    }
+    case "promise": {
+      const opener =
+        tone === "Friendly" ? `Thanks for confirming you'd settle ${ref} (${amount}). Just checking the payment's still on track for the date you mentioned — no rush, just want to keep our end tidy.` :
+        tone === "Neutral"  ? `Following up on the payment of ${ref} (${amount}) which you'd confirmed for the date noted. Could you confirm whether it's been issued?` :
+        tone === "Firm"     ? `Following up on your commitment to settle ${ref} (${amount}). Please confirm payment has been issued or share an updated date.` :
+                              `${ref} for ${amount} was committed for payment but remains outstanding. Please confirm immediate settlement or this will need to be escalated.`;
       return {
-        subject: `Following up on promised payment for ${ref}`,
-        body: `Hi,\n\nThanks for confirming you'd settle ${ref} (${amount}). I just wanted to check that the payment is still on track for the date you mentioned.\n\nLet me know if anything has changed.\n\nThanks,`,
-        reason: `Promise on file · approaching the agreed date · soft check-in is safest`,
+        subject: tone === "Friendly" ? `Following up on payment for ${ref}` : `Promise to pay — ${ref}`,
+        body:    `${greet}\n\n${opener}\n\n${signoff}`,
+        reason:  `Promise on file · approaching the agreed date · soft check-in is safest`,
       };
-    case "remit":
+    }
+    case "remit": {
+      const opener =
+        tone === "Friendly" ? `It looks like ${ref} (${amount}) may have been paid on your end. Could you send the remittance advice so we can match it up?` :
+        tone === "Neutral"  ? `Invoice ${ref} (${amount}) appears to have been paid but isn't showing matched on our side. Please send the remittance advice so we can reconcile.` :
+        tone === "Firm"     ? `${ref} (${amount}) is recorded as paid on your side but unmatched on ours. Please send remittance advice promptly so we can confirm.` :
+                              `${ref} (${amount}) is unaccounted for on our side. Please send the remittance advice immediately so this can be reconciled.`;
       return {
-        subject: `Remittance advice request — ${ref}`,
-        body: `Hi,\n\nWe believe payment for invoice ${ref} (${amount}) may have been made. Could you send across the remittance advice so we can match it on our end?\n\nThanks,`,
-        reason: `Customer claims payment made · need remittance to reconcile`,
+        subject: `Remittance advice — ${ref}`,
+        body:    `${greet}\n\n${opener}\n\n${signoff}`,
+        reason:  `Customer claims payment made · need remittance to reconcile`,
       };
-    case "statement":
+    }
+    case "statement": {
+      const opener =
+        tone === "Friendly" ? `Thought it'd be useful to share a statement of your account — currently showing ${amount} outstanding across open invoices.` :
+        tone === "Neutral"  ? `Please find attached a statement of account for ${customer} showing ${amount} outstanding.` :
+        tone === "Firm"     ? `Attached is the statement of account showing ${amount} outstanding. Please review and confirm payment plans for each open item.` :
+                              `Attached is the statement of account showing ${amount} outstanding. Please confirm immediate payment for all overdue items.`;
       return {
         subject: `Statement of account — ${customer}`,
-        body: `Hi,\n\nPlease find attached your statement of account showing ${amount} outstanding across open invoices.\n\nLet me know if anything looks unexpected.\n\nThanks,`,
-        reason: `Multiple open invoices · statement summarises the position cleanly`,
+        body:    `${greet}\n\n${opener}\n\nLet me know if anything looks unexpected.\n\n${signoff}`,
+        reason:  `Multiple open invoices · statement summarises the position cleanly`,
       };
-    case "dispute":
+    }
+    case "dispute": {
+      // Disputes should always lean diplomatic — even at "firm" we don't escalate
+      const opener =
+        tone === "Friendly" || tone === "Neutral"
+          ? `Thanks for flagging the query on ${ref}. We'd like to get this resolved quickly — could you share the specific lines or amounts you'd like reviewed?`
+          : `Thanks for raising the dispute on ${ref}. To resolve this, please share the specific lines or amounts in question and any supporting detail.`;
       return {
         subject: `Re: dispute on invoice ${ref}`,
-        body: `Hi,\n\nThanks for raising your concern on ${ref}. I'd like to resolve this quickly — could you let me know the specific lines or amounts you'd like reviewed?\n\nWe'll pause any further reminders until this is resolved.\n\nBest,`,
-        reason: `Active dispute · acknowledge first, gather detail before any chase`,
+        body:    `${greet}\n\n${opener}\n\nWe'll pause further reminders on this invoice until the query is resolved.\n\n${signoff}`,
+        reason:  `Active dispute · acknowledge first, gather detail before any chase`,
       };
-    case "ap_contact":
+    }
+    case "ap_contact": {
+      const opener =
+        tone === "Friendly" ? `Trying to make sure invoice ${ref} (${amount}) reaches the right team — could you point me to your accounts payable contact?` :
+        tone === "Neutral"  ? `Could you confirm the best accounts payable contact for invoice ${ref} (${amount}) so we can route correspondence correctly?` :
+        tone === "Firm"     ? `Please confirm the accounts payable contact for invoice ${ref} (${amount}). Routing this to the right person should help speed resolution.` :
+                              `Please immediately confirm the accounts payable contact for invoice ${ref} (${amount}) so this can be settled without further delay.`;
       return {
-        subject: `Best contact for accounts payable?`,
-        body: `Hi,\n\nWe're trying to make sure invoice ${ref} (${amount}) reaches the right person on your team. Could you point me to the best contact in accounts payable?\n\nThanks,`,
-        reason: `Contact unresponsive · routing to AP improves the reply rate`,
+        subject: `Best AP contact for ${ref}`,
+        body:    `${greet}\n\n${opener}\n\n${signoff}`,
+        reason:  `Contact unresponsive · routing to AP improves the reply rate`,
       };
+    }
     case "escalate":
+      // Internal note — tone affects the urgency framing
       return {
         subject: `Internal: escalation on ${customer} / ${ref}`,
-        body: `${customer} has ${amount} outstanding on ${ref}, ${days}d overdue with no engagement. Suggest escalating to relationship owner before next reminder.`,
+        body:
+          tone === "Final notice"
+            ? `${customer} has ${amount} outstanding on ${ref}, ${days}d overdue, no engagement and prior chases unanswered. Recommend immediate relationship-owner intervention before any further outbound.`
+            : `${customer} has ${amount} outstanding on ${ref}, ${days}d overdue with no engagement. Suggest escalating to the relationship owner before the next outbound reminder.`,
         reason: `Multiple chases without response · escalate before tone hardens further`,
       };
     case "hold":
@@ -223,16 +309,24 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, close]);
 
-  // Re-seed subject/body when scenario changes
+  // When the scenario changes, snap the tone back to its sensible default for
+  // that scenario. Kept as a separate effect so it doesn't fight with the
+  // tone-driven regeneration below (which would otherwise overwrite tone).
+  useEffect(() => {
+    setTone(TONE_DEFAULT[scenario]);
+  }, [scenario]);
+
+  // Re-seed subject + body whenever the scenario, the tone, or the invoice
+  // changes. This is what makes the tone toggle feel alive — flip "Friendly"
+  // → "Firm" and the message text actually rewrites.
   useEffect(() => {
     if (!current) return;
-    const t = templateFor(scenario, current);
+    const t = templateFor(scenario, current, tone);
     setSubject(t.subject);
     setBody(t.body);
-    setTone(TONE_DEFAULT[scenario]);
-  }, [scenario, current?.id]);
+  }, [scenario, tone, current?.id]);
 
-  const tpl = current ? templateFor(scenario, current) : null;
+  const tpl = current ? templateFor(scenario, current, tone) : null;
   const checks = useMemo(() => (current ? safetyChecks(current) : []), [current]);
   const bullets = useMemo(() => (current ? whyBullets(current) : []), [current]);
   const profile = useMemo(
@@ -522,7 +616,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                     className="zn-pill zn-pill-ghost"
                     onClick={() => {
                       if (!current) return;
-                      const t = templateFor(scenario, current);
+                      const t = templateFor(scenario, current, tone);
                       setSubject(t.subject);
                       setBody(t.body);
                     }}

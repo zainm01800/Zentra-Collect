@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { TrialStatusBanner } from "@/components/trial-banners";
+import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { demoInvoices } from "@/data/demo-invoices";
 
 type NavItem = {
@@ -131,39 +132,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           {/* Outcomes counter — small reward loop for working the queue */}
           <SessionCounter />
 
-          {/* Demo badge — replaces the user profile in this demo build */}
-          <div
-            className="flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
-            style={{
-              background: "var(--zn-warn-soft)",
-              border: "1px solid var(--zn-warn-soft)",
-            }}
-          >
-            <span
-              className="size-7 rounded-md inline-flex items-center justify-center text-[10px] font-bold tracking-[0.06em] flex-shrink-0"
-              style={{
-                background: "var(--zn-warn)",
-                color: "var(--zn-surface)",
-                fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-              }}
-            >
-              DEMO
-            </span>
-            <span className="flex flex-col leading-[1.2] min-w-0">
-              <span
-                className="text-[12px] font-semibold truncate"
-                style={{ color: "var(--zn-warn)" }}
-              >
-                Demo workspace
-              </span>
-              <span
-                className="text-[10.5px] truncate"
-                style={{ color: "var(--zn-warn)" }}
-              >
-                Sample data only
-              </span>
-            </span>
-          </div>
+          {/* Account badge — adapts per plan: demo / trial / paid */}
+          <SidebarAccountBadge />
         </div>
       </aside>
 
@@ -182,16 +152,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
             <span className="text-[13px] font-semibold text-[#1d1813]">Zentra Collect</span>
           </Link>
-          <span
-            className="text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md"
-            style={{
-              background: "var(--zn-warn)",
-              color: "var(--zn-surface)",
-              fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-            }}
-          >
-            DEMO
-          </span>
+          <MobileAccountPill />
         </header>
 
         {/* Mobile bottom nav — first 4 items + a real "More" sheet trigger */}
@@ -341,5 +302,115 @@ function SessionCounter() {
         {outcomesLogged} outcome{outcomesLogged === 1 ? "" : "s"} logged today
       </span>
     </div>
+  );
+}
+
+/**
+ * Quick state derived from the locally-stored account.
+ *  - demo: warm warning tones, "DEMO · Sample data only"
+ *  - trial: warm warning tones, "TRIAL · X days left" (or "expired" if past)
+ *  - paid: subtle, shows user name + business
+ *  - no account: hidden
+ */
+function useAccountBadgeState() {
+  const { user } = useLocalAccount();
+  if (!user) return null;
+  const planId = user.planId;
+  if (planId === "demo") {
+    return {
+      kind: "demo" as const,
+      mark: "DEMO",
+      title: "Demo workspace",
+      sub: "Sample data only",
+      tone: "warn" as const,
+    };
+  }
+  if (planId === "trial") {
+    const ends = user.trialEndsAt ? new Date(user.trialEndsAt).getTime() : 0;
+    const daysLeft = Math.max(0, Math.ceil((ends - Date.now()) / 86_400_000));
+    return {
+      kind: "trial" as const,
+      mark: "TRIAL",
+      title: user.businessName || "Trial workspace",
+      sub: daysLeft > 0
+        ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
+        : "Trial ended",
+      tone: daysLeft > 3 ? ("warn" as const) : ("risk" as const),
+    };
+  }
+  // Paid plan — show user info subtly
+  const initials = (user.name || user.email || "U")
+    .split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+  return {
+    kind: "paid" as const,
+    mark: initials,
+    title: user.name || "Account",
+    sub: user.businessName || user.email,
+    tone: "ink" as const,
+  };
+}
+
+function SidebarAccountBadge() {
+  const state = useAccountBadgeState();
+  if (!state) return null;
+  const palette =
+    state.tone === "warn" ? { bg: "var(--zn-warn-soft)", fg: "var(--zn-warn)", markBg: "var(--zn-warn)" } :
+    state.tone === "risk" ? { bg: "var(--zn-risk-soft)", fg: "var(--zn-risk)", markBg: "var(--zn-risk)" } :
+                            { bg: "var(--zn-surface)",   fg: "var(--zn-ink)",  markBg: "var(--zn-ink)"  };
+  return (
+    <div
+      className="flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
+      style={{
+        background: palette.bg,
+        border: `1px solid ${state.tone === "ink" ? "var(--zn-line-soft)" : palette.bg}`,
+      }}
+    >
+      <span
+        className="size-7 rounded-md inline-flex items-center justify-center text-[10px] font-bold tracking-[0.06em] flex-shrink-0"
+        style={{
+          background: palette.markBg,
+          color: "var(--zn-surface)",
+          fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+        }}
+      >
+        {state.mark}
+      </span>
+      <span className="flex flex-col leading-[1.2] min-w-0">
+        <span
+          className="text-[12px] font-semibold truncate"
+          style={{ color: palette.fg }}
+        >
+          {state.title}
+        </span>
+        <span
+          className="text-[10.5px] truncate"
+          style={{ color: palette.fg, opacity: state.tone === "ink" ? 0.65 : 1 }}
+        >
+          {state.sub}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Tiny pill version of the badge for the mobile top bar.
+ * Hidden for paid accounts (no need for a status badge there).
+ */
+function MobileAccountPill() {
+  const state = useAccountBadgeState();
+  if (!state || state.kind === "paid") return null;
+  const bg = state.tone === "risk" ? "var(--zn-risk)" : "var(--zn-warn)";
+  return (
+    <span
+      className="text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md"
+      style={{
+        background: bg,
+        color: "var(--zn-surface)",
+        fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+      }}
+    >
+      {state.mark}
+    </span>
   );
 }

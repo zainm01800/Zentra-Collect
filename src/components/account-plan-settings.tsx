@@ -194,42 +194,61 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
-            <CardHeader>
-              <CardTitle>Billing placeholder</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-3 text-sm leading-6 text-neutral-600">
-                <CreditCard className="mt-1 size-4 shrink-0 text-neutral-950" />
-                <p>
-                  Stripe billing is not connected yet. This is currently using
-                  internal plan state.
+          <div
+            className="rounded-[14px] p-5"
+            style={{
+              background: "var(--zn-surface)",
+              border: "1px solid var(--zn-line)",
+              boxShadow: "var(--zn-shadow-soft)",
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className="size-9 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--zn-surface-2)", color: "var(--zn-accent)" }}
+              >
+                <CreditCard className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="zn-label !p-0 mb-1">Billing</div>
+                <h3 className="text-[15px] font-semibold text-[#1d1813]">
+                  Handled by support during beta
+                </h3>
+                <p className="text-[13px] leading-relaxed mt-1.5" style={{ color: "var(--zn-ink-3)" }}>
+                  Trials don&apos;t need a card. When you&apos;re ready to upgrade
+                  to a paid plan, email{" "}
+                  <a
+                    href="mailto:hello@zentracollect.co.uk"
+                    className="underline underline-offset-2"
+                    style={{ color: "var(--zn-ink)" }}
+                  >
+                    hello@zentracollect.co.uk
+                  </a>{" "}
+                  and we&apos;ll set you up.
+                </p>
+                <p className="text-[12px] mt-3" style={{ color: "var(--zn-ink-3)" }}>
+                  Self-serve Stripe checkout and your card history will appear here once we&apos;re out of beta.
                 </p>
               </div>
-              <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4 text-xs leading-5 text-neutral-500">
-                TODO: connect Stripe subscriptions and Supabase account records
-                before accepting payments or relying on plan state for real
-                billing.
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
             <CardHeader>
               <CardTitle>Data controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-full border-black/10 bg-transparent"
+              <a
+                href="mailto:hello@zentracollect.co.uk?subject=Export%20my%20Zentra%20data"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors hover:bg-[#f3ecd8]"
+                style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
               >
                 <FileDown className="size-4" />
-                Export data placeholder
-              </Button>
-              <p className="text-xs leading-5 text-neutral-500">
-                TODO: implement account export and deletion with Supabase
-                storage and audit logs.
+                Request data export
+              </a>
+              <p className="text-xs leading-5" style={{ color: "var(--zn-ink-3)" }}>
+                During beta, exports and deletion are handled by emailing support.
+                Self-serve will appear here once we&apos;re out of beta.
               </p>
             </CardContent>
           </Card>
