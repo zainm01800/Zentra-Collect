@@ -1,4 +1,4 @@
-import { demoInvoices } from "@/data/demo-invoices";
+import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 export async function connectXero() {
   // TODO: Implement OAuth 2.0 authorization code flow and token storage.

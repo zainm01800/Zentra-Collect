@@ -23,7 +23,7 @@ import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { TrialStatusBanner } from "@/components/trial-banners";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
-import { demoInvoices } from "@/data/demo-invoices";
+import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 type NavItem = {
   href: string;

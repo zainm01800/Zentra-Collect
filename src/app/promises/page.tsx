@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { PromisesTable, type PromiseRow } from "@/components/promises-table";
-import { demoInvoices } from "@/data/demo-invoices";
+import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency } from "@/lib/formatters";
 
 import type { Metadata } from "next";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 //  - "due"    when promisedPaymentDate exists and is in the future
 //  - falls through to a heuristic "due in 5 days" for invoices we know are
 //    currently in the chase queue but don't yet have a recorded promise date
-function deriveStatus(inv: typeof demoInvoices[number], promisedDate: Date): "due" | "kept" | "missed" {
+function deriveStatus(inv: (typeof demoInvoices)[number], promisedDate: Date): "due" | "kept" | "missed" {
   if (inv.status === "Paid") return "kept";
   // After the early return above, status is already narrowed to "not Paid".
   if (promisedDate.getTime() < Date.now()) return "missed";
