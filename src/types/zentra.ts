@@ -116,6 +116,13 @@ export type SafetyCheckCode =
   | "final_notice_risk"
   | "data_missing";
 
+export type QueueStatus =
+  | "active"
+  | "waiting"
+  | "paid"
+  | "dismissed"
+  | "archived";
+
 export type ImportSource = "demo" | "csv" | "excel";
 
 export type ImportMappingConfidence = "high" | "medium" | "low";
@@ -259,6 +266,8 @@ export interface Invoice {
   dispute?: Dispute;
   sourceBatchId: string;
   importedRowNumber: number;
+  queueStatus?: QueueStatus;
+  promotedAt?: string;
 }
 
 export interface ImportMapping {

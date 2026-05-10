@@ -16,7 +16,9 @@ import {
   type QueueFilter,
 } from "@/lib/invoice-logic";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { freeSlot, readWaitingInvoices } from "@/lib/collections/queue-engine";
 import type { Invoice } from "@/types/cashpilot";
+import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
 const RISK_FOR_DAYS = (d: number): "low" | "med" | "high" =>
   d > 60 ? "high" : d > 30 ? "med" : "low";
@@ -30,11 +32,21 @@ export function ChaseQueue({
 }) {
   const [invoices, setInvoices] = useState(initialInvoices);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<QueueFilter>(onlyToday ? "today" : "all");
+  const [filter, setFilter] = useState<QueueFilter | "waiting">(onlyToday ? "today" : "all");
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [waitingInvoices, setWaitingInvoices] = useState<ZentraInvoice[]>([]);
   const review = useReview();
+
+  // Hydrate waiting invoices from localStorage on mount and after any slot change
+  const refreshWaiting = () => setWaitingInvoices(readWaitingInvoices());
+
+  useEffect(() => {
+    refreshWaiting();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -103,6 +115,13 @@ export function ChaseQueue({
           };
         }),
       );
+
+      // Free a slot in the waiting queue when an invoice is resolved.
+      // "paid" and "snooze" (dismiss) both release a slot for the next waiting invoice.
+      if (outcome === "paid" || outcome === "snooze") {
+        freeSlot(invoiceId, outcome === "paid" ? "paid" : "dismissed");
+        refreshWaiting();
+      }
     });
     // Depend only on the stable callback identity, not the whole context value.
     // Including `review` here would re-register on every provider render, which
@@ -153,6 +172,7 @@ export function ChaseQueue({
   }, [highlightedIdx]);
 
   const queue = useMemo(() => {
+    if (filter === "waiting") return [];
     return sortInvoicesByPriority(
       filterInvoices(invoices, filter).filter((invoice) => {
         const matchesToday =
@@ -167,7 +187,17 @@ export function ChaseQueue({
     );
   }, [filter, invoices, onlyToday, query]);
 
-  const tabs: { label: string; value: QueueFilter; count: number }[] = [
+  const filteredWaiting = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return waitingInvoices;
+    return waitingInvoices.filter(
+      (inv) =>
+        inv.customerName.toLowerCase().includes(q) ||
+        inv.invoiceNumber.toLowerCase().includes(q),
+    );
+  }, [waitingInvoices, query]);
+
+  const tabs: { label: string; value: QueueFilter | "waiting"; count: number }[] = [
     { label: "Today",     value: "today",    count: filterInvoices(invoices, "today").length },
     { label: "All open",  value: "all",      count: filterInvoices(invoices, "all").length },
     { label: "Calls",     value: "calls",    count: filterInvoices(invoices, "calls").length },
@@ -175,6 +205,9 @@ export function ChaseQueue({
     { label: "Disputes",  value: "disputes", count: filterInvoices(invoices, "disputes").length },
     { label: "Final",     value: "final",    count: filterInvoices(invoices, "final").length },
     { label: "Paid",      value: "paid",     count: filterInvoices(invoices, "paid").length },
+    ...(waitingInvoices.length > 0
+      ? [{ label: "Waiting", value: "waiting" as const, count: waitingInvoices.length }]
+      : []),
   ];
 
   const totalAmount = queue.reduce((s, i) => s + i.amount, 0);
@@ -258,6 +291,9 @@ export function ChaseQueue({
 
         {/* Table — scrolls horizontally on narrow viewports so columns never overlap */}
         <div className="overflow-x-auto">
+        {filter === "waiting" ? (
+          <WaitingTable invoices={filteredWaiting} />
+        ) : (
         <table
           className="border-collapse"
           style={{ tableLayout: "fixed", width: "100%", minWidth: 880 }}
@@ -441,6 +477,7 @@ export function ChaseQueue({
             )}
           </tbody>
         </table>
+        )}
         </div>
       </div>
 
@@ -450,7 +487,9 @@ export function ChaseQueue({
         style={{ color: "var(--zn-ink-3)" }}
       >
         <div>
-          {queue.length} invoice{queue.length === 1 ? "" : "s"} · {formatCurrency(totalAmount)} outstanding
+          {filter === "waiting"
+            ? `${filteredWaiting.length} invoice${filteredWaiting.length === 1 ? "" : "s"} waiting · ${formatCurrency(filteredWaiting.reduce((s, i) => s + i.amountOutstanding, 0))} on hold`
+            : `${queue.length} invoice${queue.length === 1 ? "" : "s"} · ${formatCurrency(totalAmount)} outstanding`}
         </div>
         <div className="flex items-center gap-2">
           <span style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}>↑↓</span>
@@ -474,5 +513,115 @@ export function ChaseQueue({
         onAddInvoice={addInvoice}
       />
     </div>
+  );
+}
+
+function WaitingTable({ invoices }: { invoices: ZentraInvoice[] }) {
+  if (invoices.length === 0) {
+    return (
+      <div
+        className="text-center text-[13px] py-10"
+        style={{ color: "var(--zn-ink-3)" }}
+      >
+        No invoices waiting. All imported invoices are in the active queue.
+      </div>
+    );
+  }
+
+  return (
+    <table
+      className="border-collapse"
+      style={{ tableLayout: "fixed", width: "100%", minWidth: 680 }}
+    >
+      <colgroup>
+        <col style={{ width: 44 }} />
+        <col style={{ width: "28%" }} />
+        <col style={{ width: 120 }} />
+        <col style={{ width: 120 }} />
+        <col style={{ width: 80 }} />
+        <col style={{ width: "auto" }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th className="zn-label text-left" style={{ padding: "12px 22px" }}>#</th>
+          <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Customer</th>
+          <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Outstanding</th>
+          <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Due date</th>
+          <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Overdue</th>
+          <th className="zn-label text-left" style={{ padding: "12px 22px" }}>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {invoices.map((inv, idx) => (
+          <tr
+            key={inv.id}
+            style={{ borderTop: "1px solid var(--zn-line-soft)" }}
+          >
+            <td
+              className="text-[14px] italic"
+              style={{
+                padding: "14px 22px",
+                color: "var(--zn-ink-3)",
+                fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+              }}
+            >
+              {idx + 1}
+            </td>
+            <td style={{ padding: "14px 10px" }}>
+              <div className="text-[13.5px] font-semibold text-[#1d1813] truncate">
+                {inv.customerName}
+              </div>
+              <div className="zn-kind-tag mt-0.5">{inv.invoiceNumber}</div>
+            </td>
+            <td
+              className="text-[13px] font-medium tabular-nums"
+              style={{ padding: "14px 10px", color: "var(--zn-ink)" }}
+            >
+              {formatCurrency(inv.amountOutstanding)}
+            </td>
+            <td
+              className="text-[12.5px]"
+              style={{ padding: "14px 10px", color: "var(--zn-ink-3)" }}
+            >
+              {inv.dueDate ? formatDate(inv.dueDate) : "—"}
+            </td>
+            <td style={{ padding: "14px 10px" }}>
+              {inv.daysOverdue > 0 ? (
+                <span
+                  className="text-[12.5px] font-semibold tabular-nums"
+                  style={{
+                    color:
+                      inv.daysOverdue > 60
+                        ? "var(--zn-risk)"
+                        : inv.daysOverdue > 30
+                        ? "var(--zn-warn)"
+                        : "var(--zn-ink-2)",
+                  }}
+                >
+                  {inv.daysOverdue}d
+                </span>
+              ) : (
+                <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+                  not due
+                </span>
+              )}
+            </td>
+            <td style={{ padding: "14px 22px" }}>
+              <span
+                className="zn-chip"
+                style={{
+                  background: "var(--zn-surface)",
+                  border: "1px solid var(--zn-line-soft)",
+                  color: "var(--zn-ink-3)",
+                  fontSize: 11,
+                }}
+              >
+                Waiting for slot
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -5,6 +5,8 @@ export const importedInvoicesStorageKey = "zentra.importedInvoices.v1";
 export const importSummaryStorageKey = "zentra.importSummary.v1";
 export const importMappingTemplateStorageKey = "zentra.importMappingTemplate.v1";
 export const importDiffStorageKey = "zentra.importDiff.v1";
+// Stores the latest PromotionEvent so the status bar can show a one-time notice.
+export const waitingInvoicesNoticeKey = "zentra.queueNotice.v1";
 
 export type ImportTargetField =
   | "customerName"

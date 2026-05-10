@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { TrialStatusBanner } from "@/components/trial-banners";
+import { QueueStatusBar } from "@/components/queue-status-bar";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
@@ -256,6 +257,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 pb-24 md:pb-8">
           <div className="mx-auto w-full max-w-[1360px]">
             <TrialStatusBanner />
+            <QueueStatusBar />
             {children}
           </div>
         </main>
