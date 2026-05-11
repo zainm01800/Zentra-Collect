@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useTransition } from "react";
 import { Check, Pencil, X } from "lucide-react";
 import { updateBankBalance } from "@/actions/financial-settings";
 
@@ -48,15 +48,24 @@ function parseInputValue(raw: string): number | null {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+export interface BankBalanceInputHandle {
+  /**
+   * Programmatically enter edit mode — used by the "Update balance"
+   * quick-action button in the financial header.
+   */
+  enterEdit: () => void;
+}
+
 export interface BankBalanceInputProps {
   initialBalance: number | null;
   lastUpdated: string | null;
 }
 
-export function BankBalanceInput({
+export const BankBalanceInput = forwardRef<BankBalanceInputHandle, BankBalanceInputProps>(
+function BankBalanceInput({
   initialBalance,
   lastUpdated: lastUpdatedProp,
-}: BankBalanceInputProps) {
+}: BankBalanceInputProps, ref) {
   const [balance,     setBalance]     = useState<number | null>(initialBalance);
   const [lastUpdated, setLastUpdated] = useState<string | null>(lastUpdatedProp);
   const [isEditing,   setIsEditing]   = useState(false);
@@ -75,6 +84,10 @@ export function BankBalanceInput({
       inputRef.current?.select();
     }
   }, [isEditing]);
+
+  // Expose enterEdit() so parent components can trigger edit mode imperatively
+  // (e.g. the "Update balance" quick-action button in FinancialHeader).
+  useImperativeHandle(ref, () => ({ enterEdit }), [balance, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -311,4 +324,6 @@ export function BankBalanceInput({
       )}
     </div>
   );
-}
+});
+
+BankBalanceInput.displayName = "BankBalanceInput";
