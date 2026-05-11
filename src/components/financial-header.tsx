@@ -16,7 +16,7 @@
  *      until their trigger button is pressed)
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FilePlus,
   Receipt,
@@ -56,6 +56,13 @@ export interface FinancialHeaderProps {
     invoiceIncome:  number;
     manualIncome:   number;
   };
+  /**
+   * When true, the Add Invoice sheet opens automatically on mount.
+   * Used when the user arrives from /onboarding via the "add manually"
+   * path (?new_invoice=1), so they can add their first invoice without
+   * a second click.
+   */
+  autoOpenInvoiceForm?: boolean;
 }
 
 // ── Quick-action button ───────────────────────────────────────────────────────
@@ -92,12 +99,21 @@ export function FinancialHeader({
   safeToSpendResult,
   invoices,
   monthlyIncome,
+  autoOpenInvoiceForm = false,
 }: FinancialHeaderProps) {
   // ── Sheet open states ────────────────────────────────────────────────────
 
   const [addIncomeOpen,  setAddIncomeOpen]  = useState(false);
   const [addInvoiceOpen, setAddInvoiceOpen] = useState(false);
   const [addBillOpen,    setAddBillOpen]    = useState(false);
+
+  // Open the invoice form on mount when the user arrives from onboarding
+  // via the "add manually" path (?new_invoice=1).
+  useEffect(() => {
+    if (autoOpenInvoiceForm) {
+      setAddInvoiceOpen(true);
+    }
+  }, [autoOpenInvoiceForm]);
 
   // ── BankBalanceInput handle ──────────────────────────────────────────────
 

@@ -21,8 +21,9 @@ export default async function DashboardPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const checkoutSuccess  = params.checkout_success  === "true";
-  const importSyncFailed = params.import_sync_failed === "1";
+  const checkoutSuccess    = params.checkout_success  === "true";
+  const importSyncFailed   = params.import_sync_failed === "1";
+  const autoOpenNewInvoice = params.new_invoice === "1";
 
   // ── Server-side data fetching (all in parallel) ───────────────────────────
 
@@ -64,6 +65,7 @@ export default async function DashboardPage({
         safeToSpendResult={safeToSpendResult}
         invoices={dbInvoices}
         monthlyIncome={monthlyIncome}
+        autoOpenInvoiceForm={autoOpenNewInvoice}
       />
 
       {/* Thin visual separator between the two sections */}
