@@ -80,7 +80,8 @@ import {
   demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { LogOutcomeButton } from "@/components/log-outcome-button";
+import { LogOutcomeButton }    from "@/components/log-outcome-button";
+import { PaymentLinkButton }  from "@/components/payment-link-button";
 import {
   importedInvoicesStorageKey,
   importDiffStorageKey,
@@ -1825,6 +1826,23 @@ function ActionDrawer({
                   value={draft}
                   onChange={(event) => onDraftChange(event.target.value)}
                 />
+
+                {/* ── Payment link — inserts a Stripe pay-now URL into the draft ── */}
+                {invoice && (
+                  <PaymentLinkButton
+                    invoiceRef={invoice.invoiceNumber ?? "INV"}
+                    clientName={invoice.customerName}
+                    amountOutstanding={invoice.amountOutstanding}
+                    onInsert={(url) =>
+                      onDraftChange(
+                        draft
+                          ? `${draft}\n\nPay now: ${url}`
+                          : `Pay now: ${url}`,
+                      )
+                    }
+                  />
+                )}
+
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
                   <p className="font-semibold">Human review required</p>
                   <p className="mt-1">{riskNotes}</p>
