@@ -13,6 +13,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   Menu,
+  PiggyBank,
   ShieldAlert,
   Settings,
   Users,
@@ -51,10 +52,11 @@ const workspaceNav: NavItem[] = [
 ];
 
 const contextNav: NavItem[] = [
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/promises",  label: "Promises",  icon: AlertTriangle },
-  { href: "/disputes",  label: "Disputes",  icon: ShieldAlert },
-  { href: "/reports",   label: "Reports",   icon: BarChart3 },
+  { href: "/customers", label: "Customers",    icon: Users },
+  { href: "/promises",  label: "Promises",     icon: AlertTriangle },
+  { href: "/disputes",  label: "Disputes",     icon: ShieldAlert },
+  { href: "/tax",       label: "Tax reserve",  icon: PiggyBank },
+  { href: "/reports",   label: "Reports",      icon: BarChart3 },
 ];
 
 /**

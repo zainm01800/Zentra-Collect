@@ -392,3 +392,100 @@ export async function getMonthlyIncomeSummary(): Promise<{
     manualIncome:   manualIncomeThisMonth,
   };
 }
+
+// ── Monthly income series ─────────────────────────────────────────────────────
+
+/** One entry per calendar month in the requested window, oldest first. */
+export interface MonthlyIncomeSeries {
+  /** ISO year-month string, e.g. "2026-01". */
+  yearMonth: string;
+  /** Short month name for display, e.g. "Jan". */
+  label: string;
+  /** Combined invoice + manual income received in this month. */
+  income: number;
+}
+
+/** Build an empty series (all zeroes) for the last N months — used as a
+ *  safe fallback when Supabase is unavailable or the user is not authed. */
+function buildEmptySeries(monthsBack: number): MonthlyIncomeSeries[] {
+  const now = new Date();
+  return Array.from({ length: monthsBack }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthsBack - 1 - i), 1));
+    return {
+      yearMonth: d.toISOString().slice(0, 7),
+      label:     new Intl.DateTimeFormat("en-GB", { month: "short" }).format(d),
+      income:    0,
+    };
+  });
+}
+
+/**
+ * Return combined (invoice + manual) income totals for each of the last
+ * `monthsBack` calendar months, ordered oldest → newest.
+ *
+ * Uses two queries instead of N×2: fetch all rows in the window then
+ * aggregate by YYYY-MM in JS, keeping round-trips to two regardless of
+ * how many months are requested.
+ *
+ * Invoice income uses `updated_at` as a proxy for payment date (matching
+ * the behaviour of getMonthlyIncomeSummary).  Manual income uses
+ * `received_date`, which is an explicit date column.
+ */
+export async function getMonthlyIncomeSeries(
+  monthsBack: number = 12,
+): Promise<MonthlyIncomeSeries[]> {
+  if (!hasSupabaseServerConfig()) return buildEmptySeries(monthsBack);
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return buildEmptySeries(monthsBack);
+
+  let accountId: string;
+  try {
+    accountId = await requireAccountId(supabase, user.id);
+  } catch {
+    return buildEmptySeries(monthsBack);
+  }
+
+  // First day of the oldest month in the window.
+  const now         = new Date();
+  const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsBack + 1, 1));
+  const windowStartStr = windowStart.toISOString().slice(0, 10);
+
+  // Two queries in parallel: paid invoices + manual income in the window.
+  const [invRes, manualRes] = await Promise.all([
+    supabase
+      .from("zentra_invoices")
+      .select("amount, updated_at")
+      .eq("account_id", accountId)
+      .eq("status", "paid")
+      .gte("updated_at", windowStartStr),
+    supabase
+      .from("zentra_manual_income")
+      .select("amount, received_date")
+      .eq("account_id", accountId)
+      .gte("received_date", windowStartStr),
+  ]);
+
+  // Aggregate by YYYY-MM.
+  const monthMap: Record<string, number> = {};
+  for (const row of invRes.data ?? []) {
+    const ym = (row.updated_at as string).slice(0, 7);
+    monthMap[ym] = (monthMap[ym] ?? 0) + ((row.amount as number) ?? 0);
+  }
+  for (const row of manualRes.data ?? []) {
+    const ym = (row.received_date as string).slice(0, 7);
+    monthMap[ym] = (monthMap[ym] ?? 0) + ((row.amount as number) ?? 0);
+  }
+
+  // Build the result array from oldest to newest, filling missing months with 0.
+  return Array.from({ length: monthsBack }, (_, i) => {
+    const d  = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthsBack - 1 - i), 1));
+    const ym = d.toISOString().slice(0, 7);
+    return {
+      yearMonth: ym,
+      label:     new Intl.DateTimeFormat("en-GB", { month: "short" }).format(d),
+      income:    monthMap[ym] ?? 0,
+    };
+  });
+}
