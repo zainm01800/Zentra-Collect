@@ -24,6 +24,7 @@ import {
   getMonthlyIncomeSeries,
   type MonthlyIncomeSeries,
 } from "@/actions/financial-settings";
+import { getMonthlyExpenseSeries } from "@/actions/expenses";
 import { CalendarCheck, CheckCircle2, Circle, Clock, Info } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -43,6 +44,7 @@ interface MTDQuarter {
   deadline: string;   // "5 Aug 2025"
   deadlineDate: Date;
   income:   number;
+  expenses: number;
   status:   QuarterStatus;
 }
 
@@ -74,21 +76,35 @@ function currentTaxYearStart(today: Date): number {
  *   Q4: Jan, Feb, Mar  → deadline 5 May (next calendar year)
  */
 function buildQuarters(
-  taxYearStart: number,
-  today:        Date,
-  series:       MonthlyIncomeSeries[],
+  taxYearStart:  number,
+  today:         Date,
+  series:        MonthlyIncomeSeries[],
+  expenseSeries: { yearMonth: string; expenses: number }[] = [],
 ): MTDQuarter[] {
   // Income lookup by yearMonth key "YYYY-MM"
   const incomeByMonth: Record<string, number> = {};
   for (const s of series) incomeByMonth[s.yearMonth] = s.income;
+
+  // Expense lookup
+  const expByMonth: Record<string, number> = {};
+  for (const e of expenseSeries) expByMonth[e.yearMonth] = e.expenses;
 
   function monthIncome(year: number, month: number /* 1-based */): number {
     const key = `${year}-${String(month).padStart(2, "0")}`;
     return incomeByMonth[key] ?? 0;
   }
 
+  function monthExpenses(year: number, month: number): number {
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    return expByMonth[key] ?? 0;
+  }
+
   function sumIncome(months: [number, number][]): number {
     return months.reduce((sum, [y, m]) => sum + monthIncome(y, m), 0);
+  }
+
+  function sumExpenses(months: [number, number][]): number {
+    return months.reduce((sum, [y, m]) => sum + monthExpenses(y, m), 0);
   }
 
   const nextYear = taxYearStart + 1;
@@ -101,6 +117,7 @@ function buildQuarters(
       deadline: `5 Aug ${taxYearStart}`,
       deadlineDate: new Date(taxYearStart, 7, 5),  // month is 0-indexed
       income:   sumIncome([[taxYearStart, 4], [taxYearStart, 5], [taxYearStart, 6]]),
+      expenses: sumExpenses([[taxYearStart, 4], [taxYearStart, 5], [taxYearStart, 6]]),
     },
     {
       number:   2,
@@ -109,6 +126,7 @@ function buildQuarters(
       deadline: `5 Nov ${taxYearStart}`,
       deadlineDate: new Date(taxYearStart, 10, 5),
       income:   sumIncome([[taxYearStart, 7], [taxYearStart, 8], [taxYearStart, 9]]),
+      expenses: sumExpenses([[taxYearStart, 7], [taxYearStart, 8], [taxYearStart, 9]]),
     },
     {
       number:   3,
@@ -117,6 +135,7 @@ function buildQuarters(
       deadline: `5 Feb ${nextYear}`,
       deadlineDate: new Date(nextYear, 1, 5),
       income:   sumIncome([[taxYearStart, 10], [taxYearStart, 11], [taxYearStart, 12]]),
+      expenses: sumExpenses([[taxYearStart, 10], [taxYearStart, 11], [taxYearStart, 12]]),
     },
     {
       number:   4,
@@ -125,6 +144,7 @@ function buildQuarters(
       deadline: `5 May ${nextYear}`,
       deadlineDate: new Date(nextYear, 4, 5),
       income:   sumIncome([[nextYear, 1], [nextYear, 2], [nextYear, 3]]),
+      expenses: sumExpenses([[nextYear, 1], [nextYear, 2], [nextYear, 3]]),
     },
   ];
 
@@ -208,16 +228,20 @@ export default async function MTDPage() {
   const today = new Date();
   const taxYearStart = currentTaxYearStart(today);
 
-  // Fetch 16 months of income data to cover the full tax year
-  const [settings, series] = await Promise.all([
+  // Fetch 16 months of income + expense data to cover the full tax year
+  const [settings, series, expSeries] = await Promise.all([
     getFinancialSettings(),
     getMonthlyIncomeSeries(16),
+    getMonthlyExpenseSeries(16),
   ]);
 
-  const quarters = buildQuarters(taxYearStart, today, series);
+  const quarters = buildQuarters(taxYearStart, today, series, expSeries);
 
   // Annual income = sum of all series income
-  const annualIncome = series.reduce((sum, s) => sum + s.income, 0);
+  const annualIncome   = series.reduce((sum, s) => sum + s.income,   0);
+  const annualExpenses = expSeries.reduce((sum, s) => sum + s.expenses, 0);
+  const hasExpenses    = annualExpenses > 0;
+
   const mandate = getMandateStatus(annualIncome);
 
   const taxRate = settings?.taxRatePercent ?? 20;
@@ -315,21 +339,35 @@ export default async function MTDPage() {
                     </div>
                   </div>
 
-                  {/* Tax estimate for this quarter */}
-                  {q.income > 0 && (
+                  {/* Income / expenses / tax estimate row */}
+                  {(q.income > 0 || q.expenses > 0) && (
                     <div
-                      className="mt-3 flex items-center justify-between rounded-[8px] px-3 py-2"
+                      className="mt-3 rounded-[8px] px-3 py-2.5 space-y-1.5"
                       style={{ background: "var(--zn-bg-2)", border: "1px solid var(--zn-line-soft)" }}
                     >
-                      <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-                        Estimated tax ({taxRate}%)
-                      </span>
-                      <span
-                        className="text-[12px] font-semibold tabular-nums"
-                        style={{ color: "var(--zn-warn)" }}
-                      >
-                        {fmtGBP(q.income * (taxRate / 100))}
-                      </span>
+                      {q.expenses > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+                            Expenses
+                          </span>
+                          <span className="text-[12px] font-semibold tabular-nums" style={{ color: "var(--zn-safe)" }}>
+                            −{fmtGBP(q.expenses)}
+                          </span>
+                        </div>
+                      )}
+                      {q.income > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+                            Estimated tax ({taxRate}%)
+                          </span>
+                          <span
+                            className="text-[12px] font-semibold tabular-nums"
+                            style={{ color: "var(--zn-warn)" }}
+                          >
+                            {fmtGBP(Math.max(0, q.income - q.expenses) * (taxRate / 100))}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -353,23 +391,33 @@ export default async function MTDPage() {
                   item: "Total income",
                   detail: "Sum of all invoices paid and cash received in the quarter.",
                   done: true,
+                  actionHref: undefined as string | undefined,
+                  actionLabel: undefined as string | undefined,
                 },
                 {
                   item: "Total expenses",
-                  detail: "Allowable business expenses (software, equipment, mileage, etc.). Not tracked in Zentra yet.",
-                  done: false,
+                  detail: hasExpenses
+                    ? `${fmtGBP(annualExpenses)} recorded this year — shown per quarter above.`
+                    : "Add expenses on the Expenses page to include them in your quarterly figures.",
+                  done: hasExpenses,
+                  actionHref: hasExpenses ? undefined : "/expenses",
+                  actionLabel: hasExpenses ? undefined : "Add expenses →",
                 },
                 ...(isGB ? [{
                   item: "Class 2 / Class 4 NI",
                   detail: "Calculated automatically by HMRC — you don't submit this quarterly.",
                   done: true,
+                  actionHref: undefined as string | undefined,
+                  actionLabel: undefined as string | undefined,
                 }] : []),
                 {
                   item: "Digital records",
                   detail: "HMRC requires records kept in compatible software. Zentra exports your income data.",
                   done: true,
+                  actionHref: undefined as string | undefined,
+                  actionLabel: undefined as string | undefined,
                 },
-              ].map(({ item, detail, done }) => (
+              ].map(({ item, detail, done, actionHref, actionLabel }) => (
                 <div key={item} className="flex items-start gap-3">
                   <span className="mt-0.5 flex-shrink-0">
                     {done
@@ -384,6 +432,15 @@ export default async function MTDPage() {
                     <p className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
                       {detail}
                     </p>
+                    {actionHref && actionLabel && (
+                      <a
+                        href={actionHref}
+                        className="inline-block mt-1 text-[11.5px] font-medium underline hover:no-underline"
+                        style={{ color: "var(--zn-accent)" }}
+                      >
+                        {actionLabel}
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}

@@ -17,15 +17,16 @@ import { ChevronDown, ChevronRight, Info } from "lucide-react";
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export interface TaxCalcDetailsProps {
-  grossIncome:      number;
+  grossIncome:       number;
+  allowableExpenses?: number;
   personalAllowance: number;
-  taxableIncome:    number;
-  incomeTaxAmount:  number;
-  taxRatePercent:   number;
-  class4NI:         number;
-  class2NI:         number;
-  totalLiability:   number;
-  isGB:             boolean;
+  taxableIncome:     number;
+  incomeTaxAmount:   number;
+  taxRatePercent:    number;
+  class4NI:          number;
+  class2NI:          number;
+  totalLiability:    number;
+  isGB:              boolean;
 }
 
 // ── Formatter ─────────────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ function Row({
 
 export function TaxCalcDetails({
   grossIncome,
+  allowableExpenses = 0,
   personalAllowance,
   taxableIncome,
   incomeTaxAmount,
@@ -155,13 +157,23 @@ export function TaxCalcDetails({
               deduction
               indent
             />
-            <Row
-              label="Expenses (not tracked)"
-              sub="You haven't recorded expenses — add them to reduce your estimate"
-              value={0}
-              deduction
-              indent
-            />
+            {allowableExpenses > 0 ? (
+              <Row
+                label="Allowable expenses"
+                sub="Recorded business expenses deducted from gross income"
+                value={allowableExpenses}
+                deduction
+                indent
+              />
+            ) : (
+              <Row
+                label="Expenses (none recorded)"
+                sub="Add expenses on the Expenses page to reduce your estimate"
+                value={0}
+                deduction
+                indent
+              />
+            )}
             <Row
               label="Taxable income"
               value={taxableIncome}
@@ -211,8 +223,8 @@ export function TaxCalcDetails({
           >
             <Info className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
             <p className="text-[11.5px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-              This is a rough estimate. It doesn&apos;t account for expenses,
-              allowances you may be entitled to, or any tax already paid.
+              This is a rough estimate. It doesn&apos;t account for all allowances
+              you may be entitled to, or any tax already paid.
               Check with your accountant before making any payment.
             </p>
           </div>

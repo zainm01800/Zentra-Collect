@@ -16,6 +16,7 @@ import {
   getMonthlyIncomeSeries,
   type MonthlyIncomeSeries,
 } from "@/actions/financial-settings";
+import { getMonthlyExpenseSeries } from "@/actions/expenses";
 import { TaxCalcDetails } from "@/components/tax-calc-details";
 import type { Metadata } from "next";
 
@@ -233,13 +234,15 @@ function LiabilityRow({
   sub,
   amount,
   accentColor,
-  visible = true,
+  visible  = true,
+  negative = false,
 }: {
   label:       string;
   sub:         string;
   amount:      number;
   accentColor: string;
   visible?:    boolean;
+  negative?:   boolean;
 }) {
   if (!visible) return null;
   return (
@@ -257,7 +260,7 @@ function LiabilityRow({
         className="text-[15px] font-bold flex-shrink-0 tabular-nums"
         style={{ color: accentColor }}
       >
-        {fmtGBP(amount)}
+        {negative ? "−" : ""}{fmtGBP(amount)}
       </p>
     </div>
   );
@@ -266,6 +269,7 @@ function LiabilityRow({
 /** Card showing the three tax/NI components. */
 function LiabilityBreakdown({
   annualIncome,
+  allowableExpenses,
   incomeTaxAmount,
   class4NI,
   class2NI,
@@ -273,24 +277,37 @@ function LiabilityBreakdown({
   taxRatePercent,
   isGB,
 }: {
-  annualIncome:    number;
-  incomeTaxAmount: number;
-  class4NI:        number;
-  class2NI:        number;
-  totalLiability:  number;
-  taxRatePercent:  number;
-  isGB:            boolean;
+  annualIncome:      number;
+  allowableExpenses: number;
+  incomeTaxAmount:   number;
+  class4NI:          number;
+  class2NI:          number;
+  totalLiability:    number;
+  taxRatePercent:    number;
+  isGB:              boolean;
 }) {
+  const taxableProfit = Math.max(0, annualIncome - allowableExpenses);
   return (
     <div className="zn-card px-5 py-4">
       <span className="zn-label">Estimated annual liability</span>
       <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-        Based on {fmtGBP(annualIncome)} income in the last 12 months
+        Based on {fmtGBP(annualIncome)} income
+        {allowableExpenses > 0
+          ? ` minus ${fmtGBP(allowableExpenses)} expenses = ${fmtGBP(taxableProfit)} taxable profit`
+          : " in the last 12 months"}
       </p>
 
       <div
         className="mt-4 flex flex-col gap-3"
       >
+        <LiabilityRow
+          label="Allowable expenses"
+          sub="Deducted from gross income to arrive at taxable profit"
+          amount={allowableExpenses}
+          accentColor="var(--zn-safe)"
+          visible={allowableExpenses > 0}
+          negative
+        />
         <LiabilityRow
           label="Income Tax"
           sub={`${taxRatePercent}% on income above the £${PERSONAL_ALLOWANCE.toLocaleString("en-GB")} personal allowance`}
@@ -456,10 +473,11 @@ function MonthlyTracker({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function TaxPage() {
-  // Fetch settings and last 12 months of income in parallel.
-  const [settings, monthSeries] = await Promise.all([
+  // Fetch settings, income, and expenses in parallel.
+  const [settings, monthSeries, expSeries] = await Promise.all([
     getFinancialSettings(),
     getMonthlyIncomeSeries(12),
+    getMonthlyExpenseSeries(12),
   ]);
 
   const taxRatePercent = settings?.taxRatePercent ?? 20;
@@ -467,12 +485,16 @@ export default async function TaxPage() {
   const isGB           = countryCode === "GB";
 
   // ── Annual income estimate (sum of last 12 months) ─────────────────────────
-  const annualIncome = monthSeries.reduce((s, m) => s + m.income, 0);
+  const annualIncome   = monthSeries.reduce((s, m) => s + m.income,   0);
+  const annualExpenses = expSeries.reduce((s, e) => s + e.expenses, 0);
 
-  // ── Tax liability components ───────────────────────────────────────────────
-  const incomeTaxAmount = calcIncomeTax(annualIncome, taxRatePercent);
-  const class4NI        = isGB ? calcClass4NI(annualIncome) : 0;
-  const class2NI        = isGB ? calcClass2NI(annualIncome) : 0;
+  // Taxable profit = income minus allowable expenses (floor at 0)
+  const taxableProfit = Math.max(0, annualIncome - annualExpenses);
+
+  // ── Tax liability components (on taxable profit, not gross income) ─────────
+  const incomeTaxAmount = calcIncomeTax(taxableProfit, taxRatePercent);
+  const class4NI        = isGB ? calcClass4NI(taxableProfit) : 0;
+  const class2NI        = isGB ? calcClass2NI(taxableProfit) : 0;
   const totalLiability  = incomeTaxAmount + class4NI + class2NI;
 
   // ── Hero: pro-rated set-aside target for the current point in the tax year ─
@@ -493,8 +515,9 @@ export default async function TaxPage() {
   // ── Data for the expandable calculation section ───────────────────────────
   const calcProps = {
     grossIncome:       annualIncome,
+    allowableExpenses: annualExpenses,
     personalAllowance: PERSONAL_ALLOWANCE,
-    taxableIncome:     Math.max(0, annualIncome - PERSONAL_ALLOWANCE),
+    taxableIncome:     Math.max(0, taxableProfit - PERSONAL_ALLOWANCE),
     incomeTaxAmount,
     taxRatePercent,
     class4NI,
@@ -538,6 +561,7 @@ export default async function TaxPage() {
         {/* ── 3. Liability breakdown ─────────────────────────────────────── */}
         <LiabilityBreakdown
           annualIncome={annualIncome}
+          allowableExpenses={annualExpenses}
           incomeTaxAmount={incomeTaxAmount}
           class4NI={class4NI}
           class2NI={class2NI}
