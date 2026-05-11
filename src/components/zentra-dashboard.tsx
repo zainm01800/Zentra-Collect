@@ -80,8 +80,9 @@ import {
   demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { LogOutcomeButton }    from "@/components/log-outcome-button";
-import { PaymentLinkButton }  from "@/components/payment-link-button";
+import { LogOutcomeButton }      from "@/components/log-outcome-button";
+import { PaymentLinkButton }    from "@/components/payment-link-button";
+import { WhatsAppSendButton }   from "@/components/whatsapp-send-button";
 import {
   importedInvoicesStorageKey,
   importDiffStorageKey,
@@ -2062,6 +2063,17 @@ function ActionDrawer({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ── WhatsApp — send the draft directly to the client ── */}
+              {invoice && (
+                <div className="sm:col-span-2">
+                  <WhatsAppSendButton
+                    invoiceRef={invoice.invoiceNumber ?? "INV"}
+                    clientName={invoice.customerName}
+                    draft={draft}
+                  />
+                </div>
+              )}
             </div>
           </>
         ) : null}

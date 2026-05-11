@@ -8,6 +8,7 @@ import {
   ArrowUpFromLine,
   BarChart3,
   Building2,
+  CalendarClock,
   CreditCard,
   FileText,
   Home,
@@ -58,6 +59,7 @@ const contextNav: NavItem[] = [
   { href: "/disputes",  label: "Disputes",     icon: ShieldAlert },
   { href: "/banking",   label: "Bank feed",    icon: Building2 },
   { href: "/tax",       label: "Tax reserve",  icon: PiggyBank },
+  { href: "/mtd",       label: "MTD",          icon: CalendarClock },
   { href: "/reports",   label: "Reports",      icon: BarChart3 },
 ];
 
