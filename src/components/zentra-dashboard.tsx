@@ -208,24 +208,22 @@ const actionScenarioOptions: Array<{ value: ActionScenario; label: string }> = [
 ];
 
 function readImportedInvoices() {
-  if (typeof window === "undefined") return demoInvoices;
+  if (typeof window === "undefined") return [];
 
   const localAccount = readLocalAccount();
-  const storageKey =
-    localAccount?.planId === "demo"
-      ? demoInvoiceStateStorageKey
-      : importedInvoicesStorageKey;
+  const isDemo = localAccount?.planId === "demo";
+  const storageKey = isDemo ? demoInvoiceStateStorageKey : importedInvoicesStorageKey;
   const storedInvoices = window.localStorage.getItem(storageKey);
-  if (!storedInvoices) return demoInvoices;
+  if (!storedInvoices) return isDemo ? demoInvoices : [];
 
   try {
     const parsedInvoices = JSON.parse(storedInvoices) as Invoice[];
     return Array.isArray(parsedInvoices) && parsedInvoices.length
       ? parsedInvoices
-      : demoInvoices;
+      : isDemo ? demoInvoices : [];
   } catch {
     window.localStorage.removeItem(storageKey);
-    return demoInvoices;
+    return isDemo ? demoInvoices : [];
   }
 }
 

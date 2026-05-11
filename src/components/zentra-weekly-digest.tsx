@@ -32,6 +32,7 @@ import {
   importDiffStorageKey,
   type ImportDiffOutput,
 } from "@/lib/import/zentra-import";
+import { readLocalAccount } from "@/lib/demo-auth";
 import { generateWeeklyDigestBrief } from "@/lib/collections/weekly-digest";
 import { buildCustomerBehaviourProfile } from "@/lib/collections/customer-behaviour";
 import { canUseFeature } from "@/lib/billing/plans";
@@ -345,16 +346,21 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
+
 function readImportedInvoices() {
-  if (typeof window === "undefined") return demoInvoices;
-  const stored = window.localStorage.getItem(importedInvoicesStorageKey);
-  if (!stored) return demoInvoices;
+  if (typeof window === "undefined") return [];
+  const localAccount = readLocalAccount();
+  const isDemo = localAccount?.planId === "demo";
+  const storageKey = isDemo ? demoInvoiceStateStorageKey : importedInvoicesStorageKey;
+  const stored = window.localStorage.getItem(storageKey);
+  if (!stored) return isDemo ? demoInvoices : [];
 
   try {
     const parsed = JSON.parse(stored) as Invoice[];
-    return Array.isArray(parsed) && parsed.length ? parsed : demoInvoices;
+    return Array.isArray(parsed) && parsed.length ? parsed : isDemo ? demoInvoices : [];
   } catch {
-    return demoInvoices;
+    return isDemo ? demoInvoices : [];
   }
 }
 
