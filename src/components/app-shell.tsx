@@ -9,6 +9,7 @@ import {
   BarChart3,
   CreditCard,
   FileText,
+  Home,
   HelpCircle,
   LayoutDashboard,
   Menu,
@@ -56,6 +57,18 @@ const contextNav: NavItem[] = [
   { href: "/reports",   label: "Reports",   icon: BarChart3 },
 ];
 
+/**
+ * The four fixed tabs shown in the mobile bottom navigation bar.
+ * Kept deliberately small — secondary pages are reachable from desktop
+ * or via Settings on mobile.
+ */
+const mobileBottomNav: NavItem[] = [
+  { href: "/dashboard",  label: "Home",      icon: Home     },
+  { href: "/chase-today",label: "Invoices",  icon: FileText },
+  { href: "/customers",  label: "Customers", icon: Users    },
+  { href: "/settings",   label: "Settings",  icon: Settings },
+];
+
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
@@ -100,7 +113,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
   const { isOpen: reviewOpen, close: closeReview } = useReview();
-  const [moreOpen, setMoreOpen] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
 
@@ -189,102 +201,45 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <MobileAccountPill />
         </header>
 
-        {/* Mobile bottom nav — first 4 items + a real "More" sheet trigger */}
+        {/* ── Mobile bottom navigation bar ──────────────────────────────── */}
+        {/*
+          Four fixed tabs: Home · Invoices · Customers · Settings.
+          An accent bar (2 px, top edge) marks the active tab.
+          safe-area-inset-bottom keeps it clear of the iPhone home indicator.
+        */}
         <nav
-          className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t backdrop-blur"
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t"
           style={{
-            background: "rgba(250,245,232,0.95)",
-            borderColor: "var(--zn-line)",
+            background:    "var(--zn-surface)",
+            borderColor:   "var(--zn-line)",
             paddingBottom: "env(safe-area-inset-bottom)",
           }}
+          aria-label="Main navigation"
         >
-          {workspaceNav.slice(0, 4).map((item) => {
+          {mobileBottomNav.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
-                  active ? "text-[#b8481f]" : "text-[#8d8472]"
-                )}
+                aria-current={active ? "page" : undefined}
+                className="relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors"
+                style={{ color: active ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
               >
+                {/* Accent indicator bar at top edge of active tab */}
+                {active && (
+                  <span
+                    className="absolute top-0 inset-x-0 h-0.5 rounded-b-full"
+                    style={{ background: "var(--zn-accent)" }}
+                    aria-hidden
+                  />
+                )}
                 <item.icon className="size-5" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
-              moreOpen ? "text-[#b8481f]" : "text-[#8d8472]"
-            )}
-          >
-            <Menu className="size-5" />
-            <span>More</span>
-          </button>
         </nav>
-
-        {/* Mobile "More" sheet */}
-        {moreOpen ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setMoreOpen(false)}
-              aria-label="Close menu"
-              className="md:hidden fixed inset-0 z-50 backdrop-blur-[2px]"
-              style={{ background: "rgba(29,24,19,0.32)", animation: "fadeIn 200ms ease" }}
-            />
-            <div
-              className="md:hidden fixed bottom-0 inset-x-0 z-[60] rounded-t-[18px]"
-              style={{
-                background: "var(--zn-surface)",
-                borderTop: "1px solid var(--zn-line)",
-                paddingBottom: "env(safe-area-inset-bottom)",
-                animation: "slideUp 240ms cubic-bezier(0.32, 0.72, 0, 1)",
-              }}
-            >
-              <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                <div className="zn-label !p-0">More</div>
-                <button
-                  type="button"
-                  onClick={() => setMoreOpen(false)}
-                  className="size-8 inline-flex items-center justify-center rounded-md"
-                  style={{ color: "var(--zn-ink-3)" }}
-                  aria-label="Close menu"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-                {[...contextNav,
-                  { href: "/settings", label: "Settings", icon: Settings },
-                  { href: "/help",     label: "Help & support", icon: HelpCircle }
-                ].map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-[10px] px-3 py-3 text-[13px] font-medium transition-colors",
-                        active
-                          ? "bg-[#f0d3c2] text-[#b8481f]"
-                          : "bg-[#f3ecd8] text-[#3d3428]"
-                      )}
-                    >
-                      <item.icon className={cn("size-4", active ? "text-[#b8481f]" : "text-[#6b6253]")} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        ) : null}
 
         {/* Syncs Supabase session → localStorage once per mount */}
         <AccountSync />

@@ -895,80 +895,128 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                 .slice(0, 5)
                 .map((item, idx, arr) => {
                   const inv = invoices.find((i) => i.id === item.invoiceId);
+                  const isOverdue = (inv?.daysOverdue ?? 0) > 0;
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-4 py-3.5"
                       style={{
                         borderBottom:
                           idx === arr.length - 1 ? "none" : "1px solid var(--zn-line-soft)",
                       }}
                     >
-                      <div
-                        className="w-[36px] flex flex-col items-center flex-shrink-0"
-                      >
-                        <div
-                          className="text-[18px] italic leading-none"
-                          style={{
-                            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
-                            color: "var(--zn-ink-3)",
-                          }}
-                        >
-                          {idx + 1}
+                      {/* ── Mobile card (below md) ──────────────────────────── */}
+                      <div className="flex flex-col gap-2.5 py-3.5 md:hidden">
+                        {/* Row 1: client name + amount */}
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-[14px] font-semibold text-[#1d1813] leading-tight flex-1 min-w-0 truncate">
+                            {item.customerName}
+                          </span>
+                          <span
+                            className="text-[13px] font-semibold flex-shrink-0 whitespace-nowrap"
+                            style={{ fontVariantNumeric: "tabular-nums", color: "var(--zn-ink)" }}
+                          >
+                            {formatCurrency(item.amountOutstanding)}
+                          </span>
                         </div>
-                        <div
-                          className="text-[9px] tabular-nums mt-1"
-                          title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
-                          style={{
-                            color: "var(--zn-accent)",
-                            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          {Math.round(item.priorityScore)}
+                        {/* Row 2: invoice tag + overdue badge / due date + chase button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                            {item.invoiceNumber ? (
+                              <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                                {item.invoiceNumber}
+                              </span>
+                            ) : null}
+                            {isOverdue ? (
+                              <span
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-medium leading-none"
+                                style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}
+                              >
+                                {inv!.daysOverdue}d overdue
+                              </span>
+                            ) : inv?.dueDate ? (
+                              <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                                Due {formatDate(inv.dueDate)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <Link
+                            href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                            className="zn-pill flex-shrink-0"
+                            style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                          >
+                            {isOverdue ? "Chase" : "Review"}
+                          </Link>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-[14px] font-semibold text-[#1d1813] truncate">
-                            {item.customerName}
+
+                      {/* ── Desktop row (md and above) — unchanged ──────────── */}
+                      <div className="hidden md:flex items-center gap-4 py-3.5">
+                        <div
+                          className="w-[36px] flex flex-col items-center flex-shrink-0"
+                        >
+                          <div
+                            className="text-[18px] italic leading-none"
+                            style={{
+                              fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                              color: "var(--zn-ink-3)",
+                            }}
+                          >
+                            {idx + 1}
                           </div>
-                          {item.invoiceNumber ? (
-                            <span className="zn-kind-tag" style={{ fontSize: 10 }}>
-                              {item.invoiceNumber}
-                            </span>
+                          <div
+                            className="text-[9px] tabular-nums mt-1"
+                            title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
+                            style={{
+                              color: "var(--zn-accent)",
+                              fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            {Math.round(item.priorityScore)}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="text-[14px] font-semibold text-[#1d1813] truncate">
+                              {item.customerName}
+                            </div>
+                            {item.invoiceNumber ? (
+                              <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                                {item.invoiceNumber}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-[12.5px] text-[#6b6253] mt-0.5 line-clamp-1" title={item.reason}>
+                            {item.reason}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0 whitespace-nowrap">
+                          <div className="text-[13px] font-semibold tabular-nums text-[#1d1813]">
+                            {formatCurrency(item.amountOutstanding)}
+                          </div>
+                          {inv && inv.daysOverdue ? (
+                            <div
+                              className="text-[11px] tabular-nums"
+                              style={{ color: "var(--zn-risk)" }}
+                            >
+                              {inv.daysOverdue}d overdue
+                            </div>
                           ) : null}
                         </div>
-                        <div className="text-[12.5px] text-[#6b6253] mt-0.5 line-clamp-1" title={item.reason}>
-                          {item.reason}
+                        <div
+                          className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
+                          style={{ color: "var(--zn-ink-2)" }}
+                        >
+                          {humanAction(item.recommendedAction)}
                         </div>
+                        <Link
+                          href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                          className="zn-pill flex-shrink-0"
+                          style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                        >
+                          Review
+                        </Link>
                       </div>
-                      <div className="text-right flex-shrink-0 whitespace-nowrap">
-                        <div className="text-[13px] font-semibold tabular-nums text-[#1d1813]">
-                          {formatCurrency(item.amountOutstanding)}
-                        </div>
-                        {inv && inv.daysOverdue ? (
-                          <div
-                            className="text-[11px] tabular-nums"
-                            style={{ color: "var(--zn-risk)" }}
-                          >
-                            {inv.daysOverdue}d overdue
-                          </div>
-                        ) : null}
-                      </div>
-                      <div
-                        className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
-                        style={{ color: "var(--zn-ink-2)" }}
-                      >
-                        {humanAction(item.recommendedAction)}
-                      </div>
-                      <Link
-                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
-                        className="zn-pill flex-shrink-0"
-                        style={{ height: 26, fontSize: 12, padding: "0 11px" }}
-                      >
-                        Review
-                      </Link>
                     </div>
                   );
                 })}
