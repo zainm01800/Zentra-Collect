@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Edit2 } from "lucide-react";
+import { Edit2, Users } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { useLocalAccount } from "@/lib/billing/use-local-account";
 
 // ── Industry labels ────────────────────────────────────────────────────────────
 const INDUSTRY: Record<string, string> = {
@@ -318,19 +319,21 @@ function CustomerDetail({ customerId }: { customerId: string }) {
 
 // ── Main customers view ───────────────────────────────────────────────────────
 export function CustomersView() {
+  const { account } = useLocalAccount();
+  const isDemo = account?.planId === "demo";
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>(demoCustomers[0]?.id ?? "");
 
-  const customerStats = useMemo(() =>
-    demoCustomers.map((c) => {
+  const customerStats = useMemo(() => {
+    if (!isDemo) return [];
+    return demoCustomers.map((c) => {
       const all = demoInvoices.filter((i) => i.customerId === c.id);
       const open = all.filter((i) => i.status !== "paid");
       const oldest = open.length ? Math.max(...open.map((i) => i.daysOverdue)) : 0;
       const outstanding = open.reduce((s, i) => s + i.amountOutstanding, 0);
       return { ...c, outstanding, oldest, risk: riskLevel(oldest) };
-    })
-    .sort((a, b) => b.outstanding - a.outstanding),
-  []);
+    }).sort((a, b) => b.outstanding - a.outstanding);
+  }, [isDemo]);
 
   const filtered = useMemo(() =>
     customerStats.filter((c) =>
@@ -338,6 +341,28 @@ export function CustomersView() {
       (INDUSTRY[c.name] ?? "").toLowerCase().includes(query.toLowerCase())
     ),
   [customerStats, query]);
+
+  if (!isDemo && customerStats.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-4 rounded-2xl p-14 text-center"
+        style={{ border: "1px solid var(--zn-line-soft)", background: "var(--zn-surface)" }}
+      >
+        <div
+          className="size-12 rounded-2xl flex items-center justify-center"
+          style={{ background: "var(--zn-bg-2)" }}
+        >
+          <Users className="size-5" style={{ color: "var(--zn-ink-3)" }} />
+        </div>
+        <div>
+          <p className="text-[15px] font-semibold text-[#1d1813]">No customers yet</p>
+          <p className="mt-1 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+            Import an invoice export to see your customers here.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-5 min-h-0">

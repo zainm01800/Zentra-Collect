@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
-import { ChaseQueue } from "@/components/chase-queue";
+import { ChaseQueueDataWrapper } from "@/components/chase-queue-data-wrapper";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
 import { PageHeader } from "@/components/page-header";
-import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 import type { Metadata } from "next";
 
@@ -24,7 +23,7 @@ export default function ChaseTodayPage() {
           actions={<button className="zn-pill zn-pill-ghost">Export</button>}
         />
         <Suspense fallback={null}>
-          <ChaseQueue initialInvoices={demoInvoices} onlyToday={false} />
+          <ChaseQueueDataWrapper onlyToday={false} />
         </Suspense>
       </div>
     </AppShell>

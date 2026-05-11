@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpFromLine,
@@ -28,7 +28,12 @@ import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
 import { AccountSync } from "@/components/account-sync";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { toAccountState } from "@/lib/account/access";
+import { readLocalAccount } from "@/lib/demo-auth";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import type { Invoice } from "@/types/cashpilot";
+
+const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
 
 type NavItem = {
   href: string;
@@ -71,12 +76,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function readInvoicesForDrawer(): Invoice[] {
+  if (typeof window === "undefined") return [];
+  const localAccount = readLocalAccount();
+  const isDemo = localAccount?.planId === "demo";
+  const storageKey = isDemo ? demoInvoiceStateStorageKey : importedInvoicesStorageKey;
+  const stored = window.localStorage.getItem(storageKey);
+  if (!stored) return isDemo ? (demoInvoices as Invoice[]) : [];
+  try {
+    const parsed = JSON.parse(stored) as Invoice[];
+    return Array.isArray(parsed) && parsed.length
+      ? parsed
+      : isDemo
+        ? (demoInvoices as Invoice[])
+        : [];
+  } catch {
+    return isDemo ? (demoInvoices as Invoice[]) : [];
+  }
+}
+
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
   const { isOpen: reviewOpen, close: closeReview } = useReview();
   const [moreOpen, setMoreOpen] = useState(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
 
   return (
     <div className="grid min-h-screen relative z-[1] md:grid-cols-[232px_1fr]">
@@ -291,7 +317,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       ) : null}
 
       {/* Review drawer (fixed-position, overlays page) */}
-      <ReviewDrawer allInvoices={demoInvoices} />
+      <ReviewDrawer allInvoices={allInvoices} />
     </div>
   );
 }
