@@ -10,7 +10,6 @@ import {
   Clock3,
   FileSpreadsheet,
   LockKeyhole,
-  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,12 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  betaRequestStorageKey,
   createLocalAccount,
   readPendingIdentity,
   writeLocalAccount,
   writeOnboardingState,
-  type BetaAccessRequest,
   type OnboardingAccountType,
   type PendingIdentity,
 } from "@/lib/demo-auth";
@@ -61,11 +58,9 @@ export function OnboardingFlow() {
     typeof window === "undefined" ? fallbackIdentity : readPendingIdentity() ?? fallbackIdentity;
   const [identity] = useState<PendingIdentity>(initialIdentity);
   const [businessName, setBusinessName] = useState(initialIdentity.businessName);
-  const [clientCountEstimate, setClientCountEstimate] = useState(5);
-  const [isBookkeeper, setIsBookkeeper] = useState(false);
-  const [accountingSoftware, setAccountingSoftware] = useState("Xero");
-  const [monthlyInvoiceVolume, setMonthlyInvoiceVolume] = useState("51-100");
-  const [mainArPainPoint, setMainArPainPoint] = useState("overdue invoices");
+  const [accountingSoftware] = useState("Xero");
+  const [monthlyInvoiceVolume] = useState("51-100");
+  const [mainArPainPoint] = useState("overdue invoices");
   const [selectedType, setSelectedType] = useState<OnboardingAccountType>("trial");
   const [error, setError] = useState("");
   const [otpStep, setOtpStep] = useState(false);
@@ -110,45 +105,16 @@ export function OnboardingFlow() {
       {
         type: "founding_single_business",
         planId: "founding_single_business",
-        title: "Founding single-business access",
-        eyebrow: "Owner approval",
-        description:
-          "Early beta for one business, locked for 12 months.",
-        cta: "Request founding access",
-        price: (
-          <>
-            {"\u00A3"}29<span className="text-base text-neutral-500">/month</span>
-          </>
-        ),
-        limited: "First 20-30 users",
+        title: "Paid plans",
+        eyebrow: "From \u00A313.99/mo",
+        description: "Starter Solo, Single Business, and Bookkeeper plans \u2014 pick what fits.",
+        cta: "See pricing",
         icon: <Building2 className="size-5" />,
         points: [
-          "1 business",
-          "Early beta",
-          "Founding price lock",
-          "Owner approval required",
-        ],
-      },
-      {
-        type: "founding_bookkeeper",
-        planId: "founding_bookkeeper",
-        title: "Bookkeeper beta",
-        eyebrow: "Bookkeeper beta",
-        description:
-          "Manage up to 5 client ledgers and shape portfolio features early.",
-        cta: "Request bookkeeper beta",
-        price: (
-          <>
-            {"\u00A3"}79<span className="text-base text-neutral-500">/month</span>
-          </>
-        ),
-        limited: "Limited beta places",
-        icon: <UsersRound className="size-5" />,
-        points: [
-          "Up to 5 client ledgers",
-          "Portfolio view",
-          "Weekly client summaries",
-          "Saved import templates",
+          "Unlimited imports",
+          "Unlimited AI actions",
+          "Auto-send email",
+          "No usage caps",
         ],
       },
     ],
@@ -161,48 +127,14 @@ export function OnboardingFlow() {
       selectedAccountType: option.type,
       selectedPlan: option.planId,
       trialStartedAt: option.type === "trial" ? now : undefined,
-      betaRequestedAt:
-        option.type === "founding_single_business" ||
-        option.type === "founding_bookkeeper"
-          ? now
-          : undefined,
       businessName: businessName.trim() || identity.businessName,
-      isBookkeeper: option.type === "founding_bookkeeper",
+      isBookkeeper: false,
       accountingSoftware,
       monthlyInvoiceVolume,
       mainArPainPoint,
-      clientCountEstimate:
-        option.type === "founding_bookkeeper" ? clientCountEstimate : undefined,
     });
   }
 
-  function requestBeta(option: Option) {
-    const now = new Date().toISOString();
-    const request: BetaAccessRequest = {
-      name: identity.name,
-      email: identity.email,
-      businessName: businessName.trim() || identity.businessName,
-      role:
-        option.type === "founding_bookkeeper" || isBookkeeper
-          ? "Bookkeeper"
-          : "Single business owner",
-      reason:
-        option.type === "founding_bookkeeper"
-          ? `Requesting bookkeeper beta for about ${clientCountEstimate} client ledgers. Main AR pain: ${mainArPainPoint}. Uses ${accountingSoftware}.`
-          : `Requesting founding single-business access. Main AR pain: ${mainArPainPoint}. Uses ${accountingSoftware}.`,
-      isBookkeeper: option.type === "founding_bookkeeper" || isBookkeeper,
-      clientCountEstimate:
-        option.type === "founding_bookkeeper" || isBookkeeper
-          ? clientCountEstimate
-          : undefined,
-      accountingSoftware,
-      monthlyInvoiceVolume,
-      mainArPainPoint,
-      requestedAt: now,
-      status: "pending",
-    };
-    window.localStorage.setItem(betaRequestStorageKey, JSON.stringify(request));
-  }
 
   async function chooseOption(option: Option) {
     setError("");
@@ -215,6 +147,11 @@ export function OnboardingFlow() {
 
     if (option.type === "demo") {
       window.open("/demo", "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (option.type === "founding_single_business") {
+      router.push("/#pricing");
       return;
     }
 
@@ -254,12 +191,7 @@ export function OnboardingFlow() {
       return;
     }
 
-    requestBeta(option);
-    router.push(
-      option.type === "founding_bookkeeper"
-        ? "/beta-request?type=bookkeeper"
-        : "/beta-request?type=single",
-    );
+    router.push("/#pricing");
   }
 
   async function verifyOtp() {
@@ -352,7 +284,7 @@ export function OnboardingFlow() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.85fr_0.85fr]">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="businessName">Business name</Label>
               <Input
@@ -362,83 +294,14 @@ export function OnboardingFlow() {
                 className="rounded-2xl border-black/10 bg-[#fbf8f1]"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Are you a bookkeeper/accountant?</Label>
-              <Select
-                value={isBookkeeper ? "yes" : "no"}
-                onValueChange={(value) => setIsBookkeeper(value === "yes")}
-              >
-                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="yes">Yes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="clientCountEstimate">Client ledgers</Label>
-              <Input
-                id="clientCountEstimate"
-                type="number"
-                min={1}
-                max={20}
-                value={clientCountEstimate}
-                onChange={(event) =>
-                  setClientCountEstimate(Number(event.target.value) || 1)
-                }
-                className="rounded-2xl border-black/10 bg-[#fbf8f1]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Accounting software</Label>
-              <Select value={accountingSoftware} onValueChange={setAccountingSoftware}>
+            <div className="space-y-2 hidden">
+              <Label>Placeholder</Label>
+              <Select value={accountingSoftware}>
                 <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Xero">Xero</SelectItem>
-                  <SelectItem value="QuickBooks">QuickBooks</SelectItem>
-                  <SelectItem value="FreeAgent">FreeAgent</SelectItem>
-                  <SelectItem value="Sage">Sage</SelectItem>
-                  <SelectItem value="Stripe">Stripe</SelectItem>
-                  <SelectItem value="Excel/other">Excel/other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Approx monthly invoices</Label>
-              <Select
-                value={monthlyInvoiceVolume}
-                onValueChange={setMonthlyInvoiceVolume}
-              >
-                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-25">1-25</SelectItem>
-                  <SelectItem value="26-50">26-50</SelectItem>
-                  <SelectItem value="51-100">51-100</SelectItem>
-                  <SelectItem value="101-250">101-250</SelectItem>
-                  <SelectItem value="250+">250+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Main AR pain point</Label>
-              <Select value={mainArPainPoint} onValueChange={setMainArPainPoint}>
-                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="overdue invoices">Overdue invoices</SelectItem>
-                  <SelectItem value="missed promises">Missed promises</SelectItem>
-                  <SelectItem value="disputes">Disputes</SelectItem>
-                  <SelectItem value="remittance matching">Remittance matching</SelectItem>
-                  <SelectItem value="statement requests">Statement requests</SelectItem>
-                  <SelectItem value="messy client files">Messy client files</SelectItem>
-                  <SelectItem value="not enough time">Not enough time</SelectItem>
                 </SelectContent>
               </Select>
             </div>
