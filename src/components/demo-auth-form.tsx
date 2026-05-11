@@ -161,18 +161,20 @@ export function DemoAuthForm() {
                 : "Sign in to continue. We'll take you back into your workspace exactly where you left off."}
             </p>
 
-            <div className="mt-6 flex flex-col gap-2.5">
-              {[
-                "Human approval before every send",
-                "Plain-English safety checks per invoice",
-                "Export your data anytime",
-              ].map((line) => (
-                <div key={line} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
-                  <ShieldCheck className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
-                  <span>{line}</span>
-                </div>
-              ))}
-            </div>
+            {mode === "signup" ? (
+              <div className="mt-6 flex flex-col gap-2.5">
+                {[
+                  "Human approval before every send",
+                  "Plain-English safety checks per invoice",
+                  "Export your data anytime",
+                ].map((line) => (
+                  <div key={line} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
+                    <ShieldCheck className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
+                    <span>{line}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div
               className="mt-6 rounded-[10px] p-3 text-[12.5px]"
@@ -182,7 +184,9 @@ export function DemoAuthForm() {
                 color: "var(--zn-ink-3)",
               }}
             >
-              Just exploring? <Link href="/demo" className="underline underline-offset-2 text-[#1d1813] font-medium">Try the demo</Link> with sample data instead — no signup needed.
+              {mode === "signup"
+                ? <>Just exploring? <Link href="/demo" className="underline underline-offset-2 text-[#1d1813] font-medium">Try the demo</Link> with sample data instead — no signup needed.</>
+                : <>No account yet? <Link href="/login?mode=signup" className="underline underline-offset-2 text-[#1d1813] font-medium">Start a free 14-day trial</Link> — no card required.</>}
             </div>
           </section>
 
@@ -227,14 +231,41 @@ export function DemoAuthForm() {
                 onChange={setEmail}
                 placeholder="jane@acmestudio.co.uk"
               />
-              <Field
-                id="password"
-                label="Password"
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder={mode === "signup" ? "At least 8 characters" : ""}
-              />
+              <div>
+                <Field
+                  id="password"
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder={mode === "signup" ? "At least 8 characters" : ""}
+                />
+                {mode === "signin" ? (
+                  <div className="mt-1.5 text-right">
+                    <button
+                      type="button"
+                      className="text-[12px] underline underline-offset-2"
+                      style={{ color: "var(--zn-ink-3)" }}
+                      onClick={async () => {
+                        if (!email.trim()) {
+                          setError("Enter your email above first, then click forgot password.");
+                          return;
+                        }
+                        setError("");
+                        if (hasSupabaseBrowserConfig()) {
+                          const supabase = createSupabaseBrowserClient();
+                          await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+                          });
+                        }
+                        setError("If that email exists, we've sent a reset link. Check your inbox.");
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                ) : null}
+              </div>
 
               {error ? (
                 <div

@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock3,
   FileSpreadsheet,
-  LockKeyhole,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -278,9 +277,9 @@ export function OnboardingFlow() {
               How do you want to start?
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
-              Choose the account type that matches your intent. Demo stays with
-              sample data, trial lets you upload live exports, and beta plans
-              require owner approval before access.
+              Demo gives you instant access with sample data. Trial lets you
+              upload your own exports. Paid plans unlock everything with no
+              usage caps.
             </p>
           </div>
 
@@ -357,19 +356,6 @@ export function OnboardingFlow() {
                   ))}
                 </ul>
 
-                {option.type === "founding_single_business" ||
-                option.type === "founding_bookkeeper" ? (
-                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                    <div className="flex items-center gap-2 font-semibold">
-                      <LockKeyhole className="size-3.5" />
-                      Permission required
-                    </div>
-                    <p className="mt-1">
-                      This creates a beta request. The owner must approve access
-                      before the account can be used with beta features.
-                    </p>
-                  </div>
-                ) : null}
 
                 <Button
                   className="mt-auto w-full rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
