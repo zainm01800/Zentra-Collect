@@ -51,8 +51,8 @@ const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
   TRIAL:               "14 days, no card required. Upload your own AR exports.",
   STARTER_SOLO:        "For sole traders and micro businesses with a small invoice book.",
-  FOUNDING_SINGLE:     "Founding access for one business while we're in beta.",
-  FOUNDING_BOOKKEEPER: "Founding access for bookkeepers shaping the workflow.",
+  FOUNDING_SINGLE:     "For one business running a practical chase process.",
+  FOUNDING_BOOKKEEPER: "For bookkeepers managing client ledgers.",
   SINGLE_BUSINESS:     "For one small business running a practical chase process.",
   BOOKKEEPER_STARTER:  "For bookkeepers managing a handful of client ledgers.",
   BOOKKEEPER_PRO:      "For larger client portfolios that need more capacity.",
@@ -65,7 +65,7 @@ const faqs = [
   },
   {
     q: "Does Zentra send emails automatically?",
-    a: "No. Every message is reviewed and sent by you from your own inbox. There is no auto-send.",
+    a: "Only if you enable it. Auto-send is off by default — every message is reviewed by you first. When enabled, there is a 5-minute cancellation window before the first send fires.",
   },
   {
     q: "What happens after the trial?",
@@ -396,7 +396,7 @@ export default function Home() {
           })}
         </div>
         <p className="mt-6 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          Founding access available for bookkeepers and single-business owners during beta. <Link href="/request-access" className="underline underline-offset-2">Talk to us</Link>.
+          All plans include a 14-day free trial. No card required to start. <Link href="/request-access" className="underline underline-offset-2">Contact us</Link> if you need a custom plan.
         </p>
       </Section>
 
