@@ -83,20 +83,23 @@ export function DemoAuthForm() {
           });
           if (signUpError) throw signUpError;
         } else {
+          // Sign-in: authenticate then go straight to dashboard.
+          // AccountSync will pull the real plan from Supabase on mount.
           const { data, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
           if (signInError) throw signInError;
           const metadata = data.user?.user_metadata;
-          if (metadata?.full_name && typeof metadata.full_name === "string") {
-            nextName = metadata.full_name;
-            setName(metadata.full_name);
-          }
-          if (metadata?.business_name && typeof metadata.business_name === "string") {
-            nextBusinessName = metadata.business_name;
-            setBusinessName(metadata.business_name);
-          }
+          nextName = (metadata?.full_name as string | undefined) || nextName;
+          nextBusinessName = (metadata?.business_name as string | undefined) || nextBusinessName;
+          writePendingIdentity({
+            name: nextName || "Returning user",
+            email,
+            businessName: nextBusinessName || "",
+          });
+          router.push("/dashboard");
+          return;
         }
       } catch (caught) {
         const raw = caught instanceof Error ? caught.message : "";
@@ -107,11 +110,11 @@ export function DemoAuthForm() {
       setIsSubmitting(false);
     }
 
+    // Sign-up path: go to onboarding to pick a plan
     writePendingIdentity({
-      name: mode === "signin" ? nextName || "Returning user" : nextName,
+      name: nextName,
       email,
-      businessName:
-        mode === "signin" ? nextBusinessName || "Demo business" : nextBusinessName,
+      businessName: nextBusinessName,
     });
     router.push("/onboarding");
   }
