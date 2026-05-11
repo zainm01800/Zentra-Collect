@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { PromisesTable, type PromiseRow } from "@/components/promises-table";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { getPromises } from "@/lib/api/db";
 import { formatCurrency } from "@/lib/formatters";
 
 import type { Metadata } from "next";
@@ -11,44 +12,37 @@ export const metadata: Metadata = {
   description: "Every promised payment tracked, with a clear next step when it slips.",
 };
 
-// Derive promise state from real invoice data:
-//  - "kept"   when status === "Paid"   (the promise was kept and we got the money)
-//  - "missed" when promisedPaymentDate exists and is in the past, but not paid
-//  - "due"    when promisedPaymentDate exists and is in the future
-//  - falls through to a heuristic "due in 5 days" for invoices we know are
-//    currently in the chase queue but don't yet have a recorded promise date
-function deriveStatus(inv: (typeof demoInvoices)[number], promisedDate: Date): "due" | "kept" | "missed" {
-  if (inv.status === "Paid") return "kept";
-  // After the early return above, status is already narrowed to "not Paid".
-  if (promisedDate.getTime() < Date.now()) return "missed";
-  return "due";
+function buildDemoPromises(): PromiseRow[] {
+  return demoInvoices
+    .filter((i) => i.status === "Promised payment" || i.daysOverdue > 0)
+    .slice(0, 8)
+    .map((inv) => {
+      const promisedFor = inv.promisedPaymentDate
+        ? new Date(inv.promisedPaymentDate)
+        : new Date(Date.now() + (inv.daysOverdue > 30 ? -3 : 5) * 86400000);
+      let status: "due" | "kept" | "missed" = "due";
+      if (inv.status === "Paid") status = "kept";
+      else if (promisedFor.getTime() < Date.now()) status = "missed";
+      return {
+        id: inv.id,
+        customerName: inv.customerName,
+        invoiceNumber: inv.invoiceNumber,
+        amount: inv.amount,
+        promisedFor: promisedFor.toISOString(),
+        channel: inv.customerEmail ? "Email" : "Call",
+        status,
+      };
+    });
 }
 
-const PROMISES: PromiseRow[] = demoInvoices
-  .filter((i) => i.status === "Promised payment" || i.daysOverdue > 0)
-  .slice(0, 8)
-  .map((inv) => {
-    // Use the invoice's recorded promised date if present; otherwise project a
-    // reasonable date based on how overdue the invoice is.
-    const promisedFor = inv.promisedPaymentDate
-      ? new Date(inv.promisedPaymentDate)
-      : new Date(Date.now() + (inv.daysOverdue > 30 ? -3 : 5) * 86400000);
-    return {
-      id: inv.id,
-      customerName: inv.customerName,
-      invoiceNumber: inv.invoiceNumber,
-      amount: inv.amount,
-      promisedFor: promisedFor.toISOString(),
-      // "Email" for invoices with a customer email on file, otherwise a phone chase
-      channel: inv.customerEmail ? "Email" : "Call",
-      status: deriveStatus(inv, promisedFor),
-    };
-  });
+export default async function PromisesPage() {
+  const dbPromises = await getPromises();
+  const promises: PromiseRow[] = dbPromises.length ? dbPromises : buildDemoPromises();
+  const isDemo = dbPromises.length === 0;
 
-export default function PromisesPage() {
-  const due = PROMISES.filter((p) => p.status === "due");
-  const missed = PROMISES.filter((p) => p.status === "missed");
-  const kept = PROMISES.filter((p) => p.status === "kept");
+  const due = promises.filter((p) => p.status === "due");
+  const missed = promises.filter((p) => p.status === "missed");
+  const kept = promises.filter((p) => p.status === "kept");
   const likelyCash = due.reduce((s, p) => s + p.amount, 0);
 
   return (
@@ -60,6 +54,12 @@ export default function PromisesPage() {
           sub='Every "I&apos;ll pay on Friday" tracked, with a clear next step when it slips. Click a row to review.'
         />
 
+        {isDemo && (
+          <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-500">
+            Showing sample data — import your invoices to track real promises.
+          </div>
+        )}
+
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="zn-stat">
             <div className="zn-label">Active</div>
@@ -67,7 +67,7 @@ export default function PromisesPage() {
           </div>
           <div className="zn-stat">
             <div className="zn-label">Kept (90d)</div>
-            <div className="zn-stat-num mt-2" style={{ color: "var(--zn-safe)" }}>{kept.length + 17}</div>
+            <div className="zn-stat-num mt-2" style={{ color: "var(--zn-safe)" }}>{kept.length + (isDemo ? 17 : 0)}</div>
           </div>
           <div className="zn-stat">
             <div className="zn-label">Missed (90d)</div>
@@ -81,7 +81,7 @@ export default function PromisesPage() {
 
         <div className="zn-card overflow-hidden p-0">
           <div className="overflow-x-auto">
-            <PromisesTable rows={PROMISES} invoices={demoInvoices} />
+            <PromisesTable rows={promises} invoices={demoInvoices} />
           </div>
         </div>
       </div>

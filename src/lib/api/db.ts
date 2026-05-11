@@ -180,3 +180,93 @@ function mapDbInvoiceToType(row: any): Invoice {
     importedRowNumber: row.imported_row_number
   };
 }
+
+export type PromiseRow = {
+  id: string;
+  customerName: string;
+  invoiceNumber: string;
+  amount: number;
+  promisedFor: string;
+  channel: "Email" | "Call";
+  status: "due" | "kept" | "missed";
+};
+
+export async function getPromises(): Promise<PromiseRow[]> {
+  if (!hasSupabaseServerConfig()) return [];
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: member } = await supabase
+    .from("zentra_account_members").select("account_id").eq("user_id", user.id).single();
+  if (!member) return [];
+  const { data, error } = await supabase
+    .from("zentra_promises_to_pay")
+    .select("id, promised_amount, promised_date, status, promised_by, zentra_invoices(invoice_number, customer_email, zentra_customers(name))")
+    .eq("account_id", member.account_id)
+    .order("promised_date", { ascending: true });
+  if (error || !data) return [];
+  return data.map((r) => {
+    const inv = Array.isArray(r.zentra_invoices) ? r.zentra_invoices[0] : r.zentra_invoices;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cust = inv && (Array.isArray((inv as any).zentra_customers) ? (inv as any).zentra_customers[0] : (inv as any).zentra_customers);
+    const promisedDate = new Date(r.promised_date);
+    const now = Date.now();
+    const dbStatus = r.status as string;
+    let status: "due" | "kept" | "missed" = "due";
+    if (dbStatus === "met") status = "kept";
+    else if (dbStatus === "missed" || (dbStatus === "open" && promisedDate.getTime() < now)) status = "missed";
+    return {
+      id: r.id,
+      customerName: (cust as {name:string})?.name ?? "Unknown",
+      invoiceNumber: (inv as {invoice_number:string})?.invoice_number ?? "",
+      amount: Number(r.promised_amount),
+      promisedFor: r.promised_date,
+      channel: ((inv as {customer_email?:string})?.customer_email ? "Email" : "Call") as "Email" | "Call",
+      status,
+    };
+  });
+}
+
+export type DisputeRow = {
+  id: string;
+  customerName: string;
+  invoiceNumber: string;
+  amount: number;
+  raised: string;
+  kind: string;
+  status: string;
+  note: string;
+  owner: string;
+};
+
+export async function getDisputes(): Promise<DisputeRow[]> {
+  if (!hasSupabaseServerConfig()) return [];
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: member } = await supabase
+    .from("zentra_account_members").select("account_id").eq("user_id", user.id).single();
+  if (!member) return [];
+  const { data, error } = await supabase
+    .from("zentra_disputes")
+    .select("id, reason, status, owner, resolution_notes, created_at, zentra_invoices(invoice_number, amount, zentra_customers(name))")
+    .eq("account_id", member.account_id)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map((r) => {
+    const inv = Array.isArray(r.zentra_invoices) ? r.zentra_invoices[0] : r.zentra_invoices;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cust = inv && (Array.isArray((inv as any).zentra_customers) ? (inv as any).zentra_customers[0] : (inv as any).zentra_customers);
+    return {
+      id: r.id,
+      customerName: (cust as {name:string})?.name ?? "Unknown",
+      invoiceNumber: (inv as {invoice_number:string})?.invoice_number ?? "",
+      amount: Number((inv as {amount:number})?.amount ?? 0),
+      raised: r.created_at,
+      kind: r.reason,
+      status: r.status.replace(/_/g, " "),
+      note: r.resolution_notes ?? "",
+      owner: r.owner ?? "",
+    };
+  });
+}

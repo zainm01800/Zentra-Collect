@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Check, FileText, Mail, ShieldAlert } from "lucide-react";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { getDisputes, type DisputeRow } from "@/lib/api/db";
 import { formatCurrency } from "@/lib/formatters";
 
 import type { Metadata } from "next";
@@ -11,22 +12,28 @@ export const metadata: Metadata = {
   description: "Invoices Zentra has paused chasing — and what's needed to unblock them.",
 };
 
-const DISPUTES = demoInvoices
-  .filter((i) => i.status === "Disputed")
-  .slice(0, 4)
-  .map((inv, idx) => ({
-    id: inv.id,
-    customerName: inv.customerName,
-    invoiceNumber: inv.invoiceNumber,
-    amount: inv.amount,
-    raised: new Date(Date.now() - (idx + 1) * 7 * 86400000),
-    kind: ["Pricing query", "Goods not received", "Wrong PO", "Incorrect tax"][idx % 4],
-    status: ["Awaiting evidence", "Customer reviewing", "Internal review", "Owner action"][idx % 4],
-    note: "Customer believes the line items don't match the original PO. Awaiting clarification from their AP.",
-    owner: ["Mo", "Sara", "Amir", "Mo"][idx % 4],
-  }));
+function buildDemoDisputes(): DisputeRow[] {
+  return demoInvoices
+    .filter((i) => i.status === "Disputed")
+    .slice(0, 4)
+    .map((inv, idx) => ({
+      id: inv.id,
+      customerName: inv.customerName,
+      invoiceNumber: inv.invoiceNumber,
+      amount: inv.amount,
+      raised: new Date(Date.now() - (idx + 1) * 7 * 86400000).toISOString(),
+      kind: ["Pricing query", "Goods not received", "Wrong PO", "Incorrect tax"][idx % 4],
+      status: ["Awaiting evidence", "Customer reviewing", "Internal review", "Owner action"][idx % 4],
+      note: "Customer believes the line items don't match the original PO. Awaiting clarification from their AP.",
+      owner: ["Mo", "Sara", "Amir", "Mo"][idx % 4],
+    }));
+}
 
-export default function DisputesPage() {
+export default async function DisputesPage() {
+  const dbDisputes = await getDisputes();
+  const disputes: DisputeRow[] = dbDisputes.length ? dbDisputes : buildDemoDisputes();
+  const isDemo = dbDisputes.length === 0;
+
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
@@ -36,12 +43,18 @@ export default function DisputesPage() {
           sub="Invoices Zentra has paused chasing — and what's needed to unblock them."
         />
 
+        {isDemo && (
+          <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-500">
+            Showing sample data — import your invoices to track real disputes.
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
-          {DISPUTES.length === 0 ? (
+          {disputes.length === 0 ? (
             <div className="zn-card p-10 text-center">
               <p className="text-[#6b6253]">No active disputes. 🎉</p>
             </div>
-          ) : DISPUTES.map((d) => (
+          ) : disputes.map((d) => (
             <div key={d.id} className="zn-card p-[18px]">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
@@ -56,7 +69,7 @@ export default function DisputesPage() {
                       {d.customerName} · <span className="zn-kind-tag">{d.invoiceNumber}</span>
                     </div>
                     <div className="text-[12px] text-[#6b6253]">
-                      Raised {d.raised.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · {d.kind}
+                      Raised {new Date(d.raised).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · {d.kind}
                     </div>
                   </div>
                 </div>
@@ -73,12 +86,9 @@ export default function DisputesPage() {
 
               <div
                 className="rounded-[10px] p-3 text-[13px] mb-2.5"
-                style={{
-                  background: "var(--zn-surface-2)",
-                  border: "1px solid var(--zn-line-soft)",
-                }}
+                style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
               >
-                {d.note}
+                {d.note || "No notes recorded."}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -92,9 +102,11 @@ export default function DisputesPage() {
                   <Check className="size-3.5" /> Resolve & resume chase
                 </button>
                 <div className="flex-1" />
-                <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
-                  Owner · {d.owner}
-                </button>
+                {d.owner && (
+                  <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
+                    Owner · {d.owner}
+                  </button>
+                )}
               </div>
             </div>
           ))}
