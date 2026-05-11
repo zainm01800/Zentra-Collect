@@ -23,14 +23,43 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .single();
 
-    if (!memberData) return NextResponse.json({ error: "No account found" }, { status: 404 });
+    let accountId: string;
+    let stripeCustomerIdFromAccount: string | undefined;
 
-    const accountId = memberData.account_id;
-    const account = (Array.isArray(memberData.zentra_accounts)
-      ? memberData.zentra_accounts[0]
-      : memberData.zentra_accounts) as Record<string, unknown>;
-
-    let stripeCustomerId = account?.stripe_customer_id as string | undefined;
+    if (!memberData) {
+      // Authenticated user has no zentra_accounts row — create one so checkout
+      // can proceed. This happens when someone signs up via the auth form but
+      // hasn't completed onboarding, or is upgrading from a localStorage trial.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: newAccount, error: createErr } = await (supabase as any)
+        .from("zentra_accounts")
+        .insert({
+          plan_id: "TRIAL",
+          status: "trialing",
+          trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          business_name: user.user_metadata?.business_name ?? null,
+        })
+        .select("id")
+        .single();
+      if (createErr || !newAccount) {
+        return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("zentra_account_members").insert({
+        account_id: newAccount.id,
+        user_id: user.id,
+        role: "owner",
+      });
+      accountId = newAccount.id;
+      stripeCustomerIdFromAccount = undefined;
+    } else {
+      accountId = memberData.account_id;
+      const acc = (Array.isArray(memberData.zentra_accounts)
+        ? memberData.zentra_accounts[0]
+        : memberData.zentra_accounts) as Record<string, unknown>;
+      stripeCustomerIdFromAccount = acc?.stripe_customer_id as string | undefined;
+    }
+    let stripeCustomerId = stripeCustomerIdFromAccount;
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: user.email,

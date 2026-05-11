@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 import {
   ArrowRight,
   Building2,
@@ -67,6 +68,11 @@ export function OnboardingFlow() {
   const [mainArPainPoint, setMainArPainPoint] = useState("overdue invoices");
   const [selectedType, setSelectedType] = useState<OnboardingAccountType>("trial");
   const [error, setError] = useState("");
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [pendingOption, setPendingOption] = useState<Option | null>(null);
 
   const options = useMemo<Option[]>(
     () => [
@@ -198,7 +204,7 @@ export function OnboardingFlow() {
     window.localStorage.setItem(betaRequestStorageKey, JSON.stringify(request));
   }
 
-  function chooseOption(option: Option) {
+  async function chooseOption(option: Option) {
     setError("");
     if (!businessName.trim()) {
       setError("Add a business name before choosing an account type.");
@@ -213,6 +219,30 @@ export function OnboardingFlow() {
     }
 
     if (option.type === "trial") {
+      // If Supabase is configured, send OTP to verify email and create a real account.
+      if (hasSupabaseBrowserConfig()) {
+        setOtpLoading(true);
+        setPendingOption(option);
+        try {
+          const supabase = createSupabaseBrowserClient();
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: identity.email,
+            options: { shouldCreateUser: true },
+          });
+          if (otpError) throw otpError;
+          setOtpEmail(identity.email);
+          setOtpStep(true);
+        } catch {
+          // Fall back to localStorage-only trial if OTP fails
+          const account = createLocalAccount({ name: identity.name, email: identity.email, businessName, planId: option.planId });
+          writeLocalAccount(account);
+          router.push("/import");
+        } finally {
+          setOtpLoading(false);
+        }
+        return;
+      }
+      // No Supabase — localStorage-only trial
       const account = createLocalAccount({
         name: identity.name,
         email: identity.email,
@@ -229,6 +259,78 @@ export function OnboardingFlow() {
       option.type === "founding_bookkeeper"
         ? "/beta-request?type=bookkeeper"
         : "/beta-request?type=single",
+    );
+  }
+
+  async function verifyOtp() {
+    if (!pendingOption || otpCode.length < 6) return;
+    setOtpLoading(true);
+    setError("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: otpEmail,
+        token: otpCode,
+        type: "email",
+      });
+      if (verifyError) throw verifyError;
+      // Create localStorage account so existing UI works immediately
+      const account = createLocalAccount({
+        name: identity.name,
+        email: identity.email,
+        businessName,
+        planId: pendingOption.planId,
+      });
+      writeLocalAccount(account);
+      router.push("/import");
+    } catch {
+      setError("That code didn't match — check your email and try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  }
+
+  // ── OTP verification screen ──────────────────────────────────────────────
+  if (otpStep) {
+    return (
+      <main className="min-h-screen bg-[#fbf8f1] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
+            <p className="text-sm text-[#6b6253]">
+              We sent a 6-digit code to <strong>{otpEmail}</strong>. Enter it below to verify your account.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="000000"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              className="text-center text-xl tracking-[0.5em] font-mono"
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Button
+              className="w-full rounded-full"
+              onClick={verifyOtp}
+              disabled={otpCode.length < 6 || otpLoading}
+            >
+              {otpLoading ? "Verifying…" : "Verify & start trial"}
+            </Button>
+            <button
+              className="w-full text-sm text-[#6b6253] hover:text-[#1d1813]"
+              onClick={async () => {
+                const supabase = createSupabaseBrowserClient();
+                await supabase.auth.signInWithOtp({ email: otpEmail, options: { shouldCreateUser: true } });
+              }}
+            >
+              Resend code
+            </button>
+          </div>
+        </div>
+      </main>
     );
   }
 
