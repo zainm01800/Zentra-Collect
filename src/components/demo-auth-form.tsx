@@ -131,7 +131,7 @@ export function DemoAuthForm() {
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
             </span>
           </Link>
           <Link href="/" className="text-[13px] underline-offset-2 hover:underline" style={{ color: "var(--zn-ink-3)" }}>

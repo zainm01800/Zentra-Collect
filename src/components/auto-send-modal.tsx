@@ -38,7 +38,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
   const [smtp, setSmtp] = useState<SmtpFields>({
     email: "",
     password: "",
-    fromName: "Zentra Collect",
+    fromName: "Zentra Flow",
   });
   const [rules, setRules] = useState<RulesFields>({
     sendHourUtc: 9,
@@ -50,7 +50,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
 
   function reset() {
     setStep("risk");
-    setSmtp({ email: "", password: "", fromName: "Zentra Collect" });
+    setSmtp({ email: "", password: "", fromName: "Zentra Flow" });
     setRules({ sendHourUtc: 9, sendDays: "1,2,3,4,5", maxPerRun: 5 });
     setTesting(false);
     setTestResult(null);
@@ -191,7 +191,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
             </div>
             {!isDemoMode && (
               <p className="text-xs text-muted-foreground">
-                Zentra Collect does not take responsibility for emails sent. You remain fully
+                Zentra Flow does not take responsibility for emails sent. You remain fully
                 responsible for all outbound customer communications.
               </p>
             )}
@@ -309,7 +309,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
         {step === "rules" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Set when and how many emails Zentra Collect will send automatically.
+              Set when and how many emails Zentra Flow will send automatically.
             </p>
             <div className="space-y-3">
               <div className="space-y-1.5">

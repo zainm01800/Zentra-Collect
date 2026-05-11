@@ -100,7 +100,7 @@ export function BetaRequestConfirmation() {
       [
         "Hi,",
         "",
-        "Please review this Zentra Collect beta access request.",
+        "Please review this Zentra Flow beta access request.",
         "",
         `Name: ${request?.name ?? name}`,
         `Email: ${request?.email ?? email}`,
@@ -119,7 +119,7 @@ export function BetaRequestConfirmation() {
       ].join("\n"),
     );
     return `mailto:${ownerEmail}?subject=${encodeURIComponent(
-      "Zentra Collect beta access request",
+      "Zentra Flow beta access request",
     )}&body=${body}`;
   }, [
     accountingSoftware,
@@ -211,7 +211,7 @@ export function BetaRequestConfirmation() {
             Tell us where AR gets messy.
           </h1>
           <p className="mt-4 text-base leading-7 text-neutral-600">
-            Founding access is limited while Zentra Collect is in beta. We use
+            Founding access is limited while Zentra Flow is in beta. We use
             this request to prioritise serious early users and bookkeepers.
           </p>
           <div className="mt-8 grid gap-3">

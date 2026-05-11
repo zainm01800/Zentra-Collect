@@ -35,7 +35,7 @@ export function LegalPage({
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
             </span>
           </Link>
           <Link
@@ -94,7 +94,7 @@ export function LegalPage({
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Collect</span>
+            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Flow</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
             <Link href="/terms"   className="hover:text-[#1d1813]">Terms</Link>

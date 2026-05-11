@@ -1,6 +1,6 @@
-# Zentra Collect MVP
+# Zentra Flow MVP
 
-Zentra Collect is an import-first collections decisioning layer for small UK
+Zentra Flow is an import-first collections decisioning layer for small UK
 service businesses and bookkeepers. It turns AR ageing reports and unpaid
 invoice exports into a ranked collections plan: who to chase, what to do, why,
 and what message to review.

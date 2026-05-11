@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         port: settings.smtp_port,
         user: settings.smtp_user,
         password: decryptPassword(settings.smtp_password_enc),
-        fromName: settings.from_name ?? "Zentra Collect",
+        fromName: settings.from_name ?? "Zentra Flow",
       };
 
       const drafts = eligibleInvoices.map((inv: {
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
             daysOverdue: inv.days_overdue,
           },
           messageText,
-          settings.from_name ?? "Zentra Collect",
+          settings.from_name ?? "Zentra Flow",
         );
         return {
           invoiceId: inv.id,

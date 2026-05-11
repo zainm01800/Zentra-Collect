@@ -217,7 +217,7 @@ export function ZentraWeeklyDigest() {
                     Email preview
                   </CardDescription>
                   <CardTitle className="mt-2 text-xl">
-                    Your weekly Zentra Collect brief
+                    Your weekly Zentra Flow brief
                   </CardTitle>
                 </div>
                 <Mail className="size-5 text-[#8d8472]" />
