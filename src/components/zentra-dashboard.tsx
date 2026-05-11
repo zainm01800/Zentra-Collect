@@ -80,6 +80,7 @@ import {
   demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { LogOutcomeButton } from "@/components/log-outcome-button";
 import {
   importedInvoicesStorageKey,
   importDiffStorageKey,
@@ -939,13 +940,20 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                               </span>
                             ) : null}
                           </div>
-                          <Link
-                            href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
-                            className="zn-pill flex-shrink-0"
-                            style={{ height: 26, fontSize: 12, padding: "0 11px" }}
-                          >
-                            {isOverdue ? "Chase" : "Review"}
-                          </Link>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <LogOutcomeButton
+                              invoiceRef={item.invoiceNumber ?? item.id}
+                              clientName={item.customerName}
+                              amountOutstanding={item.amountOutstanding}
+                            />
+                            <Link
+                              href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                              className="zn-pill flex-shrink-0"
+                              style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                            >
+                              {isOverdue ? "Chase" : "Review"}
+                            </Link>
+                          </div>
                         </div>
                       </div>
 
@@ -1009,13 +1017,20 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                         >
                           {humanAction(item.recommendedAction)}
                         </div>
-                        <Link
-                          href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
-                          className="zn-pill flex-shrink-0"
-                          style={{ height: 26, fontSize: 12, padding: "0 11px" }}
-                        >
-                          Review
-                        </Link>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <LogOutcomeButton
+                            invoiceRef={item.invoiceNumber ?? item.id}
+                            clientName={item.customerName}
+                            amountOutstanding={item.amountOutstanding}
+                          />
+                          <Link
+                            href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                            className="zn-pill flex-shrink-0"
+                            style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                          >
+                            Review
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );

@@ -2,6 +2,7 @@ import { AppShell }              from "@/components/app-shell";
 import { ZentraDashboard }       from "@/components/zentra-dashboard";
 import { CheckoutSuccessBanner } from "@/components/checkout-success-banner";
 import { FinancialHeader }       from "@/components/financial-header";
+import { OutcomeSummaryBar }     from "@/components/outcome-summary-bar";
 
 import { getInvoices }                                    from "@/lib/api/db";
 import { getFinancialSettings, getMonthlyIncomeSummary }  from "@/actions/financial-settings";
@@ -73,6 +74,9 @@ export default async function DashboardPage({
         className="mb-8 h-px w-full"
         style={{ background: "var(--zn-line-soft)" }}
       />
+
+      {/* Recovery stats — only visible once outcomes have been logged */}
+      <OutcomeSummaryBar />
 
       {/* Existing AR collections dashboard — unchanged */}
       <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
