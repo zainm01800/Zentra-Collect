@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowUpFromLine,
   BarChart3,
+  Building2,
   CreditCard,
   FileText,
   Home,
@@ -55,6 +56,7 @@ const contextNav: NavItem[] = [
   { href: "/customers", label: "Customers",    icon: Users },
   { href: "/promises",  label: "Promises",     icon: AlertTriangle },
   { href: "/disputes",  label: "Disputes",     icon: ShieldAlert },
+  { href: "/banking",   label: "Bank feed",    icon: Building2 },
   { href: "/tax",       label: "Tax reserve",  icon: PiggyBank },
   { href: "/reports",   label: "Reports",      icon: BarChart3 },
 ];
