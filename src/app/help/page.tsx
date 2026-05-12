@@ -35,8 +35,7 @@ export default function HelpPage() {
           sub="Quick answers about the decisioning engine, safety rules, and import. For anything else, get in touch."
           actions={
             <>
-              <button className="zn-pill zn-pill-ghost">Read docs</button>
-              <button className="zn-pill">Contact support</button>
+              <a href="mailto:support@zentracollect.co.uk" className="zn-pill">Contact support</a>
             </>
           }
         />
