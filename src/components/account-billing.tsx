@@ -82,11 +82,11 @@ function computeUpgradeRecommendation(
     const aiPct = meters.aiActions.percentUsed ?? 0;
     const invoicePct = meters.activeInvoices.percentUsed ?? 0;
 
-    if (atLedgerLimit) {
+    if (atLedgerLimit && meters.clientLedgers.used > 1) {
       return {
         plan: getPlan("bookkeeper_starter"),
         reason:
-          "You've reached your client ledger limit. Bookkeeper Starter supports up to 5.",
+          "You're managing more than one business. Bookkeeper Starter is designed for that.",
         urgency: "high",
       };
     }
