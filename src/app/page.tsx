@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserCheck,
 } from "lucide-react";
+import { MarketingNav } from "@/components/marketing-nav";
 import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
 import { CheckoutButton } from "@/components/billing/checkout-button";
 
@@ -92,30 +93,7 @@ export default function Home() {
       style={{ background: "var(--zn-bg)", color: "var(--zn-ink)" }}
     >
       {/* ─── Top nav ─── */}
-      <header
-        className="sticky top-0 z-30 backdrop-blur border-b bg-[rgba(233,223,201,0.88)] dark:bg-[rgba(33,29,23,0.88)]"
-        style={{ borderColor: "var(--zn-line)" }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="zn-brand-mark">Z</span>
-            <span className="flex flex-col leading-[1.1]">
-              <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428] dark:text-[#d8ccb5]">
-            <Link href="#how-it-works" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">How it works</Link>
-            <Link href="#bookkeepers" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">For bookkeepers</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
-            <Link href="#faq" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">FAQ</Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="zn-pill zn-pill-ghost">Sign in</Link>
-            <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill">Try the demo</Link>
-          </div>
-        </div>
-      </header>
+      <MarketingNav />
 
       {/* ─── Hero ─── */}
       <section className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.85fr)] lg:px-8 lg:pb-20 lg:pt-20">
@@ -162,7 +140,7 @@ export default function Home() {
               className="rounded-[12px] p-5"
               style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
             >
-              <div className="zn-label !p-0" style={{ color: "rgba(250,245,232,0.55)" }}>
+              <div className="zn-label !p-0 opacity-55">
                 Today&apos;s focus
               </div>
               <p
@@ -176,7 +154,7 @@ export default function Home() {
               {[
                 { rank: 1, name: "Ashford Digital",    amount: "£12,750", sub: "54d overdue · Send payment reminder" },
                 { rank: 2, name: "BluePeak Design",    amount: "£8,900",  sub: "77d overdue · Call customer"        },
-                { rank: 3, name: "Northline Creative", amount: "£6,400",  sub: "63d overdue · No action needed"     },
+                { rank: 3, name: "Northline Creative", amount: "£6,400",  sub: "63d overdue · Send final reminder"  },
                 { rank: 4, name: "Redfern Architecture", amount: "£11,200", sub: "61d overdue · Escalation candidate" },
               ].map((row) => (
                 <div
@@ -443,7 +421,7 @@ export default function Home() {
           style={{ background: "var(--zn-ink)", borderColor: "var(--zn-ink)" }}
         >
           <div className="p-8 lg:p-10" style={{ color: "var(--zn-surface)" }}>
-            <div className="zn-label !p-0 mb-2" style={{ color: "rgba(250,245,232,0.55)" }}>
+            <div className="zn-label !p-0 mb-2 opacity-55">
               Get started
             </div>
             <h2
@@ -477,7 +455,7 @@ export default function Home() {
                 Start a trial
               </Link>
             </div>
-            <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6]" style={{ color: "rgba(250,245,232,0.55)" }}>
+            <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6] opacity-55">
               Zentra Flow is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
             </p>
           </div>
@@ -486,19 +464,37 @@ export default function Home() {
 
       {/* ─── Footer ─── */}
       <footer className="border-t mt-4" style={{ borderColor: "var(--zn-line)" }}>
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2.5">
-            <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Flow</span>
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
+              <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Flow</span>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-3 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+              <div className="flex flex-col gap-2">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Product</span>
+                <Link href="#how-it-works" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">How it works</Link>
+                <Link href="#bookkeepers"  className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">For bookkeepers</Link>
+                <Link href="#pricing"      className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Pricing</Link>
+                <Link href="#faq"          className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">FAQ</Link>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Account</span>
+                <Link href="/login?mode=signup" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Start free trial</Link>
+                <Link href="/login"             className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Sign in</Link>
+                <Link href="/demo"              className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Try the demo</Link>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Legal</span>
+                <Link href="/terms"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Terms</Link>
+                <Link href="/privacy" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Privacy</Link>
+                <Link href="/cookies" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Cookies</Link>
+                <Link href="/help"    className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Help</Link>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            <Link href="/help"    className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Help</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
-            <Link href="/login"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Sign in</Link>
-            <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>
-            <Link href="/privacy" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Privacy</Link>
-            <Link href="/cookies" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Cookies</Link>
-            <span>© {new Date().getFullYear()} Zentra Ltd</span>
+          <div className="mt-8 border-t pt-6 text-[12px]" style={{ borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}>
+            © {new Date().getFullYear()} Zentra Ltd · Registered in England &amp; Wales · Collections decisioning for UK bookkeepers
           </div>
         </div>
       </footer>

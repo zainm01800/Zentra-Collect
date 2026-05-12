@@ -11,13 +11,13 @@ export default function PrivacyPage() {
     <LegalPage kicker="Legal" title="Privacy notice" lastUpdated="10 May 2026">
       <Section title="Who is the controller?">
         <p>
-          Zentra Ltd ([company number to insert]) is the data controller for
-          information you provide when using Zentra Flow. Contact:{" "}
+          Zentra Ltd is the data controller for information you provide when
+          using Zentra Flow. Contact:{" "}
           <a href="mailto:privacy@zentracollect.co.uk" className="underline underline-offset-2">privacy@zentracollect.co.uk</a>.
         </p>
         <p>
           We are registered with the UK Information Commissioner&apos;s Office
-          (ICO registration number to insert).
+          (ICO). Registration details available on request.
         </p>
       </Section>
 

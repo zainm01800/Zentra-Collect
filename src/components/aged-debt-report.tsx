@@ -35,6 +35,24 @@ const BUCKETS: AgedBucket[] = [
   { label: "90+ days",   minDays: 91,        maxDays: null, color: "var(--zn-risk)",  bgColor: "var(--zn-risk-soft)" },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  overdue:          "Overdue",
+  current:          "Current",
+  paid:             "Paid",
+  disputed:         "Disputed",
+  promised:         "Promised",
+  do_not_chase:     "Don't chase",
+  missed_promise:   "Missed promise",
+  needs_ap_contact: "Needs AP contact",
+  escalation:       "Escalation",
+  written_off:      "Written off",
+};
+
+function humaniseStatus(status: string | null | undefined): string {
+  if (!status) return "—";
+  return STATUS_LABELS[status.toLowerCase()] ?? status;
+}
+
 function getBucket(daysOverdue: number): AgedBucket {
   for (const b of BUCKETS) {
     const inBucket = daysOverdue >= b.minDays && (b.maxDays === null || daysOverdue <= b.maxDays);
@@ -297,7 +315,7 @@ export function AgedDebtReport() {
                         {fmtGBP(inv.amount)}
                       </td>
                       <td className="px-5 py-3 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-                        {inv.status}
+                        {humaniseStatus(inv.status)}
                       </td>
                     </tr>
                   );

@@ -17,7 +17,8 @@ type AuthMode = "signup" | "signin";
 export function DemoAuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialMode: AuthMode = searchParams?.get("mode") === "signin" ? "signin" : "signup";
+  const modeParam = searchParams?.get("mode");
+  const initialMode: AuthMode = modeParam === "signup" ? "signup" : "signin";
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
