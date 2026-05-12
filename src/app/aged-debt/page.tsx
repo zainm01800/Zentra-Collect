@@ -4,7 +4,7 @@ import { AgedDebtReport } from "@/components/aged-debt-report";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Aged debt — Zentra Flow",
+  title: "Aged debt",
   description: "Outstanding invoices broken down by how overdue they are.",
 };
 

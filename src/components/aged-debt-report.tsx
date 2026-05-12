@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { Download, ArrowUpDown, AlertTriangle } from "lucide-react";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
-import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import type { Invoice } from "@/types/zentra";
 
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -61,7 +61,7 @@ function loadInvoices(): Invoice[] {
   const local = readLocalAccount();
   const isDemo = local?.planId === "demo";
   const key = isDemo ? demoInvoiceStateStorageKey : importedInvoicesStorageKey;
-  const fallback = isDemo ? (demoInvoices as unknown as Invoice[]) : [];
+  const fallback = isDemo ? demoInvoices : [];
   const stored = window.localStorage.getItem(key);
   if (!stored) return fallback;
   try {
