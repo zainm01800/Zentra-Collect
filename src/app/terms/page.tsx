@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Terms of service",
-  description: "Terms of service for Zentra Collect.",
+  description: "Terms of service for Zentra Flow.",
 };
 
 export default function TermsPage() {
@@ -11,7 +11,7 @@ export default function TermsPage() {
     <LegalPage kicker="Legal" title="Terms of service" lastUpdated="10 May 2026">
       <Section title="1. Who we are">
         <p>
-          Zentra Collect (the &quot;Service&quot;) is provided by Zentra Ltd
+          Zentra Flow (the &quot;Service&quot;) is provided by Zentra Ltd
           (&quot;Zentra&quot;, &quot;we&quot;, &quot;us&quot;), a company
           registered in England &amp; Wales [company number to insert].
           Registered address: [address to insert]. Contact:{" "}
@@ -21,7 +21,7 @@ export default function TermsPage() {
 
       <Section title="2. What Zentra does">
         <p>
-          Zentra Collect is a decision-support and drafting tool. It analyses
+          Zentra Flow is a decision-support and drafting tool. It analyses
           accounts-receivable data you upload, ranks invoices by recommended
           action, and drafts professional follow-up messages for you to review
           and send from your own email account.

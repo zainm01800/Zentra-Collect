@@ -487,7 +487,7 @@ function buildActivity(
       businessId,
       type: "imported",
       title: "Imported from overdue invoice export",
-      description: "Invoice row imported into Zentra Collect demo mode.",
+      description: "Invoice row imported into Zentra Flow demo mode.",
       createdAt: "2026-05-07T09:30:00.000Z",
       createdBy: demoUser,
     },

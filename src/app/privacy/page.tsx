@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Privacy notice",
-  description: "How Zentra Collect handles your data.",
+  description: "How Zentra Flow handles your data.",
 };
 
 export default function PrivacyPage() {
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <Section title="Who is the controller?">
         <p>
           Zentra Ltd ([company number to insert]) is the data controller for
-          information you provide when using Zentra Collect. Contact:{" "}
+          information you provide when using Zentra Flow. Contact:{" "}
           <a href="mailto:privacy@zentracollect.co.uk" className="underline underline-offset-2">privacy@zentracollect.co.uk</a>.
         </p>
         <p>

@@ -34,12 +34,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zentracollect.co.u
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Zentra Collect — Collections decisioning for UK bookkeepers",
-    template: "%s · Zentra Collect",
+    default: "Zentra Flow — Collections decisioning for UK bookkeepers",
+    template: "%s · Zentra Flow",
   },
   description:
     "Upload overdue invoices. Get a ranked chase plan in minutes. Action + reason + draft message — you review and send. Built for UK bookkeepers and small businesses.",
-  applicationName: "Zentra Collect",
+  applicationName: "Zentra Flow",
   authors: [{ name: "Zentra" }],
   keywords: [
     "AR ageing",
@@ -53,8 +53,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_GB",
-    siteName: "Zentra Collect",
-    title: "Zentra Collect — Collections decisioning for UK bookkeepers",
+    siteName: "Zentra Flow",
+    title: "Zentra Flow — Collections decisioning for UK bookkeepers",
     description:
       "Upload overdue invoices. Get a ranked chase plan in minutes. Action + reason + draft message — you review and send.",
     url: SITE_URL,
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zentra Collect — Collections decisioning",
+    title: "Zentra Flow — Collections decisioning",
     description: "Upload overdue invoices. Get a ranked chase plan in minutes.",
     // Image auto-discovered from src/app/twitter-image.tsx (or falls back to opengraph-image.tsx)
   },

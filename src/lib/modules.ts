@@ -1,5 +1,5 @@
 /**
- * Module definitions for Zentra Collect.
+ * Module definitions for Zentra Flow.
  *
  * A "module" is a coherent slice of product capability. Users opt into the
  * modules they care about — sidebar nav and dashboard widgets configure

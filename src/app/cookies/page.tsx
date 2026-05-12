@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Cookies",
-  description: "How Zentra Collect uses cookies.",
+  description: "How Zentra Flow uses cookies.",
 };
 
 export default function CookiesPage() {
@@ -11,7 +11,7 @@ export default function CookiesPage() {
     <LegalPage kicker="Legal" title="Cookies" lastUpdated="10 May 2026">
       <Section title="Short version">
         <p>
-          Zentra Collect uses only the cookies it needs to keep you signed in
+          Zentra Flow uses only the cookies it needs to keep you signed in
           and the service running. We do not use third-party advertising,
           tracking, or social-media cookies.
         </p>

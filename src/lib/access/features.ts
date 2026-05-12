@@ -1,7 +1,7 @@
 /**
  * src/lib/access/features.ts
  *
- * Pure access-control layer for Zentra Collect plan features.
+ * Pure access-control layer for Zentra Flow plan features.
  * No I/O, no store calls — takes a UsageSnapshot and returns decisions.
  *
  * Usage:

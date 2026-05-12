@@ -94,7 +94,7 @@ export function LegalPage({
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
+            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Flow</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
             <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>

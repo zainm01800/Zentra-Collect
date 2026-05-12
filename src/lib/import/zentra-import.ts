@@ -492,7 +492,7 @@ export function buildInvoicesFromPreview(
           businessId,
           type: "imported",
           title: "Imported from CSV",
-          description: "Invoice row imported through Zentra Collect import flow.",
+          description: "Invoice row imported through Zentra Flow import flow.",
           createdAt: new Date().toISOString(),
           createdBy: "Demo user",
         },

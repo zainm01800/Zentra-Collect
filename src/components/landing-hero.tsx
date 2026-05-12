@@ -16,7 +16,7 @@ export function LandingHero() {
             Get paid faster without awkward invoice chasing
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">
-          Zentra Collect turns overdue invoices into a ranked collections plan:
+          Zentra Flow turns overdue invoices into a ranked collections plan:
             who to chase, what to say, and when to escalate.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -47,7 +47,7 @@ export function LandingHero() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold">
                 <Sparkles className="size-4" />
-            Zentra Collect
+            Zentra Flow
               </div>
               <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs text-emerald-200">
                 Daily plan
