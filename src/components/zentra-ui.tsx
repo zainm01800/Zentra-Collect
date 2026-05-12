@@ -54,17 +54,17 @@ export function PageHeader({
           {backHref && (
             <Link 
               href={backHref} 
-              className="group mb-2 flex items-center gap-1 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+              className="group mb-2 flex items-center gap-1 text-sm font-medium text-neutral-500 dark:text-[#8a7d69] hover:text-neutral-900 transition-colors"
             >
               <ChevronLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
               Back
             </Link>
           )}
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-950 dark:text-[#f0e8d5] sm:text-4xl">
             {title}
           </h1>
           {description && (
-            <p className="max-w-2xl text-base text-neutral-500 leading-relaxed">
+            <p className="max-w-2xl text-base text-neutral-500 dark:text-[#8a7d69] leading-relaxed">
               {description}
             </p>
           )}
@@ -92,14 +92,14 @@ export function MetricCard({
   trend?: { value: string; positive: boolean };
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-black/8 bg-white p-5 xl:p-6">
+    <div className="flex flex-col rounded-2xl border border-black/8 bg-white dark:bg-[#211d17] p-5 xl:p-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
           {label}
         </p>
         {Icon && <Icon className="size-4 text-neutral-300 flex-shrink-0" />}
       </div>
-      <p className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950 leading-none lg:text-[26px]">
+      <p className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950 dark:text-[#f0e8d5] leading-none lg:text-[26px]">
         {value}
       </p>
       {detail && (
@@ -137,21 +137,21 @@ export function SectionCard({
 }) {
   return (
     <div className={cn(
-      "overflow-hidden rounded-[2rem] border border-black/10 bg-white/70 shadow-sm backdrop-blur-sm",
+      "overflow-hidden rounded-[2rem] border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-sm backdrop-blur-sm",
       className
     )}>
       {(title || actions) && (
         <div className="flex items-center justify-between border-b border-black/5 p-6 pb-5">
           <div className="space-y-1">
-            {title && <h3 className="text-lg font-bold text-neutral-950">{title}</h3>}
-            {description && <p className="text-sm text-neutral-500">{description}</p>}
+            {title && <h3 className="text-lg font-bold text-neutral-950 dark:text-[#f0e8d5]">{title}</h3>}
+            {description && <p className="text-sm text-neutral-500 dark:text-[#8a7d69]">{description}</p>}
           </div>
           {actions && <div>{actions}</div>}
         </div>
       )}
       <div className="p-6">{children}</div>
       {footer && (
-        <div className="border-t border-black/5 bg-neutral-50/50 p-4 px-6">
+        <div className="border-t border-black/5 bg-neutral-50 dark:bg-[#211d17]/50 p-4 px-6">
           {footer}
         </div>
       )}
@@ -170,7 +170,7 @@ export function StatusBadge({
   variant?: "neutral" | "success" | "warning" | "danger" | "info" 
 }) {
   const variants = {
-    neutral: "bg-neutral-100 text-neutral-600 border-neutral-200",
+    neutral: "bg-neutral-100 dark:bg-[#28231c] text-neutral-600 dark:text-[#8a7d69] border-neutral-200",
     success: "bg-emerald-50 text-emerald-700 border-emerald-100",
     warning: "bg-amber-50 text-amber-700 border-amber-100",
     danger: "bg-rose-50 text-rose-700 border-rose-100",
@@ -201,7 +201,7 @@ export function SafetyBadge({
     blocked: { label: "Blocked", icon: ShieldAlert, class: "bg-rose-50 text-rose-700 border-rose-100" },
   };
 
-  const current = config[level.toLowerCase()] || { label: level, icon: ShieldQuestion, class: "bg-neutral-50 text-neutral-700 border-neutral-100" };
+  const current = config[level.toLowerCase()] || { label: level, icon: ShieldQuestion, class: "bg-neutral-50 dark:bg-[#211d17] text-neutral-700 dark:text-[#d8ccb5] border-neutral-100" };
 
   return (
     <span className={cn(
@@ -229,12 +229,12 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#d4c9ae] bg-[#f3ecd8]/40 p-12 text-center">
-      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#faf5e8] border border-[#d4c9ae]">
-        {Icon ? <Icon className="size-7 text-[#8d8472]" /> : <ShieldQuestion className="size-7 text-[#8d8472]" />}
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c]/40 p-12 text-center">
+      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#faf5e8] dark:bg-[#211d17] border border-[#d4c9ae] dark:border-[#2d2820]">
+        {Icon ? <Icon className="size-7 text-[#8d8472] dark:text-[#6a5f4e]" /> : <ShieldQuestion className="size-7 text-[#8d8472] dark:text-[#6a5f4e]" />}
       </div>
-      <h3 className="text-[17px] font-semibold text-[#1d1813]">{title}</h3>
-      <p className="mt-2 max-w-sm text-[14px] text-[#6b6253] leading-relaxed">
+      <h3 className="text-[17px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{title}</h3>
+      <p className="mt-2 max-w-sm text-[14px] text-[#6b6253] dark:text-[#8a7d69] leading-relaxed">
         {description}
       </p>
       {action && <div className="mt-5">{action}</div>}
@@ -285,7 +285,7 @@ export function PillTabs({
               "flex h-10 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-bold transition-all",
               isActive
                 ? "bg-neutral-950 text-white shadow-lg border-transparent"
-                : "border-black/5 bg-white text-neutral-500 hover:border-black/10 hover:bg-neutral-50"
+                : "border-black/5 bg-white dark:bg-[#211d17] text-neutral-500 dark:text-[#8a7d69] hover:border-black/10 dark:border-white/10 hover:bg-neutral-50 dark:bg-[#211d17]"
             )}
           >
             {tab.label}
@@ -336,11 +336,11 @@ export function ActionRow({
 
   const getActionIcon = (actionStr: string) => {
     const s = actionStr.toLowerCase();
-    if (s.includes("call")) return <Phone className="size-4 text-[#1d1813]" />;
-    if (s.includes("dispute")) return <Flag className="size-4 text-[#6b6253]" />;
-    if (s.includes("reminder")) return <Mail className="size-4 text-[#1d1813]" />;
+    if (s.includes("call")) return <Phone className="size-4 text-[#1d1813] dark:text-[#f0e8d5]" />;
+    if (s.includes("dispute")) return <Flag className="size-4 text-[#6b6253] dark:text-[#8a7d69]" />;
+    if (s.includes("reminder")) return <Mail className="size-4 text-[#1d1813] dark:text-[#f0e8d5]" />;
     if (s.includes("no action")) return <CheckCircle2 className="size-4 text-[#4f6b3e]" />;
-    return <Mail className="size-4 text-[#1d1813]" />;
+    return <Mail className="size-4 text-[#1d1813] dark:text-[#f0e8d5]" />;
   };
 
   return (
@@ -349,7 +349,7 @@ export function ActionRow({
       onClick={onClick}
       className={cn(
         "group w-full text-left transition-all duration-150 border-b border-[#e0d6bd] last:border-0",
-        isSelected ? "bg-[#f0d3c2]/40" : "hover:bg-[#f3ecd8]/60"
+        isSelected ? "bg-[#f0d3c2]/40" : "hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]/60"
       )}
     >
       <div
@@ -358,18 +358,18 @@ export function ActionRow({
       >
         {/* Index */}
         <div className="flex justify-center">
-          <span className="text-[12px] font-medium text-[#8d8472] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif" }}>
+          <span className="text-[12px] font-medium text-[#8d8472] dark:text-[#6a5f4e] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif" }}>
             {index !== undefined ? index + 1 : "-"}
           </span>
         </div>
 
         {/* Title + Subtitle (Customer) */}
         <div className="min-w-0">
-          <p className="truncate text-[13.5px] font-semibold text-[#1d1813]">
+          <p className="truncate text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             {title}
           </p>
           {subtitle && (
-            <p className="mt-0.5 text-[11.5px] font-medium text-[#8d8472]">
+            <p className="mt-0.5 text-[11.5px] font-medium text-[#8d8472] dark:text-[#6a5f4e]">
               {subtitle}
             </p>
           )}
@@ -377,14 +377,14 @@ export function ActionRow({
 
         {/* Amount */}
         <div className="min-w-0">
-          <p className="text-[13.5px] font-semibold text-[#1d1813] tabular-nums">
+          <p className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] tabular-nums">
             {amount}
           </p>
         </div>
 
         {/* Oldest Invoice (Date) */}
         <div className="min-w-0">
-          <p className="text-[13px] font-medium text-[#6b6253]">
+          <p className="text-[13px] font-medium text-[#6b6253] dark:text-[#8a7d69]">
             {dueDate}
           </p>
         </div>
@@ -405,7 +405,7 @@ export function ActionRow({
           <div className="flex-shrink-0">
             {getActionIcon(action)}
           </div>
-          <p className="truncate text-[13px] font-medium text-[#3d362c]">
+          <p className="truncate text-[13px] font-medium text-[#3d362c] dark:text-[#d8ccb5]">
             {action}
           </p>
         </div>
@@ -417,13 +417,13 @@ export function ActionRow({
 
         {/* Review Button */}
         <div className="flex justify-end">
-          <span className="inline-flex h-7 items-center justify-center rounded-full border border-[#d4c9ae] bg-[#f3ecd8] px-4 text-[11.5px] font-medium text-[#6b6253] transition-all group-hover:bg-[#b8481f] group-hover:text-[#faf5e8] group-hover:border-[#b8481f]">
+          <span className="inline-flex h-7 items-center justify-center rounded-full border border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c] px-4 text-[11.5px] font-medium text-[#6b6253] dark:text-[#8a7d69] transition-all group-hover:bg-[#b8481f] group-hover:text-[#faf5e8] group-hover:border-[#b8481f]">
             Review
           </span>
         </div>
 
         {/* More Menu */}
-        <div className="flex justify-center text-[#b8ac8c] group-hover:text-[#6b6253]">
+        <div className="flex justify-center text-[#b8ac8c] group-hover:text-[#6b6253] dark:text-[#8a7d69]">
           <MoreVertical className="size-4" />
         </div>
       </div>
@@ -432,15 +432,15 @@ export function ActionRow({
       <div className="flex flex-col gap-3 p-5 lg:hidden">
         <div className="flex items-start justify-between">
           <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-[#1d1813]">{title}</p>
-            <p className="mt-0.5 text-[11px] font-medium text-[#8d8472]">{subtitle}</p>
+            <p className="truncate text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{title}</p>
+            <p className="mt-0.5 text-[11px] font-medium text-[#8d8472] dark:text-[#6a5f4e]">{subtitle}</p>
           </div>
-          <p className="text-[14px] font-semibold text-[#1d1813] tabular-nums">{amount}</p>
+          <p className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] tabular-nums">{amount}</p>
         </div>
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <p className="text-[13px] font-medium text-[#3d362c]">{action}</p>
-            <p className="text-[11px] font-medium text-[#8d8472]">{actionDetail}</p>
+            <p className="text-[13px] font-medium text-[#3d362c] dark:text-[#d8ccb5]">{action}</p>
+            <p className="text-[11px] font-medium text-[#8d8472] dark:text-[#6a5f4e]">{actionDetail}</p>
           </div>
           <div className="flex items-center gap-2">
             {overdueDays && overdueDays > 0 && (
@@ -477,26 +477,26 @@ export function CustomerRow({
     <button
       type="button"
       onClick={onClick}
-      className="group w-full text-left transition-all duration-150 border-b border-[#e0d6bd] last:border-0 hover:bg-[#f3ecd8]/60"
+      className="group w-full text-left transition-all duration-150 border-b border-[#e0d6bd] last:border-0 hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]/60"
     >
       <div
         className="hidden lg:grid items-center gap-x-4 px-6 py-4"
         style={{ gridTemplateColumns: "48px minmax(200px, 2.5fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(100px, 1fr) minmax(200px, 2fr) minmax(110px, 1.2fr) 48px" }}
       >
         <div className="flex justify-center">
-          <span className="text-[12px] font-medium text-[#8d8472] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif" }}>
+          <span className="text-[12px] font-medium text-[#8d8472] dark:text-[#6a5f4e] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif" }}>
             {index !== undefined ? index + 1 : "-"}
           </span>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-semibold text-[#1d1813]">{name}</p>
-          <p className="mt-0.5 text-[11.5px] font-medium text-[#8d8472]">{invoiceCount} unpaid invoices</p>
+          <p className="truncate text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{name}</p>
+          <p className="mt-0.5 text-[11.5px] font-medium text-[#8d8472] dark:text-[#6a5f4e]">{invoiceCount} unpaid invoices</p>
         </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-[#1d1813] tabular-nums">{totalOverdue}</p>
+          <p className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] tabular-nums">{totalOverdue}</p>
         </div>
         <div className="min-w-0">
-          <p className="text-[13px] font-medium text-[#6b6253]">{avgDaysLate} days avg.</p>
+          <p className="text-[13px] font-medium text-[#6b6253] dark:text-[#8a7d69]">{avgDaysLate} days avg.</p>
         </div>
         <div className="min-w-0">
           <p className={cn("text-[13px] font-semibold", avgDaysLate > 0 ? "text-[#9a3535]" : "text-[#4f6b3e]")}>
@@ -504,7 +504,7 @@ export function CustomerRow({
           </p>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-[#3d362c]">{status}</p>
+          <p className="truncate text-[13px] font-medium text-[#3d362c] dark:text-[#d8ccb5]">{status}</p>
         </div>
         <div className="flex justify-start">{riskBadge}</div>
         <div className="flex justify-end">
@@ -515,7 +515,7 @@ export function CustomerRow({
       {/* Mobile view */}
       <div className="flex items-center justify-between px-5 py-4 lg:hidden">
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-bold text-neutral-950">{name}</p>
+          <p className="truncate text-[15px] font-bold text-neutral-950 dark:text-[#f0e8d5]">{name}</p>
           <p className="mt-1 text-[13px] font-medium text-rose-600">{totalOverdue} overdue</p>
         </div>
         <div className="flex items-center gap-3">

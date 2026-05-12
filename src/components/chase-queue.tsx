@@ -347,7 +347,7 @@ export function ChaseQueue({
                     key={inv.id}
                     onClick={() => openInvoice(inv)}
                     onMouseEnter={() => setHighlightedIdx(idx)}
-                    className="transition-colors cursor-pointer hover:bg-[#f3ecd8]"
+                    className="transition-colors cursor-pointer hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
                     style={{
                       borderTop: "1px solid var(--zn-line-soft)",
                       background: isHighlighted ? "var(--zn-surface-2)" : undefined,
@@ -377,7 +377,7 @@ export function ChaseQueue({
                             e.stopPropagation();
                             openCustomer(inv.customerName);
                           }}
-                          className="text-[13.5px] font-semibold text-left text-[#1d1813] hover:underline truncate"
+                          className="text-[13.5px] font-semibold text-left text-[#1d1813] dark:text-[#f0e8d5] hover:underline truncate"
                           style={{ background: "transparent", border: 0, padding: 0 }}
                         >
                           {inv.customerName}
@@ -568,7 +568,7 @@ function WaitingTable({ invoices }: { invoices: ZentraInvoice[] }) {
               {idx + 1}
             </td>
             <td style={{ padding: "14px 10px" }}>
-              <div className="text-[13.5px] font-semibold text-[#1d1813] truncate">
+              <div className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">
                 {inv.customerName}
               </div>
               <div className="zn-kind-tag mt-0.5">{inv.invoiceNumber}</div>

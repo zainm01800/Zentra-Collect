@@ -118,7 +118,7 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       autoComplete={autoComplete}
-      className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-neutral-950 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+      className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] px-3.5 py-2.5 text-sm text-neutral-950 dark:text-[#f0e8d5] placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
     />
   );
 }
@@ -142,7 +142,7 @@ function RadioGroup<T extends string>({
           className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
             value === opt.value
               ? "border-neutral-950 bg-neutral-950 text-white"
-              : "border-black/12 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
+              : "border-black/12 bg-white dark:bg-[#211d17] text-neutral-700 dark:text-[#d8ccb5] hover:border-neutral-400 hover:bg-neutral-50 dark:bg-[#211d17]"
           }`}
         >
           {opt.label}
@@ -181,7 +181,7 @@ function CheckboxGroup<T extends string>({
             className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors ${
               checked
                 ? "border-neutral-950 bg-neutral-950 text-white"
-                : "border-black/12 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
+                : "border-black/12 bg-white dark:bg-[#211d17] text-neutral-700 dark:text-[#d8ccb5] hover:border-neutral-400 hover:bg-neutral-50 dark:bg-[#211d17]"
             }`}
           >
             {checked && (
@@ -210,7 +210,7 @@ function SelectInput({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-neutral-950 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+      className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] px-3.5 py-2.5 text-sm text-neutral-950 dark:text-[#f0e8d5] focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
     >
       {placeholder && (
         <option value="" disabled>
@@ -246,10 +246,10 @@ function ConfirmationScreen() {
       <div className="flex size-16 items-center justify-center rounded-full bg-neutral-950">
         <CheckCircle2 className="size-8 text-white" />
       </div>
-      <h2 className="mt-6 text-2xl font-semibold text-neutral-950">
+      <h2 className="mt-6 text-2xl font-semibold text-neutral-950 dark:text-[#f0e8d5]">
         Request received
       </h2>
-      <p className="mt-3 max-w-md text-base leading-7 text-neutral-500">
+      <p className="mt-3 max-w-md text-base leading-7 text-neutral-500 dark:text-[#8a7d69]">
         Thanks — we&rsquo;ll review your request and contact you about early
         access. Founding spaces are limited, and we&rsquo;ll prioritise users
         whose workflow matches what Zentra Collect is built for.
@@ -268,7 +268,7 @@ function ConfirmationScreen() {
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-6 py-2.5 text-sm font-medium text-neutral-950 transition-colors hover:bg-neutral-50"
+          className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white dark:bg-[#211d17] px-6 py-2.5 text-sm font-medium text-neutral-950 dark:text-[#f0e8d5] transition-colors hover:bg-neutral-50 dark:bg-[#211d17]"
         >
           Back to home
         </Link>
@@ -330,10 +330,10 @@ export default function RequestAccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf8f1] text-neutral-950">
+    <div className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] text-neutral-950 dark:text-[#f0e8d5]">
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 border-b border-black/10 bg-[#fbf8f1]/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3 font-semibold">
             <span className="flex size-9 items-center justify-center rounded-xl bg-neutral-950 text-base font-bold text-white">
@@ -341,14 +341,14 @@ export default function RequestAccessPage() {
             </span>
             <span className="leading-tight">
               <span className="block tracking-[0.18em]">ZENTRA</span>
-              <span className="block text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              <span className="block text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
                 Collect
               </span>
             </span>
           </Link>
           <Link
             href="/dashboard"
-            className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950"
+            className="text-sm font-medium text-neutral-500 dark:text-[#8a7d69] transition-colors hover:text-neutral-950 dark:text-[#f0e8d5]"
           >
             Try the demo
           </Link>
@@ -368,10 +368,10 @@ export default function RequestAccessPage() {
             </div>
 
             {/* ── Heading ─────────────────────────────────────────────────── */}
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 dark:text-[#f0e8d5] sm:text-4xl">
               Request founding access
             </h1>
-            <p className="mt-4 text-base leading-7 text-neutral-500">
+            <p className="mt-4 text-base leading-7 text-neutral-500 dark:text-[#8a7d69]">
               Zentra Collect is in private beta. We&rsquo;re onboarding a small
               group of bookkeepers and service businesses to help us sharpen the
               product before we open more widely. Fill in the form and we&rsquo;ll
@@ -379,10 +379,10 @@ export default function RequestAccessPage() {
             </p>
 
             {/* ── Honest product note ─────────────────────────────────────── */}
-            <div className="mt-6 flex gap-3 rounded-2xl border border-black/8 bg-white/70 p-4">
+            <div className="mt-6 flex gap-3 rounded-2xl border border-black/8 bg-white/70 dark:bg-[#28231c] p-4">
               <Lock className="mt-0.5 size-4 shrink-0 text-neutral-400" />
-              <p className="text-sm leading-6 text-neutral-500">
-                <span className="font-medium text-neutral-700">This is beta software.</span>{" "}
+              <p className="text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
+                <span className="font-medium text-neutral-700 dark:text-[#d8ccb5]">This is beta software.</span>{" "}
                 The product currently works with CSV exports from most UK
                 accounting tools. All draft messages require your review before
                 sending — nothing is sent automatically. Founding access is
@@ -580,7 +580,7 @@ export default function RequestAccessPage() {
                   onChange={(e) => patch({ message: e.target.value })}
                   rows={4}
                   placeholder="e.g. We use Xero but export to Excel before chasing. Most of our pain is around clients who promise but don't pay…"
-                  className="mt-2 w-full resize-none rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-neutral-950 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
+                  className="mt-2 w-full resize-none rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] px-3.5 py-2.5 text-sm text-neutral-950 dark:text-[#f0e8d5] placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-200"
                 />
               </div>
 

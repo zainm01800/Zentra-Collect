@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Check, FileText, Mail, ShieldAlert } from "lucide-react";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -35,24 +34,26 @@ export default async function DisputesPage() {
   const isDemo = dbDisputes.length === 0;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
-        <PageHeader
+    <div className="flex flex-col gap-5">
+      <PageHeader
           kicker="Exceptions desk"
           title="Disputes & holds"
           sub="Invoices Zentra has paused chasing — and what's needed to unblock them."
         />
 
         {isDemo && (
-          <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-500">
-            Showing sample data — import your invoices to track real disputes.
+          <div className="rounded-lg px-3.5 py-2.5 text-[12.5px]" style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line)" }}>
+            Sample data — import your invoices to track real disputes.
           </div>
         )}
 
         <div className="flex flex-col gap-3">
           {disputes.length === 0 ? (
-            <div className="zn-card p-10 text-center">
-              <p className="text-[#6b6253]">No active disputes. 🎉</p>
+            <div className="zn-card p-10 text-center flex flex-col items-center gap-2">
+              <p className="text-[15px] font-semibold" style={{ color: "var(--zn-ink-2)" }}>No active disputes</p>
+              <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+                Disputes are logged when you pause chasing an invoice from the collections queue.
+              </p>
             </div>
           ) : disputes.map((d) => (
             <div key={d.id} className="zn-card p-[18px]">
@@ -112,6 +113,5 @@ export default async function DisputesPage() {
           ))}
         </div>
       </div>
-    </AppShell>
   );
 }

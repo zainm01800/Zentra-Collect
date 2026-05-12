@@ -68,11 +68,11 @@ export function AccountPlanSettings() {
   return (
     <section className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-neutral-500">Account & plan</p>
+        <p className="text-sm font-medium text-neutral-500 dark:text-[#8a7d69]">Account & plan</p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">
           Plan settings
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
           Billing is represented by internal plan state for this MVP. Payments
           are not live yet.
         </p>
@@ -80,11 +80,11 @@ export function AccountPlanSettings() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+          <Card className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div>
                 <CardTitle>Current plan</CardTitle>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
                   {plan.description}
                 </p>
               </div>
@@ -94,8 +94,8 @@ export function AccountPlanSettings() {
               <PlanFact label="Plan" value={plan.name} />
               <PlanFact label="Price" value={formatPrice(plan.priceMonthlyGbp)} />
               <PlanFact label="Status" value={formatStatus(accountState)} />
-              <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
+              <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500 dark:text-[#8a7d69]">
                   Trial
                 </p>
                 <div className="mt-2">
@@ -117,10 +117,10 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+          <Card className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
             <CardHeader>
               <CardTitle>Usage this month</CardTitle>
-              <p className="text-sm leading-6 text-neutral-600">
+              <p className="text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
                 Usage is tracked locally in this MVP and should move to server
                 rollups before production.
               </p>
@@ -137,7 +137,7 @@ export function AccountPlanSettings() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+          <Card className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
             <CardHeader>
               <CardTitle>Trial & grace period</CardTitle>
             </CardHeader>
@@ -165,7 +165,7 @@ export function AccountPlanSettings() {
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm leading-6 text-neutral-600">
+                <p className="text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
                   This account is not currently in a trial.
                 </p>
               )}
@@ -180,14 +180,14 @@ export function AccountPlanSettings() {
             recommendedPlan={recommendedUpgrade ? getPlanConfig(recommendedUpgrade).name : undefined}
           />
 
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+          <Card className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
             <CardHeader>
               <CardTitle>Safety controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {safetyControls.map((item) => (
-                <div key={item} className="flex items-center gap-3 text-sm text-neutral-700">
-                  <ShieldCheck className="size-4 text-neutral-950" />
+                <div key={item} className="flex items-center gap-3 text-sm text-neutral-700 dark:text-[#d8ccb5]">
+                  <ShieldCheck className="size-4 text-neutral-950 dark:text-[#f0e8d5]" />
                   <span>{item}</span>
                 </div>
               ))}
@@ -211,7 +211,7 @@ export function AccountPlanSettings() {
               </span>
               <div className="min-w-0">
                 <div className="zn-label !p-0 mb-1">Billing</div>
-                <h3 className="text-[15px] font-semibold text-[#1d1813]">
+                <h3 className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                   Handled by support during beta
                 </h3>
                 <p className="text-[13px] leading-relaxed mt-1.5" style={{ color: "var(--zn-ink-3)" }}>
@@ -233,14 +233,14 @@ export function AccountPlanSettings() {
             </div>
           </div>
 
-          <Card className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+          <Card className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
             <CardHeader>
               <CardTitle>Data controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <a
                 href="mailto:hello@zentracollect.co.uk?subject=Export%20my%20Zentra%20data"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors hover:bg-[#f3ecd8]"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
                 style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
               >
                 <FileDown className="size-4" />
@@ -260,11 +260,11 @@ export function AccountPlanSettings() {
 
 function PlanFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-black/10 bg-[#fbf8f1] p-4">
-      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
+    <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500 dark:text-[#8a7d69]">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-neutral-950">{value}</p>
+      <p className="mt-2 text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{value}</p>
     </div>
   );
 }

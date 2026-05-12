@@ -70,9 +70,9 @@ export function AutoSendArmingBanner() {
   }
 
   return (
-    <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center gap-3 text-sm">
-      <Mail className="size-4 text-amber-700 shrink-0" />
-      <span className="flex-1 text-amber-900">
+    <div className="bg-amber-50 dark:bg-[#221a08] border-b border-amber-200 dark:border-[#3d2a0a] px-4 py-2.5 flex items-center gap-3 text-sm">
+      <Mail className="size-4 text-amber-700 dark:text-[#f0c060] shrink-0" />
+      <span className="flex-1 text-amber-900 dark:text-[#f0c060]">
         {isDemo ? (
           <>
             <strong>Demo:</strong> Auto-send arming simulation — would activate in{" "}
@@ -88,7 +88,7 @@ export function AutoSendArmingBanner() {
       </span>
       <button
         onClick={handleCancel}
-        className="text-amber-700 hover:text-amber-900 flex items-center gap-1 shrink-0 font-medium"
+        className="text-amber-700 dark:text-[#c8a040] hover:text-amber-900 dark:hover:text-[#f0c060] flex items-center gap-1 shrink-0 font-medium"
       >
         <X className="size-3.5" />
         Cancel

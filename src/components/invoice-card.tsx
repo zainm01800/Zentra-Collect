@@ -18,7 +18,7 @@ const urgencyColour: Record<string, string> = {
   Critical: "border-rose-200 bg-rose-50 text-rose-700",
   High: "border-amber-200 bg-amber-50 text-amber-700",
   Medium: "border-yellow-200 bg-yellow-50 text-yellow-700",
-  Low: "border-[#d4c9ae] bg-[#f3ecd8] text-[#6b6253]",
+  Low: "border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c] text-[#6b6253] dark:text-[#8a7d69]",
 };
 
 export function InvoiceCard({
@@ -42,10 +42,10 @@ export function InvoiceCard({
     <button
       type="button"
       onClick={() => onOpen(invoice)}
-      className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
+      className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] dark:border-[#3d3628] hover:bg-[#f5eed9] dark:hover:bg-[#2d2820] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
     >
       {/* Left: customer + amounts */}
-      <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+      <div className="min-w-0 border-b border-[#d4c9ae] dark:border-[#2d2820] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
         <span
           role="button"
           tabIndex={0}
@@ -59,25 +59,25 @@ export function InvoiceCard({
               onOpenCustomer(invoice.customerName);
             }
           }}
-          className="block truncate text-left text-base font-semibold text-[#1d1813] underline-offset-4 hover:underline cursor-pointer"
+          className="block truncate text-left text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5] underline-offset-4 hover:underline cursor-pointer"
         >
           {invoice.customerName}
         </span>
-        <p className="mt-1 text-sm text-[#8d8472]">{invoice.invoiceNumber}</p>
+        <p className="mt-1 text-sm text-[#8d8472] dark:text-[#6a5f4e]">{invoice.invoiceNumber}</p>
 
         <div className="mt-4 space-y-2">
-          <p className="text-base font-semibold text-[#1d1813]">
+          <p className="text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             {formatCurrency(invoice.amount)}
           </p>
           {invoice.daysOverdue > 0 ? (
             <p className="text-sm font-medium text-rose-600">
               {invoice.daysOverdue}d overdue
-              <span className="ml-1.5 font-normal text-[#a09885]">
+              <span className="ml-1.5 font-normal text-[#a09885] dark:text-[#8a7d69]">
                 · due {formatDate(invoice.dueDate)}
               </span>
             </p>
           ) : (
-            <p className="text-sm text-[#8d8472]">
+            <p className="text-sm text-[#8d8472] dark:text-[#6a5f4e]">
               Due {formatDate(invoice.dueDate)}
             </p>
           )}
@@ -85,8 +85,8 @@ export function InvoiceCard({
       </div>
 
       <div className="min-w-0">
-        <p className="text-base font-semibold text-[#1d1813]">{suggestedAction}</p>
-        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+        <p className="text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{suggestedAction}</p>
+        <p className="mt-2 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
           {customerProfile.summary.split(".")[0].trim()}.
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -94,7 +94,7 @@ export function InvoiceCard({
             <Badge
               key={label}
               variant="outline"
-              className="rounded-full border-[#d4c9ae] bg-[#f3ecd8] text-[10px] uppercase tracking-wider text-[#8d8472]"
+              className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c] text-[10px] uppercase tracking-wider text-[#8d8472] dark:text-[#6a5f4e]"
             >
               {label}
             </Badge>

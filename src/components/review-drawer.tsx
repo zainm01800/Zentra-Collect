@@ -382,7 +382,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
           >
             <div className="flex flex-col min-w-0 flex-1">
               <div className="zn-label !p-0">Review</div>
-              <div className="text-[15px] font-semibold text-[#1d1813] truncate mt-0.5">
+              <div className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate mt-0.5">
                 {current.customerName}
               </div>
               <div className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
@@ -394,7 +394,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               <button
                 type="button"
                 onClick={() => setFocusMode((v) => !v)}
-                className="size-7 inline-flex items-center justify-center rounded-md border transition-colors hover:bg-[#f3ecd8]"
+                className="size-7 inline-flex items-center justify-center rounded-md border transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
                 style={{ borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}
                 title={focusMode ? "Compact" : "Focus mode"}
                 aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
@@ -404,7 +404,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               <button
                 type="button"
                 onClick={close}
-                className="size-7 inline-flex items-center justify-center rounded-md border transition-colors hover:bg-[#f3ecd8]"
+                className="size-7 inline-flex items-center justify-center rounded-md border transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
                 style={{ borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}
                 title="Close"
                 aria-label="Close review drawer"
@@ -671,7 +671,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                 }}
               >
                 <div className="flex items-center justify-between mb-2.5">
-                  <div className="text-[13px] font-semibold text-[#1d1813]">
+                  <div className="text-[13px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                     {current.customerName}
                   </div>
                   {risks.length ? (
@@ -723,10 +723,10 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                         style={{ background: "var(--zn-accent)" }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="text-[12.5px] font-semibold text-[#1d1813]">
+                        <div className="text-[12.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                           {event.title}
                         </div>
-                        <div className="text-[11.5px] text-[#6b6253] mt-0.5">
+                        <div className="text-[11.5px] text-[#6b6253] dark:text-[#8a7d69] mt-0.5">
                           {event.description}
                         </div>
                         <div

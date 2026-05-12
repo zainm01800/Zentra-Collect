@@ -40,7 +40,7 @@ const checkConfig = {
   safe_to_draft: {
     Icon: CheckCircle2,
     iconClass: "text-emerald-500",
-    rowClass: "border-[#d4c9ae] bg-[#faf5e8]",
+    rowClass: "border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]",
   },
 } as const;
 
@@ -55,9 +55,9 @@ export function SafetyPanel({
   const { label, badgeClass, Icon } = statusConfig[status];
 
   return (
-    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+    <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
           Safety checks
         </p>
         <Badge variant="outline" className={`rounded-full ${badgeClass}`}>
@@ -77,8 +77,8 @@ export function SafetyPanel({
               >
                 <CheckIcon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-[#1d1813]">{check.title}</p>
-                  <p className="mt-0.5 text-xs leading-5 text-[#6b6253]">
+                  <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">{check.title}</p>
+                  <p className="mt-0.5 text-xs leading-5 text-[#6b6253] dark:text-[#8a7d69]">
                     {check.explanation}
                   </p>
                 </div>
@@ -86,7 +86,7 @@ export function SafetyPanel({
             );
           })
         ) : (
-          <li className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-emerald-700">
+          <li className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm text-emerald-700">
             <CheckCircle2 className="size-4 text-emerald-500" />
             No safety issues found. Safe to draft.
           </li>
@@ -101,7 +101,7 @@ export function SafetyPanel({
         </div>
       ) : null}
 
-      <p className="mt-3 text-xs leading-5 text-[#a09885]">
+      <p className="mt-3 text-xs leading-5 text-[#a09885] dark:text-[#8a7d69]">
         Zentra drafts and recommends. You are responsible for reviewing messages
         before sending.
       </p>

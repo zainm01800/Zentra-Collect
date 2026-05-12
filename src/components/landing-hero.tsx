@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function LandingHero() {
   return (
-    <section className="border-b bg-white">
+    <section className="border-b bg-white dark:bg-[#211d17]">
       <div className="mx-auto grid min-h-[680px] max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_520px] lg:px-8 lg:py-20">
         <div className="flex flex-col justify-center">
           <Badge variant="outline" className="w-fit">

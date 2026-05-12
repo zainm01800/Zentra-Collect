@@ -118,10 +118,10 @@ export function AutoSendToggle({
   // ── Locked / upgrade states ──────────────────────────────────────────────
   if (state === "locked") {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-400 text-sm cursor-not-allowed select-none">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-400 dark:text-[#6a5f4e] text-sm cursor-not-allowed select-none">
         <Lock className="size-3.5" />
         <span>Auto-send</span>
-        <span className="ml-auto text-xs bg-zinc-100 text-zinc-500 rounded-full px-2 py-0.5">
+        <span className="ml-auto text-xs bg-zinc-100 dark:bg-[#28231c] text-zinc-500 dark:text-[#8a7d69] rounded-full px-2 py-0.5">
           Upgrade
         </span>
       </div>
@@ -133,11 +133,11 @@ export function AutoSendToggle({
       <>
         <button
           onClick={handleToggle}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-zinc-100 transition-colors group"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-zinc-100 dark:hover:bg-[#28231c] transition-colors group"
         >
-          <Zap className="size-3.5 text-zinc-400 group-hover:text-zinc-600" />
-          <span className="text-zinc-500 group-hover:text-zinc-700">Auto-send</span>
-          <span className="ml-auto text-xs bg-zinc-100 text-zinc-500 rounded-full px-2 py-0.5">
+          <Zap className="size-3.5 text-zinc-400 dark:text-[#6a5f4e] group-hover:text-zinc-600 dark:group-hover:text-[#8a7d69]" />
+          <span className="text-zinc-500 dark:text-[#8a7d69] group-hover:text-zinc-700 dark:group-hover:text-[#c8b99a]">Auto-send</span>
+          <span className="ml-auto text-xs bg-zinc-100 dark:bg-[#28231c] text-zinc-500 dark:text-[#8a7d69] rounded-full px-2 py-0.5">
             Add-on
           </span>
         </button>
@@ -163,12 +163,12 @@ export function AutoSendToggle({
     <>
       <button
         onClick={handleToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-zinc-100 transition-colors group"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-zinc-100 dark:hover:bg-[#28231c] transition-colors group"
       >
-        <Mail className="size-3.5 text-zinc-500 group-hover:text-zinc-700" />
-        <span className="text-zinc-700 group-hover:text-zinc-900">{label}</span>
+        <Mail className="size-3.5 text-zinc-500 dark:text-[#8a7d69] group-hover:text-zinc-700 dark:group-hover:text-[#c8b99a]" />
+        <span className="text-zinc-700 dark:text-[#c8b99a] group-hover:text-zinc-900 dark:group-hover:text-[#f0e8d5]">{label}</span>
         {state === "demo" && (
-          <span className="text-[10px] bg-zinc-100 text-zinc-400 rounded-full px-1.5 py-0.5 leading-none">
+          <span className="text-[10px] bg-zinc-100 dark:bg-[#28231c] text-zinc-400 dark:text-[#6a5f4e] rounded-full px-1.5 py-0.5 leading-none">
             demo
           </span>
         )}
@@ -176,11 +176,11 @@ export function AutoSendToggle({
           <span className={`w-2 h-2 rounded-full ${statusDot}`} />
           <span
             className={`w-8 h-4 rounded-full flex items-center transition-colors ${
-              isEnabled ? "bg-zinc-900" : "bg-zinc-200"
+              isEnabled ? "bg-zinc-900 dark:bg-[#f0e8d5]" : "bg-zinc-200 dark:bg-[#2d2820]"
             }`}
           >
             <span
-              className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ml-0.5 ${
+              className={`w-3 h-3 rounded-full bg-white dark:bg-[#211d17] shadow-sm transition-transform ml-0.5 ${
                 isEnabled ? "translate-x-4" : "translate-x-0"
               }`}
             />

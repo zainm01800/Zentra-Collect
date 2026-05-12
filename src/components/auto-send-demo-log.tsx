@@ -43,31 +43,31 @@ export function AutoSendDemoLog() {
   if (!visible) return null;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
-      <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Mail className="size-4 text-zinc-500" />
-        <span className="text-sm font-medium text-zinc-800">Auto-send log</span>
-        <span className="ml-auto text-xs bg-zinc-100 text-zinc-500 rounded-full px-2 py-0.5">
-          Demo — simulated data
+    <div className="rounded-2xl border border-zinc-200 bg-white dark:bg-[#211d17] overflow-hidden">
+      <div className="px-4 py-3 border-b border-zinc-100 dark:border-[#2d2820] flex items-center gap-2">
+        <Mail className="size-4 text-zinc-500 dark:text-[#8a7d69]" />
+        <span className="text-sm font-medium text-zinc-800 dark:text-[#d8ccb5]">Auto-send log</span>
+        <span className="ml-auto text-xs bg-zinc-100 dark:bg-[#28231c] text-zinc-500 dark:text-[#8a7d69] rounded-full px-2 py-0.5">
+          Simulated
         </span>
       </div>
-      <div className="divide-y divide-zinc-100">
+      <div className="divide-y divide-zinc-100 dark:divide-[#2d2820]">
         {FAKE_LOG.map((entry) => (
           <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
             <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-zinc-800 truncate">{entry.name}</p>
-              <p className="text-xs text-zinc-500 truncate">{entry.subject}</p>
+              <p className="text-sm font-medium text-zinc-800 dark:text-[#d8ccb5] truncate">{entry.name}</p>
+              <p className="text-xs text-zinc-500 dark:text-[#8a7d69] truncate">{entry.subject}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs font-medium text-zinc-700">{entry.amount}</p>
-              <p className="text-[10px] text-zinc-400">{entry.sentAt}</p>
+              <p className="text-xs font-medium text-zinc-700 dark:text-[#c8b99a]">{entry.amount}</p>
+              <p className="text-[10px] text-zinc-400 dark:text-[#6a5f4e]">{entry.sentAt}</p>
             </div>
           </div>
         ))}
       </div>
-      <div className="px-4 py-2.5 bg-zinc-50 border-t border-zinc-100">
-        <p className="text-xs text-zinc-400">
+      <div className="px-4 py-2.5 bg-zinc-50 dark:bg-[#1e1a15] border-t border-zinc-100 dark:border-[#2d2820]">
+        <p className="text-xs text-zinc-400 dark:text-[#6a5f4e]">
           3 emails sent this run · next run scheduled for 10:00 UTC
         </p>
       </div>

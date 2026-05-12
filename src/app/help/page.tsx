@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 
 import type { Metadata } from "next";
@@ -29,8 +28,7 @@ const faqs = [
 
 export default function HelpPage() {
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <PageHeader
           kicker="Help & support"
           title="How Zentra works"
@@ -117,6 +115,5 @@ export default function HelpPage() {
           ))}
         </div>
       </div>
-    </AppShell>
   );
 }

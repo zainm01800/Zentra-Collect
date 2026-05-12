@@ -279,7 +279,7 @@ export function ZentraImportFlow() {
       <section>
         <div className="zn-label mb-1.5">Bring data in</div>
         <h1 className="zn-page-h1">Upload overdue invoices</h1>
-        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
           Bring in an AR ageing or unpaid invoice export, map the columns, and
           turn it into a ranked collections plan.
         </p>
@@ -346,9 +346,9 @@ export function ZentraImportFlow() {
           ) : null}
 
           {step === "complete" ? (
-            <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+            <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
               <CardHeader>
-                <CheckCircle2 className="size-8 text-[#1d1813]" />
+                <CheckCircle2 className="size-8 text-[#1d1813] dark:text-[#f0e8d5]" />
                 <CardTitle className="text-2xl">Import complete</CardTitle>
                 <CardDescription>
                   Your dashboard is being refreshed with the new collections
@@ -385,7 +385,7 @@ function ImportSteps({ current }: { current: ImportStep }) {
   const currentIndex = steps.findIndex((step) => step.id === current);
 
   return (
-    <Card className="h-fit rounded-2xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="h-fit rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <CardTitle>Import flow</CardTitle>
         <CardDescription>
@@ -399,14 +399,14 @@ function ImportSteps({ current }: { current: ImportStep }) {
               className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 index <= currentIndex
                   ? "bg-[#1d1813] text-white"
-                  : "bg-[#f3ecd8] text-[#8d8472]"
+                  : "bg-[#f3ecd8] dark:bg-[#28231c] text-[#8d8472] dark:text-[#6a5f4e]"
               }`}
             >
               {index + 1}
             </span>
             <div>
-              <p className="text-sm font-medium text-[#1d1813]">{step.label}</p>
-              <p className="text-xs text-[#8d8472]">{step.detail}</p>
+              <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">{step.label}</p>
+              <p className="text-xs text-[#8d8472] dark:text-[#6a5f4e]">{step.detail}</p>
             </div>
           </div>
         ))}
@@ -417,10 +417,10 @@ function ImportSteps({ current }: { current: ImportStep }) {
 
 function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-[#f3ecd8]">
-          <FileUp className="size-5 text-[#1d1813]" />
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-[#f3ecd8] dark:bg-[#28231c]">
+          <FileUp className="size-5 text-[#1d1813] dark:text-[#f0e8d5]" />
         </div>
         <CardTitle className="text-2xl">Upload an AR export</CardTitle>
         <CardDescription className="max-w-2xl leading-6">
@@ -432,13 +432,13 @@ function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
       <CardContent className="space-y-5">
         <Label
           htmlFor="invoice-file"
-          className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-[#c0b49c] bg-[#faf5e8] px-6 py-12 text-center"
+          className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed border-[#c0b49c] dark:border-[#3d3628] bg-[#faf5e8] dark:bg-[#211d17] px-6 py-12 text-center"
         >
-          <FileSpreadsheet className="size-10 text-[#1d1813]" />
-          <span className="mt-4 text-base font-semibold text-[#1d1813]">
+          <FileSpreadsheet className="size-10 text-[#1d1813] dark:text-[#f0e8d5]" />
+          <span className="mt-4 text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             Choose CSV file
           </span>
-          <span className="mt-2 max-w-md text-sm leading-6 text-[#6b6253]">
+          <span className="mt-2 max-w-md text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
             CSV files supported. Excel (.xlsx) coming soon.
           </span>
           <Input
@@ -478,7 +478,7 @@ function MappingPanel({
   const suggestions = suggestColumnMappings(headers);
 
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -489,7 +489,7 @@ function MappingPanel({
           </div>
           <Badge
             variant="outline"
-            className="w-fit rounded-full border-[#d4c9ae] bg-[#f3ecd8]"
+            className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c]"
           >
             <Wand2 className="size-3" />
             deterministic suggestions
@@ -504,14 +504,14 @@ function MappingPanel({
           return (
             <div
               key={field}
-              className="grid gap-3 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3 sm:grid-cols-[220px_minmax(0,1fr)_140px]"
+              className="grid gap-3 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 sm:grid-cols-[220px_minmax(0,1fr)_140px]"
             >
               <div>
-                <p className="text-sm font-medium text-[#1d1813]">
+                <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                   {importFieldLabels[field]}
                   {required ? <span className="text-red-600"> *</span> : null}
                 </p>
-                <p className="mt-1 text-xs text-[#8d8472]">
+                <p className="mt-1 text-xs text-[#8d8472] dark:text-[#6a5f4e]">
                   {required ? "Required" : "Recommended"}
                 </p>
               </div>
@@ -519,7 +519,7 @@ function MappingPanel({
                 value={mappings[field] || "__unmapped__"}
                 onValueChange={(value) => onMappingChange(field, value)}
               >
-                <SelectTrigger className="w-full rounded-full bg-white">
+                <SelectTrigger className="w-full rounded-full bg-white dark:bg-[#211d17]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -538,13 +538,13 @@ function MappingPanel({
           );
         })}
         <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
-          <p className="mr-auto max-w-md text-xs leading-5 text-[#8d8472]">
+          <p className="mr-auto max-w-md text-xs leading-5 text-[#8d8472] dark:text-[#6a5f4e]">
             Low-confidence mappings can later be sent to a server-side
             AI-assisted mapper. This MVP does not require AI to import a file.
           </p>
             <Button
               variant="outline"
-              className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+              className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
               onClick={onSaveTemplate}
             >
               {canSaveTemplate ? "Save mapping template" : "Save mapping locked"}
@@ -565,7 +565,7 @@ function MappingPanel({
 
 function SampleRows({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <CardTitle>Sample rows</CardTitle>
         <CardDescription>
@@ -573,9 +573,9 @@ function SampleRows({ headers, rows }: { headers: string[]; rows: string[][] }) 
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae]">
+        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820]">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#f3ecd8] text-xs uppercase tracking-[0.12em] text-[#8d8472]">
+            <thead className="bg-[#f3ecd8] dark:bg-[#28231c] text-xs uppercase tracking-[0.12em] text-[#8d8472] dark:text-[#6a5f4e]">
               <tr>
                 {headers.map((header) => (
                   <th key={header} className="px-3 py-3 font-medium">
@@ -584,7 +584,7 @@ function SampleRows({ headers, rows }: { headers: string[]; rows: string[][] }) 
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/10 bg-[#faf5e8]">
+            <tbody className="divide-y divide-black/10 bg-[#faf5e8] dark:bg-[#211d17]">
               {rows.map((row, index) => (
                 <tr key={index}>
                   {headers.map((header, cellIndex) => (
@@ -612,7 +612,7 @@ function ValidationPanel({ issues }: { issues: ImportValidationIssue[] }) {
   }
 
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <CardTitle>Validation</CardTitle>
         <CardDescription>
@@ -634,7 +634,7 @@ function ValidationPanel({ issues }: { issues: ImportValidationIssue[] }) {
           </div>
         ))}
         {issues.length > 12 ? (
-          <p className="text-xs text-[#8d8472]">
+          <p className="text-xs text-[#8d8472] dark:text-[#6a5f4e]">
             Showing 12 of {issues.length} validation messages.
           </p>
         ) : null}
@@ -668,7 +668,7 @@ function PreviewPanel({
   );
 
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -681,7 +681,7 @@ function PreviewPanel({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+              className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
               onClick={onBack}
             >
               Back
@@ -707,9 +707,9 @@ function PreviewPanel({
             />
           </div>
         ) : null}
-        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae]">
+        <div className="overflow-x-auto rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820]">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#f3ecd8] text-xs uppercase tracking-[0.12em] text-[#8d8472]">
+            <thead className="bg-[#f3ecd8] dark:bg-[#28231c] text-xs uppercase tracking-[0.12em] text-[#8d8472] dark:text-[#6a5f4e]">
               <tr>
                 <th className="px-3 py-3 font-medium">Customer</th>
                 <th className="px-3 py-3 font-medium">Invoice</th>
@@ -718,10 +718,10 @@ function PreviewPanel({
                 <th className="px-3 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/10 bg-[#faf5e8]">
+            <tbody className="divide-y divide-black/10 bg-[#faf5e8] dark:bg-[#211d17]">
               {invoices.slice(0, 12).map((invoice) => (
                 <tr key={`${invoice.rowNumber}-${invoice.invoiceNumber}`}>
-                  <td className="px-3 py-3 font-medium text-[#1d1813]">
+                  <td className="px-3 py-3 font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                     {invoice.customerName}
                   </td>
                   <td className="px-3 py-3">{invoice.invoiceNumber}</td>
@@ -742,17 +742,17 @@ function PreviewPanel({
 
 function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
   return (
-    <div className="mb-5 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+    <div className="mb-5 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
             What changed since last import
           </p>
-          <h3 className="mt-2 text-lg font-semibold text-[#1d1813]">
+          <h3 className="mt-2 text-lg font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             Zentra compared this file with the previous import
           </h3>
         </div>
-        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
           {diff.previousInvoiceCount} previous · {diff.currentInvoiceCount} current
         </Badge>
       </div>
@@ -772,9 +772,9 @@ function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
           {diff.topChanges.map((change) => (
             <div
               key={change.id}
-              className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-[#3d3428]"
+              className="rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm text-[#3d3428] dark:text-[#d8ccb5]"
             >
-              <span className="font-medium text-[#1d1813]">
+              <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                 {change.customerName} · {change.invoiceNumber}
               </span>{" "}
               {change.message}
@@ -788,11 +788,11 @@ function ImportDiffPreview({ diff }: { diff: ImportDiffOutput }) {
 
 function DiffStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472]">
+    <div className="rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472] dark:text-[#6a5f4e]">
         {label}
       </p>
-      <p className="mt-2 text-base font-semibold text-[#1d1813]">{value}</p>
+      <p className="mt-2 text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{value}</p>
     </div>
   );
 }
@@ -803,7 +803,7 @@ function ConfidenceBadge({ value }: { value: string }) {
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : value === "medium"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-[#d4c9ae] bg-[#f3ecd8] text-[#6b6253]";
+        : "border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c] text-[#6b6253] dark:text-[#8a7d69]";
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>

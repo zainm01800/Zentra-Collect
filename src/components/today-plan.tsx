@@ -20,7 +20,7 @@ export function TodayPlan({ invoices }: { invoices: Invoice[] }) {
           </h2>
           <p className="mt-3 text-sm leading-6 text-zinc-300">{plan.detail}</p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <Button asChild className="h-9 bg-white text-zinc-950 hover:bg-zinc-200">
+            <Button asChild className="h-9 bg-white dark:bg-[#211d17] text-zinc-950 hover:bg-zinc-200">
               <Link href="/chase-today">
                 Work the queue
                 <ArrowRight className="size-4" />

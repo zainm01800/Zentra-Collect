@@ -149,27 +149,27 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function StatusBadge({ snapshot }: { snapshot: UsageSnapshot }) {
   if (snapshot.isExpired) {
     return (
-      <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+      <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">
         Expired
       </span>
     );
   }
   if (snapshot.isTrial) {
     return (
-      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+      <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
         Free trial
       </span>
     );
   }
   if (snapshot.tier === "free") {
     return (
-      <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-600">
+      <span className="rounded-full bg-neutral-100 dark:bg-[#28231c] px-2.5 py-0.5 text-xs font-semibold text-neutral-600 dark:text-[#8a7d69]">
         Demo
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
       Active
     </span>
   );
@@ -183,13 +183,13 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
     return (
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-neutral-600">{meter.label}</span>
-          <span className="tabular-nums text-neutral-950">
+          <span className="text-neutral-600 dark:text-[#8a7d69]">{meter.label}</span>
+          <span className="tabular-nums text-neutral-950 dark:text-[#f0e8d5]">
             {meter.used.toLocaleString("en-GB")}
             <span className="text-neutral-400"> / included</span>
           </span>
         </div>
-        <div className="h-1 w-full rounded-full bg-neutral-100">
+        <div className="h-1 w-full rounded-full bg-neutral-100 dark:bg-[#28231c]">
           <div className="h-full w-1/3 rounded-full bg-emerald-200" />
         </div>
       </div>
@@ -200,13 +200,13 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
   const barColor =
     pct >= 95 ? "bg-red-500" : pct >= 80 ? "bg-amber-400" : "bg-emerald-500";
   const valueColor =
-    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-950";
+    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-950 dark:text-[#f0e8d5]";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-600">{meter.label}</span>
-        <span className={`tabular-nums font-medium ${pct >= 80 ? valueColor : "text-neutral-950"}`}>
+        <span className="text-neutral-600 dark:text-[#8a7d69]">{meter.label}</span>
+        <span className={`tabular-nums font-medium ${pct >= 80 ? valueColor : "text-neutral-950 dark:text-[#f0e8d5]"}`}>
           {meter.used.toLocaleString("en-GB")}
           <span className="font-normal text-neutral-400">
             {" / "}
@@ -214,7 +214,7 @@ function MeterRow({ meter }: { meter: UsageMeter }) {
           </span>
         </span>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-100">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-[#28231c]">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(100, pct)}%` }}
@@ -281,7 +281,7 @@ export function AccountBilling() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+      <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
         Could not load account data. Refresh to try again.
       </div>
     );
@@ -327,17 +327,17 @@ export function AccountBilling() {
             {/* Plan name + status */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-2xl font-semibold text-neutral-950">
+                <p className="text-2xl font-semibold text-neutral-950 dark:text-[#f0e8d5]">
                   {currentPlan.name}
                 </p>
-                <p className="mt-0.5 text-sm leading-6 text-neutral-500">
+                <p className="mt-0.5 text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
                   {currentPlan.tagline}
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <StatusBadge snapshot={snapshot} />
                 {currentPlan.price > 0 && (
-                  <p className="tabular-nums text-lg font-semibold text-neutral-950">
+                  <p className="tabular-nums text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">
                     {currentPlan.priceDisplay}
                     <span className="text-sm font-normal text-neutral-400">
                       {currentPlan.periodDisplay}
@@ -349,23 +349,23 @@ export function AccountBilling() {
 
             {/* Trial countdown bar */}
             {snapshot.isTrial && !snapshot.isExpired && snapshot.trialDaysRemaining !== null && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 space-y-2">
+              <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="size-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-800">
+                    <Clock className="size-4 text-amber-600 dark:text-amber-400" />
+                    <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
                       {snapshot.trialDaysRemaining === 0
                         ? "Trial ends today"
                         : `${snapshot.trialDaysRemaining} day${snapshot.trialDaysRemaining === 1 ? "" : "s"} remaining`}
                     </span>
                   </div>
-                  <span className="tabular-nums text-xs text-amber-600">
+                  <span className="tabular-nums text-xs text-amber-600 dark:text-amber-400">
                     {trialDaysUsed} / 14 days used
                   </span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-amber-200">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900/40">
                   <div
-                    className="h-full rounded-full bg-amber-500 transition-all"
+                    className="h-full rounded-full bg-amber-500 dark:bg-amber-400 transition-all"
                     style={{ width: `${trialProgressPct}%` }}
                   />
                 </div>
@@ -374,11 +374,11 @@ export function AccountBilling() {
 
             {/* Trial expired warning */}
             {snapshot.isExpired && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-3.5 py-3">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-semibold text-red-700">Trial expired</p>
-                  <p className="mt-0.5 text-xs leading-5 text-red-600">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">Trial expired</p>
+                  <p className="mt-0.5 text-xs leading-5 text-red-600 dark:text-red-400/80">
                     Your data is still visible. New imports and AI actions require a
                     paid plan.
                   </p>
@@ -388,9 +388,9 @@ export function AccountBilling() {
 
             {/* Founding price lock (paid plans only) */}
             {snapshot.tier === "paid" && (
-              <div className="flex items-center gap-2.5 rounded-lg border border-black/8 bg-neutral-50 px-3.5 py-2.5">
+              <div className="flex items-center gap-2.5 rounded-lg border border-black/8 bg-neutral-50 dark:bg-[#211d17] px-3.5 py-2.5">
                 <Lock className="size-3.5 shrink-0 text-neutral-400" />
-                <p className="text-xs text-neutral-600">
+                <p className="text-xs text-neutral-600 dark:text-[#8a7d69]">
                   Founding access —{" "}
                   <span className="font-semibold">
                     {currentPlan.priceDisplay}{currentPlan.periodDisplay}
@@ -452,8 +452,8 @@ export function AccountBilling() {
           <Card
             className={`rounded-xl ${
               recommendation.urgency === "high"
-                ? "border-red-200 bg-red-50/30"
-                : "border-neutral-300"
+                ? "border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-900/10"
+                : "border-neutral-300 dark:border-[#2d2820]"
             }`}
           >
             <CardHeader className="pb-2">
@@ -466,31 +466,31 @@ export function AccountBilling() {
                 <div
                   className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
                     recommendation.urgency === "high"
-                      ? "bg-red-100"
-                      : "bg-neutral-100"
+                      ? "bg-red-100 dark:bg-red-900/30"
+                      : "bg-neutral-100 dark:bg-[#28231c]"
                   }`}
                 >
                   <TrendingUp
                     className={`size-4 ${
                       recommendation.urgency === "high"
-                        ? "text-red-600"
-                        : "text-neutral-600"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-neutral-600 dark:text-[#8a7d69]"
                     }`}
                   />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-base font-semibold text-neutral-950">
+                    <p className="text-base font-semibold text-neutral-950 dark:text-[#f0e8d5]">
                       {recommendation.plan.name}
                     </p>
                     {recommendation.plan.price > 0 && (
-                      <span className="text-sm text-neutral-500">
+                      <span className="text-sm text-neutral-500 dark:text-[#8a7d69]">
                         {recommendation.plan.priceDisplay}
                         {recommendation.plan.periodDisplay}
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-sm leading-6 text-neutral-600">
+                  <p className="mt-0.5 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
                     {recommendation.reason}
                   </p>
                 </div>
@@ -509,7 +509,7 @@ export function AccountBilling() {
                 </Button>
                 <Link
                   href="/pricing"
-                  className="text-sm font-medium text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
+                  className="text-sm font-medium text-neutral-500 dark:text-[#8a7d69] underline underline-offset-2 hover:text-neutral-800"
                 >
                   See all plans
                 </Link>
@@ -520,13 +520,13 @@ export function AccountBilling() {
 
         {/* Within limits — no upgrade nudge */}
         {!recommendation && snapshot.tier === "paid" && (
-          <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-neutral-50 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-neutral-50 dark:bg-[#211d17] px-4 py-3">
             <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-neutral-600 dark:text-[#8a7d69]">
               You&apos;re comfortably within your plan limits.{" "}
               <Link
                 href="/pricing"
-                className="font-medium text-neutral-950 underline underline-offset-2 hover:text-neutral-700"
+                className="font-medium text-neutral-950 dark:text-[#f0e8d5] underline underline-offset-2 hover:text-neutral-700 dark:text-[#d8ccb5]"
               >
                 Compare plans
               </Link>{" "}
@@ -552,10 +552,10 @@ export function AccountBilling() {
                 <p className="text-sm font-medium text-neutral-800">
                   Trial grace period
                 </p>
-                <p className="text-xs leading-5 text-neutral-500">
+                <p className="text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
                   When your trial ends, your imported invoices and chase plan stay
                   visible for{" "}
-                  <span className="font-medium text-neutral-700">30 days</span>.
+                  <span className="font-medium text-neutral-700 dark:text-[#d8ccb5]">30 days</span>.
                   New imports and AI actions pause until you upgrade. After 30 days,
                   data is queued for deletion.
                 </p>
@@ -564,13 +564,13 @@ export function AccountBilling() {
 
             {/* Expired — within grace period */}
             {snapshot.isExpired && snapshot.isInGracePeriod && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+              <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-3.5 py-3">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500 dark:text-amber-400" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-800">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
                     Data retained — upgrade to keep it
                   </p>
-                  <p className="mt-0.5 text-xs leading-5 text-amber-700">
+                  <p className="mt-0.5 text-xs leading-5 text-amber-700 dark:text-amber-400/80">
                     {snapshot.gracePeriodDaysRemaining === 0
                       ? "Your data is retained until the end of today."
                       : `Your data is retained for ${snapshot.gracePeriodDaysRemaining} more day${snapshot.gracePeriodDaysRemaining === 1 ? "" : "s"}.`}{" "}
@@ -582,13 +582,13 @@ export function AccountBilling() {
 
             {/* Expired — grace period over */}
             {snapshot.isExpired && !snapshot.isInGracePeriod && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-3.5 py-3">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-semibold text-red-700">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">
                     Grace period ended
                   </p>
-                  <p className="mt-0.5 text-xs leading-5 text-red-600">
+                  <p className="mt-0.5 text-xs leading-5 text-red-600 dark:text-red-400/80">
                     Your 30-day retention window has closed. Upgrade now to
                     recover your data before the scheduled deletion runs.
                   </p>
@@ -598,7 +598,7 @@ export function AccountBilling() {
 
             {/* Paid — retention assurance */}
             {snapshot.tier === "paid" && (
-              <p className="text-xs leading-5 text-neutral-500">
+              <p className="text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
                 Data is retained while your plan is active. Cancellation starts a
                 30-day wind-down period before any deletion occurs.
               </p>
@@ -606,7 +606,7 @@ export function AccountBilling() {
 
             {/* Demo — no personal data */}
             {snapshot.tier === "free" && (
-              <p className="text-xs leading-5 text-neutral-500">
+              <p className="text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
                 Demo mode uses only pre-loaded sample data. No personal or business
                 data is stored or retained.
               </p>
@@ -614,7 +614,7 @@ export function AccountBilling() {
 
             {/* Export / delete placeholders */}
             <div className="border-t border-black/6 pt-3 space-y-2">
-              <p className="text-xs font-medium text-neutral-500">Account actions</p>
+              <p className="text-xs font-medium text-neutral-500 dark:text-[#8a7d69]">Account actions</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -623,7 +623,7 @@ export function AccountBilling() {
               >
                 <Download className="size-3.5" />
                 Export all data (CSV)
-                <span className="ml-auto rounded bg-neutral-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
+                <span className="ml-auto rounded bg-neutral-100 dark:bg-[#28231c] px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
                   Coming soon
                 </span>
               </Button>
@@ -635,7 +635,7 @@ export function AccountBilling() {
               >
                 <Trash2 className="size-3.5" />
                 Delete account &amp; data
-                <span className="ml-auto rounded bg-neutral-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
+                <span className="ml-auto rounded bg-neutral-100 dark:bg-[#28231c] px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
                   Coming soon
                 </span>
               </Button>
@@ -651,12 +651,12 @@ export function AccountBilling() {
           <CardContent className="space-y-4">
             {SAFETY_CONTROLS.map(({ Icon, label, detail }) => (
               <div key={label} className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100">
-                  <Icon className="size-3.5 text-neutral-600" />
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 dark:bg-[#28231c]">
+                  <Icon className="size-3.5 text-neutral-600 dark:text-[#8a7d69]" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-neutral-800">{label}</p>
-                  <p className="text-xs leading-5 text-neutral-500">{detail}</p>
+                  <p className="text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">{detail}</p>
                 </div>
               </div>
             ))}
@@ -669,7 +669,7 @@ export function AccountBilling() {
             <SectionLabel>Billing</SectionLabel>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm leading-6 text-neutral-500">
+            <p className="text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
               Billing is managed manually during the founding period. You won&apos;t be charged until billing goes live.
             </p>
 
@@ -678,7 +678,7 @@ export function AccountBilling() {
               <Button
                 asChild
                 variant="outline"
-                className="w-full rounded-full border-black/15 hover:bg-neutral-50"
+                className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
               >
                 <Link href="/request-access">
                   Request founding access
@@ -689,9 +689,9 @@ export function AccountBilling() {
 
             {/* Paid — managed note */}
             {snapshot.tier === "paid" && (
-              <div className="flex items-center gap-2.5 rounded-lg bg-neutral-50 px-3.5 py-2.5">
+              <div className="flex items-center gap-2.5 rounded-lg bg-neutral-50 dark:bg-[#211d17] px-3.5 py-2.5">
                 <Lock className="size-3.5 shrink-0 text-neutral-400" />
-                <p className="text-xs text-neutral-600">
+                <p className="text-xs text-neutral-600 dark:text-[#8a7d69]">
                   Your billing is managed directly.{" "}
                   <a href="mailto:hello@zentra.co" className="underline underline-offset-2 hover:text-neutral-900">
                     Email us
@@ -701,7 +701,6 @@ export function AccountBilling() {
               </div>
             )}
 
-            {/* TODO: Replace with <StripePortalButton accountId={...} /> when Stripe is live */}
             <p className="text-xs text-neutral-400">
               VAT included where applicable · No contract · Cancel anytime
             </p>

@@ -13,16 +13,16 @@ export function DashboardView({ invoices }: { invoices: Invoice[] }) {
       <DemoModeBanner />
 
       {/* Hero header */}
-      <div className="flex flex-col gap-4 border-b border-[#d4c9ae] pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-[#d4c9ae] dark:border-[#2d2820] pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p
-            className="text-[10.5px] font-medium uppercase tracking-[0.1em] text-[#6b6253]"
+            className="text-[10.5px] font-medium uppercase tracking-[0.1em] text-[#6b6253] dark:text-[#8a7d69]"
             style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
           >
             Daily credit-control workspace
           </p>
           <h1
-            className="mt-3 max-w-2xl text-[32px] leading-[1.2] text-[#1d1813] sm:text-[38px]"
+            className="mt-3 max-w-2xl text-[32px] leading-[1.2] text-[#1d1813] dark:text-[#f0e8d5] sm:text-[38px]"
             style={{
               fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
               fontWeight: 500,
@@ -31,7 +31,7 @@ export function DashboardView({ invoices }: { invoices: Invoice[] }) {
           >
             Collections queue
           </h1>
-          <p className="mt-2.5 max-w-xl text-[14px] leading-relaxed text-[#6b6253]">
+          <p className="mt-2.5 max-w-xl text-[14px] leading-relaxed text-[#6b6253] dark:text-[#8a7d69]">
             Your ranked chase plan. Each row has a recommended action, the
             reason behind it, and a Review step before anything goes out.
           </p>
@@ -52,7 +52,7 @@ export function DashboardView({ invoices }: { invoices: Invoice[] }) {
       <section className="space-y-4">
         <div>
           <h2
-            className="text-[22px] text-[#1d1813]"
+            className="text-[22px] text-[#1d1813] dark:text-[#f0e8d5]"
             style={{
               fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
               fontWeight: 500,
@@ -61,7 +61,7 @@ export function DashboardView({ invoices }: { invoices: Invoice[] }) {
           >
             Cash position
           </h2>
-          <p className="mt-1 text-[13.5px] text-[#6b6253]">
+          <p className="mt-1 text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
             The numbers that decide whether today is a quick reminder day or an
             escalation day.
           </p>

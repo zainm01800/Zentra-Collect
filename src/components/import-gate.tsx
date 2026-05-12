@@ -76,7 +76,7 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
           </div>
           <div className="zn-label !p-0 mb-1.5">{copy.kicker}</div>
           <h2
-            className="text-[22px] leading-tight mb-2 text-[#1d1813]"
+            className="text-[22px] leading-tight mb-2 text-[#1d1813] dark:text-[#f0e8d5]"
             style={{
               fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
               fontWeight: 500,
@@ -84,7 +84,7 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
           >
             {copy.title}
           </h2>
-          <p className="text-[13.5px] leading-relaxed text-[#6b6253] max-w-[480px]">
+          <p className="text-[13.5px] leading-relaxed text-[#6b6253] dark:text-[#8a7d69] max-w-[480px]">
             {copy.body}
           </p>
 
@@ -143,8 +143,8 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
               className="flex items-center justify-between py-2"
               style={{ borderBottom: "1px solid var(--zn-line-soft)" }}
             >
-              <span className="text-[12.5px] text-[#6b6253]">{row.label}</span>
-              <span className="text-[12.5px] font-semibold tabular-nums text-[#1d1813]">
+              <span className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69]">{row.label}</span>
+              <span className="text-[12.5px] font-semibold tabular-nums text-[#1d1813] dark:text-[#f0e8d5]">
                 {row.value}
               </span>
             </div>
@@ -155,10 +155,10 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
       {/* Existing-data CTA — different framing per variant */}
       <div className="zn-card p-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[13.5px] font-semibold text-[#1d1813]">
+          <div className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             {isTrial ? "Your existing data is still here" : "Want to see how an import looks?"}
           </div>
-          <div className="text-[12.5px] text-[#6b6253] mt-0.5">
+          <div className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-0.5">
             {isTrial
               ? "Your invoices, customers and chase plan are all viewable. Pick up where you left off."
               : "Open the demo dashboard — it's populated with realistic sample invoices already mapped and ranked."}

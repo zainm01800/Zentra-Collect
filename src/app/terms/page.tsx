@@ -125,7 +125,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-[18px] font-semibold mb-2 text-[#1d1813]">{title}</h2>
+      <h2 className="text-[18px] font-semibold mb-2 text-[#1d1813] dark:text-[#f0e8d5]">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   );

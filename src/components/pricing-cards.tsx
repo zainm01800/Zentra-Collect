@@ -28,8 +28,8 @@ export function PricingCards() {
             key={plan.id}
             className={
               plan.id === "SINGLE_BUSINESS"
-                ? "rounded-3xl border-zinc-950 bg-white"
-                : "rounded-3xl border-black/10 bg-white/75"
+                ? "rounded-3xl border-zinc-950 bg-white dark:bg-[#211d17]"
+                : "rounded-3xl border-black/10 dark:border-white/10 bg-white/75"
             }
           >
             <CardHeader>

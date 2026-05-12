@@ -20,16 +20,16 @@ export function BetaRequestsAdmin() {
   const [requests] = useState<BetaAccessRequest[]>(readRequests);
 
   return (
-    <main className="min-h-screen bg-[#fbf8f1] px-4 py-10 text-neutral-950">
+    <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] px-4 py-10 text-neutral-950 dark:text-[#f0e8d5]">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
             Local admin
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight">
             Beta requests
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
             Local/mock view only. Production needs Supabase auth, an admin role,
             and a beta_requests table.
           </p>
@@ -38,14 +38,14 @@ export function BetaRequestsAdmin() {
         {requests.length ? (
           <div className="grid gap-4">
             {requests.map((request) => (
-              <Card key={`${request.email}-${request.requestedAt}`} className="rounded-3xl border-black/10 bg-white/70 shadow-none">
+              <Card key={`${request.email}-${request.requestedAt}`} className="rounded-3xl border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] shadow-none">
                 <CardHeader>
                   <CardTitle>{request.businessName}</CardTitle>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-neutral-500 dark:text-[#8a7d69]">
                     {request.name} - {request.email}
                   </p>
                 </CardHeader>
-                <CardContent className="grid gap-3 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-3">
+                <CardContent className="grid gap-3 text-sm text-neutral-700 dark:text-[#d8ccb5] sm:grid-cols-2 lg:grid-cols-3">
                   <Info label="Role" value={request.role} />
                   <Info label="Software" value={request.accountingSoftware} />
                   <Info label="Monthly invoices" value={request.monthlyInvoiceVolume} />
@@ -60,7 +60,7 @@ export function BetaRequestsAdmin() {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-sm text-neutral-600">
+          <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6 text-sm text-neutral-600 dark:text-[#8a7d69]">
             No local beta requests yet.
           </div>
         )}

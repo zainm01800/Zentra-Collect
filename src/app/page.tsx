@@ -3,7 +3,11 @@ import {
   ArrowRight,
   CheckCircle2,
   FileText,
+  MessageSquare,
+  PhoneCall,
+  RefreshCcw,
   ShieldCheck,
+  UserCheck,
 } from "lucide-react";
 import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
 import { CheckoutButton } from "@/components/billing/checkout-button";
@@ -24,12 +28,12 @@ const answers = [
   "What cash is likely this week?",
 ];
 
-const messyAr = [
-  "Payment reminders",
-  "Promise follow-ups",
-  "Dispute responses",
-  "Statement requests",
-  "AP-contact requests",
+const scenarios = [
+  { label: "Payment reminders",  sub: "Drafted from invoice data, tone, and days overdue",   Icon: MessageSquare },
+  { label: "Promise follow-ups", sub: "Tracks 'I'll pay Friday' and flags when it slips",     Icon: RefreshCcw    },
+  { label: "Dispute responses",  sub: "Pauses chasing and logs what's needed to unblock",     Icon: ShieldCheck   },
+  { label: "Statement requests", sub: "Generates a clear account summary on demand",          Icon: FileText      },
+  { label: "AP-contact requests",sub: "Routes to the right contact when the invoice goes cold",Icon: UserCheck    },
 ];
 
 const trustItems = [
@@ -103,11 +107,11 @@ export default function Home() {
               <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428]">
-            <Link href="#how-it-works" className="hover:text-[#1d1813]">How it works</Link>
-            <Link href="#bookkeepers" className="hover:text-[#1d1813]">For bookkeepers</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
-            <Link href="#faq" className="hover:text-[#1d1813]">FAQ</Link>
+          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428] dark:text-[#d8ccb5]">
+            <Link href="#how-it-works" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">How it works</Link>
+            <Link href="#bookkeepers" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">For bookkeepers</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
+            <Link href="#faq" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">FAQ</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/login" className="zn-pill zn-pill-ghost">Sign in</Link>
@@ -176,6 +180,7 @@ export default function Home() {
                 { rank: 1, name: "Ashford Digital",    amount: "£12,750", sub: "54d overdue · Send payment reminder" },
                 { rank: 2, name: "BluePeak Design",    amount: "£8,900",  sub: "77d overdue · Call customer"        },
                 { rank: 3, name: "Northline Creative", amount: "£6,400",  sub: "63d overdue · No action needed"     },
+                { rank: 4, name: "Redfern Architecture", amount: "£11,200", sub: "61d overdue · Escalation candidate" },
               ].map((row) => (
                 <div
                   key={row.rank}
@@ -195,12 +200,12 @@ export default function Home() {
                     {row.rank}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold truncate text-[#1d1813]">{row.name}</div>
+                    <div className="text-[13px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">{row.name}</div>
                     <div className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
                       {row.sub}
                     </div>
                   </div>
-                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813]">
+                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813] dark:text-[#f0e8d5]">
                     {row.amount}
                   </div>
                   <span
@@ -212,6 +217,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <div
+              className="mt-3 flex items-center justify-between rounded-[10px] px-3 py-2"
+              style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+            >
+              <span className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>29 more in queue</span>
+              <span className="text-[11.5px] font-medium" style={{ color: "var(--zn-safe)" }}>↑ £39,450 likely this week</span>
+            </div>
           </div>
         </div>
       </section>
@@ -220,7 +232,11 @@ export default function Home() {
       <Section eyebrow="What it answers" title="A focused decisioning layer for messy AR.">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {answers.map((item) => (
-            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
+            <div
+              key={item}
+              className="zn-card p-4 flex items-center gap-3 text-[13.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]"
+              style={{ borderLeft: "3px solid var(--zn-accent)" }}
+            >
               {item}
             </div>
           ))}
@@ -243,7 +259,7 @@ export default function Home() {
               >
                 {step.n}
               </span>
-              <p className="mt-5 text-[14px] font-semibold text-[#1d1813]">{step.title}</p>
+              <p className="mt-5 text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{step.title}</p>
               <p className="mt-1.5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>{step.sub}</p>
             </div>
           ))}
@@ -253,9 +269,18 @@ export default function Home() {
       {/* ─── Built for messy AR ─── */}
       <Section eyebrow="Scenarios" title="Every overdue invoice gets a different chase.">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
-          {messyAr.map((item) => (
-            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
-              {item}
+          {scenarios.map((s) => (
+            <div key={s.label} className="zn-card p-4 flex flex-col gap-3">
+              <span
+                className="size-7 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)" }}
+              >
+                <s.Icon className="size-3.5" />
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{s.label}</p>
+                <p className="mt-1 text-[11.5px] leading-[1.5]" style={{ color: "var(--zn-ink-3)" }}>{s.sub}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -278,7 +303,7 @@ export default function Home() {
             {[
               { kicker: "One pane",   value: "All clients",   sub: "Sortable by overdue, exceptions, or risk" },
               { kicker: "Per client", value: "Weekly brief",  sub: "Email-ready summaries for client meetings" },
-              { kicker: "Pricing",    value: "From £49/mo",   sub: "Up to 5 client ledgers on Starter" },
+              { kicker: "Pricing",    value: "From £99/mo",   sub: "Up to 5 client ledgers on Bookkeeper Starter" },
             ].map((m) => (
               <div key={m.kicker} className="zn-stat">
                 <div className="zn-label">{m.kicker}</div>
@@ -303,7 +328,7 @@ export default function Home() {
                 >
                   <Ico className="size-4" />
                 </span>
-                <span className="text-[13.5px] font-medium text-[#1d1813]">{item.label}</span>
+                <span className="text-[13.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">{item.label}</span>
               </div>
             );
           })}
@@ -335,7 +360,7 @@ export default function Home() {
                 }
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[13.5px] font-semibold text-[#1d1813]">{plan.name}</span>
+                  <span className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{plan.name}</span>
                   {isFeatured ? (
                     <span
                       className="zn-chip"
@@ -362,7 +387,7 @@ export default function Home() {
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
                   {getPricingBullets(plan.id).map((feature) => (
-                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428]">
+                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428] dark:text-[#d8ccb5]">
                       <CheckCircle2 className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
                       <span>{feature}</span>
                     </div>
@@ -405,7 +430,7 @@ export default function Home() {
         <div className="grid gap-3 md:grid-cols-2">
           {faqs.map((f) => (
             <div key={f.q} className="zn-card p-5">
-              <p className="text-[14px] font-semibold text-[#1d1813]">{f.q}</p>
+              <p className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{f.q}</p>
               <p className="mt-2 text-[13px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
                 {f.a}
               </p>
@@ -467,15 +492,15 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Collect</span>
+            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            <Link href="/help"    className="hover:text-[#1d1813]">Help</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
-            <Link href="/login"   className="hover:text-[#1d1813]">Sign in</Link>
-            <Link href="/terms"   className="hover:text-[#1d1813]">Terms</Link>
-            <Link href="/privacy" className="hover:text-[#1d1813]">Privacy</Link>
-            <Link href="/cookies" className="hover:text-[#1d1813]">Cookies</Link>
+            <Link href="/help"    className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Help</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
+            <Link href="/login"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Sign in</Link>
+            <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>
+            <Link href="/privacy" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Privacy</Link>
+            <Link href="/cookies" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Cookies</Link>
             <span>© {new Date().getFullYear()} Zentra</span>
           </div>
         </div>
@@ -500,7 +525,7 @@ function Section({
       <div className="mb-6 max-w-3xl">
         <div className="zn-label !p-0 mb-2">{eyebrow}</div>
         <h2
-          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5]"
           style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
         >
           {title}

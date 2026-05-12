@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -16,6 +16,7 @@ import {
   Loader2,
   MailPlus,
   ShieldCheck,
+  SlidersHorizontal,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -80,6 +81,10 @@ import {
   demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { LogOutcomeButton }      from "@/components/log-outcome-button";
+import { PaymentLinkButton }    from "@/components/payment-link-button";
+import { WhatsAppSendButton }   from "@/components/whatsapp-send-button";
+import { EmailSendButton }      from "@/components/email-send-button";
 import {
   importedInvoicesStorageKey,
   importDiffStorageKey,
@@ -97,6 +102,11 @@ import type {
   CustomerBehaviourProfile,
   Invoice,
 } from "@/types/zentra";
+import {
+  readWorkspacePrefs,
+  setWidget,
+  type WorkspacePrefs,
+} from "@/lib/prefs";
 
 const referenceDate = "2026-05-07";
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -109,22 +119,22 @@ const visibleGroups: Array<{
   {
     id: "chase_now",
     title: "Chase now",
-    description: "Safe, useful actions that can move cash today.",
+    description: "Overdue invoices that are safe to chase — send a reminder or make contact today.",
   },
   {
     id: "promises_to_check",
     title: "Promises to check",
-    description: "Payment dates that need a careful follow-up.",
+    description: "Customers who said they'd pay — check whether they did and follow up if not.",
   },
   {
     id: "exceptions_to_resolve",
     title: "Exceptions to resolve",
-    description: "Disputes, remittance gaps, missing contacts, and data issues.",
+    description: "Disputed, blocked, or incomplete invoices that need attention before chasing.",
   },
   {
     id: "wait_low_priority",
-    title: "Wait / low priority",
-    description: "Recent chases, future promises, or low-value items.",
+    title: "Not yet due / waiting",
+    description: "Invoices chased recently, not yet due, or low priority — nothing to do right now.",
   },
 ];
 
@@ -138,27 +148,27 @@ const planViewFilters: Array<{
   {
     id: "focus",
     label: "Focus",
-    description: "Chase, promises, and exceptions",
+    description: "Chase now, promises & exceptions",
   },
   {
     id: "chase_now",
     label: "Chase now",
-    description: "Ready to review",
+    description: "Safe to act today",
   },
   {
     id: "promises_to_check",
     label: "Promises",
-    description: "Payment dates to check",
+    description: "Customers who said they'd pay",
   },
   {
     id: "exceptions_to_resolve",
     label: "Exceptions",
-    description: "Blocked or unsafe to chase",
+    description: "Disputes & blocked invoices",
   },
   {
     id: "wait_low_priority",
-    label: "Waiting",
-    description: "Low priority",
+    label: "Not due yet",
+    description: "Nothing to do right now",
   },
 ];
 
@@ -315,6 +325,9 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [hideSidebar, setHideSidebar] = useState(false);
+  const [prefs, setPrefs] = useState<WorkspacePrefs>(() => readWorkspacePrefs());
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const customizerRef = useRef<HTMLDivElement>(null);
 
   const customers = useMemo(
     () => (importSummary ? inferCustomersFromInvoices(invoices) : demoCustomers),
@@ -362,6 +375,35 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     : null;
 
   const summary = useMemo(() => buildSummary(invoices, plan), [invoices, plan]);
+
+  // Close customizer on outside click + sync prefs from custom event
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (customizerRef.current && !customizerRef.current.contains(e.target as Node)) {
+        setShowCustomizer(false);
+      }
+    }
+    function onPrefs(e: Event) {
+      setPrefs((e as CustomEvent<WorkspacePrefs>).detail);
+    }
+    document.addEventListener("mousedown", handleClick);
+    window.addEventListener("zentra:workspaceprefs", onPrefs);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("zentra:workspaceprefs", onPrefs);
+    };
+  }, []);
+
+  function toggleWidget<K extends keyof WorkspacePrefs["widgets"]>(key: K) {
+    const next = setWidget(key, !prefs.widgets[key]);
+    setPrefs(next);
+  }
+
+  // Reflow: only render the right column when we have something to show there
+  const hasRightColumn =
+    prefs.widgets.riskInsights ||
+    prefs.widgets.weeklyBrief ||
+    account?.planId === "demo";
 
   function openReview(item: CollectionsPlanItem) {
     const invoice = invoices.find((current) => current.id === item.invoiceId);
@@ -721,6 +763,11 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     );
   }
 
+  // Hide all collections content entirely when the Collections module is off.
+  if (!prefs.modules.collections) {
+    return null;
+  }
+
   if (!invoices.length) {
     return <DashboardEmptyState />;
   }
@@ -734,8 +781,8 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         onClose={() => setUpgradePrompt(null)}
       />
 
-      {/* Onboarding hero — only shown in demo mode, closes the "what is this?" gap */}
-      {account?.planId === "demo" ? (
+      {/* Onboarding hero — moved to right sidebar column for demo users */}
+      {false ? (
         <section
           className="zn-card overflow-hidden p-0 flex flex-col md:flex-row"
           style={{ background: "var(--zn-ink)", borderColor: "var(--zn-ink)" }}
@@ -745,7 +792,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
               className="zn-label !p-0 mb-2"
               style={{ color: "rgba(250,245,232,0.55)" }}
             >
-              Welcome to Zentra Collect
+              Welcome to Zentra Flow
             </div>
             <h2
               className="text-[22px] md:text-[26px] leading-[1.15] mb-3"
@@ -801,23 +848,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         </section>
       ) : null}
 
-      <section className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="zn-label mb-1.5">
-            Overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-          </div>
-          <h1 className="zn-page-h1 zn-page-h1-lg">
-            {account?.planId === "demo" ? "Today's collections plan." : "Good morning."}
-          </h1>
-          <p className="mt-1.5 max-w-[580px] text-[14px] text-[#6b6253]">
-            Your collections position at a glance — what&apos;s changed, what needs you today, and what you should chase this week.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/digest" className="zn-pill zn-pill-ghost">Open weekly brief</Link>
-          <Link href="/chase-today" className="zn-pill">Open queue</Link>
-        </div>
-      </section>
+      {/* Greeting + customise moved to <DashboardGreeting /> (always shown, even when collections is off) */}
 
       {importSummary ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
@@ -826,7 +857,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
             attention, {importSummary.actionsRecommended} actions recommended,{" "}
             {importSummary.exceptions} exceptions.
           </span>
-          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-[#faf5e8]">
+          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-[#faf5e8] dark:bg-[#211d17]">
             <Link href="/import/summary">View import summary</Link>
           </Button>
         </div>
@@ -863,8 +894,11 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         ))}
       </section>
 
-      {/* Two-column body: focus & changes  ·  risk & weekly brief */}
-      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      {/* Body: reflows to single column when right column is empty */}
+      <section className={hasRightColumn
+        ? "grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+        : "grid gap-[18px]"
+      }>
 
         {/* LEFT */}
         <div className="flex flex-col gap-5">
@@ -874,10 +908,10 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
             <div className="flex flex-wrap items-end justify-between gap-3 mb-3.5">
               <div>
                 <div className="zn-label !p-0 mb-1">Today&apos;s focus</div>
-                <h2 className="text-[18px] font-semibold text-[#1d1813]">
+                <h2 className="text-[18px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                   Top 5 actions Zentra recommends
                 </h2>
-                <p className="text-[12.5px] text-[#6b6253] mt-1">
+                <p className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-1">
                   Sorted by impact, confidence, and urgency. You decide if and when to send.
                 </p>
               </div>
@@ -895,85 +929,147 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                 .slice(0, 5)
                 .map((item, idx, arr) => {
                   const inv = invoices.find((i) => i.id === item.invoiceId);
+                  const isOverdue = (inv?.daysOverdue ?? 0) > 0;
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-4 py-3.5"
                       style={{
                         borderBottom:
                           idx === arr.length - 1 ? "none" : "1px solid var(--zn-line-soft)",
                       }}
                     >
-                      <div
-                        className="w-[36px] flex flex-col items-center flex-shrink-0"
-                      >
-                        <div
-                          className="text-[18px] italic leading-none"
-                          style={{
-                            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
-                            color: "var(--zn-ink-3)",
-                          }}
-                        >
-                          {idx + 1}
+                      {/* ── Mobile card (below md) ──────────────────────────── */}
+                      <div className="flex flex-col gap-2.5 py-3.5 md:hidden">
+                        {/* Row 1: client name + amount */}
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] leading-tight flex-1 min-w-0 truncate">
+                            {item.customerName}
+                          </span>
+                          <span
+                            className="text-[13px] font-semibold flex-shrink-0 whitespace-nowrap"
+                            style={{ fontVariantNumeric: "tabular-nums", color: "var(--zn-ink)" }}
+                          >
+                            {formatCurrency(item.amountOutstanding)}
+                          </span>
                         </div>
-                        <div
-                          className="text-[9px] tabular-nums mt-1"
-                          title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
-                          style={{
-                            color: "var(--zn-accent)",
-                            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          {Math.round(item.priorityScore)}
+                        {/* Row 2: invoice tag + overdue badge / due date + chase button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                            {item.invoiceNumber ? (
+                              <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                                {item.invoiceNumber}
+                              </span>
+                            ) : null}
+                            {isOverdue ? (
+                              <span
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-medium leading-none"
+                                style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}
+                              >
+                                {inv!.daysOverdue}d overdue
+                              </span>
+                            ) : inv?.dueDate ? (
+                              <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                                Due {formatDate(inv.dueDate)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <LogOutcomeButton
+                              invoiceRef={item.invoiceNumber ?? item.id}
+                              clientName={item.customerName}
+                              amountOutstanding={item.amountOutstanding}
+                            />
+                            <Link
+                              href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                              className="zn-pill flex-shrink-0"
+                              style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                            >
+                              {isOverdue ? "Chase" : "Review"}
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-[14px] font-semibold text-[#1d1813] truncate">
-                            {item.customerName}
+
+                      {/* ── Desktop row (md and above) — unchanged ──────────── */}
+                      <div className="hidden md:flex items-center gap-4 py-3.5">
+                        <div
+                          className="w-[36px] flex flex-col items-center flex-shrink-0"
+                        >
+                          <div
+                            className="text-[18px] italic leading-none"
+                            style={{
+                              fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                              color: "var(--zn-ink-3)",
+                            }}
+                          >
+                            {idx + 1}
                           </div>
-                          {item.invoiceNumber ? (
-                            <span className="zn-kind-tag" style={{ fontSize: 10 }}>
-                              {item.invoiceNumber}
-                            </span>
+                          <div
+                            className="text-[9px] tabular-nums mt-1"
+                            title={`Priority score: ${Math.round(item.priorityScore)} / 100`}
+                            style={{
+                              color: "var(--zn-accent)",
+                              fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            {Math.round(item.priorityScore)}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">
+                              {item.customerName}
+                            </div>
+                            {item.invoiceNumber ? (
+                              <span className="zn-kind-tag" style={{ fontSize: 10 }}>
+                                {item.invoiceNumber}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-0.5 line-clamp-1" title={item.reason}>
+                            {item.reason}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0 whitespace-nowrap">
+                          <div className="text-[13px] font-semibold tabular-nums text-[#1d1813] dark:text-[#f0e8d5]">
+                            {formatCurrency(item.amountOutstanding)}
+                          </div>
+                          {inv && inv.daysOverdue ? (
+                            <div
+                              className="text-[11px] tabular-nums"
+                              style={{ color: "var(--zn-risk)" }}
+                            >
+                              {inv.daysOverdue}d overdue
+                            </div>
                           ) : null}
                         </div>
-                        <div className="text-[12.5px] text-[#6b6253] mt-0.5 line-clamp-1" title={item.reason}>
-                          {item.reason}
+                        <div
+                          className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
+                          style={{ color: "var(--zn-ink-2)" }}
+                        >
+                          {humanAction(item.recommendedAction)}
                         </div>
-                      </div>
-                      <div className="text-right flex-shrink-0 whitespace-nowrap">
-                        <div className="text-[13px] font-semibold tabular-nums text-[#1d1813]">
-                          {formatCurrency(item.amountOutstanding)}
-                        </div>
-                        {inv && inv.daysOverdue ? (
-                          <div
-                            className="text-[11px] tabular-nums"
-                            style={{ color: "var(--zn-risk)" }}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <LogOutcomeButton
+                            invoiceRef={item.invoiceNumber ?? item.id}
+                            clientName={item.customerName}
+                            amountOutstanding={item.amountOutstanding}
+                          />
+                          <Link
+                            href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
+                            className="zn-pill flex-shrink-0"
+                            style={{ height: 26, fontSize: 12, padding: "0 11px" }}
                           >
-                            {inv.daysOverdue}d overdue
-                          </div>
-                        ) : null}
+                            Review
+                          </Link>
+                        </div>
                       </div>
-                      <div
-                        className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
-                        style={{ color: "var(--zn-ink-2)" }}
-                      >
-                        {humanAction(item.recommendedAction)}
-                      </div>
-                      <Link
-                        href={`/chase-today?customer=${encodeURIComponent(item.customerName)}`}
-                        className="zn-pill flex-shrink-0"
-                        style={{ height: 26, fontSize: 12, padding: "0 11px" }}
-                      >
-                        Review
-                      </Link>
                     </div>
                   );
                 })}
               {plan.filter((item) => item.dashboardGroup !== "do_not_chase").length === 0 ? (
-                <div className="py-8 text-center text-[13px] text-[#6b6253]">
+                <div className="py-8 text-center text-[13px] text-[#6b6253] dark:text-[#8a7d69]">
                   Nothing flagged for action right now.
                 </div>
               ) : null}
@@ -984,8 +1080,8 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
           <div className="zn-card p-[22px]">
             <div className="mb-3.5">
               <div className="zn-label !p-0 mb-1">Since last import</div>
-              <h2 className="text-[18px] font-semibold text-[#1d1813]">What changed</h2>
-              <p className="text-[12.5px] text-[#6b6253] mt-1">
+              <h2 className="text-[18px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">What changed</h2>
+              <p className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-1">
                 {importDiff
                   ? "Compared with your snapshot from your previous import."
                   : "Re-import your latest export to see what shifted."}
@@ -1031,7 +1127,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                     },
                   ]
               ).map((c) => (
-                <div key={c.label} className="bg-[#faf5e8] p-4">
+                <div key={c.label} className="bg-[#faf5e8] dark:bg-[#211d17] p-4">
                   <div className="zn-label !p-0">{c.label}</div>
                   <div
                     className="text-[18px] font-semibold tabular-nums mt-1.5"
@@ -1045,14 +1141,14 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="flex flex-col gap-5">
+        {/* RIGHT — rendered only when at least one widget is visible */}
+        {hasRightColumn && <div className="flex flex-col gap-5">
 
           {/* Risk insights */}
-          <div className="zn-card p-5">
+          {prefs.widgets.riskInsights && <div className="zn-card p-5">
             <div className="mb-3.5">
               <div className="zn-label !p-0 mb-1">Risk insights</div>
-              <h2 className="text-[18px] font-semibold text-[#1d1813]">Where the risk sits</h2>
+              <h2 className="text-[18px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">Where the risk sits</h2>
             </div>
             <div className="flex flex-col gap-4">
               {(() => {
@@ -1118,23 +1214,23 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="zn-label !p-0 mb-0.5">{r.kicker}</div>
-                        <div className="text-[13.5px] font-semibold text-[#1d1813] truncate">
+                        <div className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">
                           {r.name}
                         </div>
-                        <div className="text-[12px] text-[#6b6253] truncate">{r.sub}</div>
+                        <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] truncate">{r.sub}</div>
                       </div>
                     </div>
                   );
                 });
               })()}
             </div>
-          </div>
+          </div>}
 
           {/* Weekly brief — ink black header card */}
-          <div className="zn-card overflow-hidden p-0">
+          {prefs.widgets.weeklyBrief && <div className="zn-card overflow-hidden p-0">
             <div
               className="p-[18px]"
-              style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+              style={{ background: "var(--zn-bg-inverse)", color: "var(--zn-surface)" }}
             >
               <div className="zn-label !p-0" style={{ color: "rgba(250,245,232,0.55)" }}>
                 Focus for this week
@@ -1172,22 +1268,67 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                         }}
                       >
                         <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-[#1d1813] truncate">
+                          <div className="text-[13px] font-semibold truncate" style={{ color: "var(--zn-ink)" }}>
                             {item.customerName}
                           </div>
-                          <div className="text-[11.5px] text-[#6b6253]">
+                          <div className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
                             {formatCurrency(item.amountOutstanding)}
                             {inv?.daysOverdue ? ` · ${inv.daysOverdue}d` : ""}
                           </div>
                         </div>
-                        <ChevronRight className="size-4 text-[#6b6253] flex-shrink-0" />
+                        <ChevronRight className="size-4 flex-shrink-0" style={{ color: "var(--zn-ink-3)" }} />
                       </Link>
                     );
                   })}
               </div>
             </div>
-          </div>
-        </div>
+          </div>}
+
+          {/* Demo getting-started card — right column, bottom */}
+          {account?.planId === "demo" && (
+            <div
+              className="zn-card overflow-hidden p-5"
+              style={{ background: "var(--zn-bg-inverse)", borderColor: "var(--zn-bg-inverse)" }}
+            >
+              <div className="zn-label !p-0 mb-1.5" style={{ color: "rgba(250,245,232,0.5)" }}>
+                Welcome to Zentra Flow
+              </div>
+              <p
+                className="text-[15px] leading-[1.45] mb-4"
+                style={{
+                  fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                  color: "var(--zn-surface)",
+                  fontStyle: "italic",
+                  fontWeight: 400,
+                }}
+              >
+                You&apos;re on sample data. Every recommendation shows action + reason + draft message.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/chase-today"
+                  className="zn-pill"
+                  style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", height: 30, fontSize: 12 }}
+                >
+                  Try the demo <ArrowRight className="size-3" />
+                </Link>
+                <Link
+                  href="/import"
+                  className="zn-pill"
+                  style={{
+                    height: 30,
+                    fontSize: 12,
+                    background: "transparent",
+                    color: "rgba(250,245,232,0.75)",
+                    border: "1px solid rgba(250,245,232,0.2)",
+                  }}
+                >
+                  Import your CSV
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>}
       </section>
 
       <ActionDrawer
@@ -1284,20 +1425,20 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
 
 function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
   return (
-    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-5">
+    <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
             What changed since last import
           </p>
           <h2
-            className="mt-2 text-2xl text-[#1d1813]"
+            className="mt-2 text-2xl text-[#1d1813] dark:text-[#f0e8d5]"
             style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
           >
             Import movement summary
           </h2>
         </div>
-        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
           <Link href="/import/summary">View import summary</Link>
         </Button>
       </div>
@@ -1313,9 +1454,9 @@ function ImportDiffDashboard({ diff }: { diff: ImportDiffOutput }) {
           {diff.topChanges.map((change) => (
             <div
               key={change.id}
-              className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]"
+              className="rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm leading-6 text-[#3d3428] dark:text-[#d8ccb5]"
             >
-              <span className="font-medium text-[#1d1813]">
+              <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                 {change.customerName} · {change.invoiceNumber}
               </span>{" "}
               {change.message}
@@ -1337,12 +1478,12 @@ function DiffCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472]">
+    <div className="rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#8d8472] dark:text-[#6a5f4e]">
         {label}
       </p>
-      <p className="mt-3 text-2xl text-[#1d1813] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>{value}</p>
-      <p className="mt-1 text-sm text-[#8d8472]">{detail}</p>
+      <p className="mt-3 text-2xl text-[#1d1813] dark:text-[#f0e8d5] tabular-nums" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>{value}</p>
+      <p className="mt-1 text-sm text-[#8d8472] dark:text-[#6a5f4e]">{detail}</p>
     </div>
   );
 }
@@ -1394,17 +1535,17 @@ function PlanGroup({
   const hiddenCount = Math.max(0, items.length - visibleItems.length);
 
   return (
-    <Card className="rounded-[1.75rem] border border-[#d4c9ae] bg-[#faf5e8] py-0 shadow-none ring-0">
-      <CardHeader className="border-b border-[#d4c9ae] p-4 sm:p-5">
+    <Card className="rounded-[1.75rem] border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] py-0 shadow-none ring-0">
+      <CardHeader className="border-b border-[#d4c9ae] dark:border-[#2d2820] p-4 sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-lg text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
+            <CardTitle className="text-lg text-[#1d1813] dark:text-[#f0e8d5]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
               {title}
-              <span className="ml-2 rounded-full bg-[#f3ecd8] px-2 py-0.5 text-xs text-[#6b6253]">
+              <span className="ml-2 rounded-full bg-[#f3ecd8] dark:bg-[#28231c] px-2 py-0.5 text-xs text-[#6b6253] dark:text-[#8a7d69]">
                 {items.length}
               </span>
             </CardTitle>
-            <CardDescription className="mt-1 text-[#6b6253]">
+            <CardDescription className="mt-1 text-[#6b6253] dark:text-[#8a7d69]">
               {description}
             </CardDescription>
           </div>
@@ -1424,38 +1565,38 @@ function PlanGroup({
                   key={item.id}
                   type="button"
                   onClick={() => onReview(item)}
-                  className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] bg-[#faf5e8] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] hover:bg-[#f5eed9] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
+                  className="grid w-full min-w-0 gap-4 rounded-[1.25rem] border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition hover:border-[#c0b49c] dark:border-[#3d3628] hover:bg-[#f5eed9] dark:hover:bg-[#2d2820] hover:shadow-md md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.55fr)_auto]"
                 >
-                  <div className="min-w-0 border-b border-[#d4c9ae] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
-                    <p className="truncate text-base font-semibold text-[#1d1813]">
+                  <div className="min-w-0 border-b border-[#d4c9ae] dark:border-[#2d2820] pb-3 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+                    <p className="truncate text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                       {item.customerName}
                     </p>
-                    <p className="mt-1 text-sm text-[#8d8472]">
+                    <p className="mt-1 text-sm text-[#8d8472] dark:text-[#6a5f4e]">
                       {item.invoiceNumber || "Customer balance"}
                     </p>
                     <div className="mt-4 space-y-2">
-                      <p className="text-base font-semibold text-[#1d1813]">
+                      <p className="text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                         {formatCurrency(item.amountOutstanding)}
                       </p>
                       {invoice?.daysOverdue ? (
                         <p className="text-sm font-medium text-rose-600">
                           {invoice.daysOverdue}d overdue
-                          <span className="ml-1.5 font-normal text-[#a09885]">
+                          <span className="ml-1.5 font-normal text-[#a09885] dark:text-[#8a7d69]">
                             · due {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
                           </span>
                         </p>
                       ) : (
-                        <p className="text-sm text-[#8d8472]">
+                        <p className="text-sm text-[#8d8472] dark:text-[#6a5f4e]">
                           {invoice?.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "Not overdue"}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-[#1d1813]">
+                    <p className="text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                       {humanAction(item.recommendedAction)}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                    <p className="mt-2 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
                       {item.reason.split(";")[0].trim()}
                     </p>
                   </div>
@@ -1471,22 +1612,22 @@ function PlanGroup({
             })}
           </div>
           {hiddenCount ? (
-            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+            <div className="border-t border-[#d4c9ae] dark:border-[#2d2820] p-4 sm:p-5">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                className="w-full rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                 onClick={() => setShowAll(true)}
               >
                 Show {hiddenCount} more in {title.toLowerCase()}
               </Button>
             </div>
           ) : showAll && items.length > initialVisibleCount ? (
-            <div className="border-t border-[#d4c9ae] p-4 sm:p-5">
+            <div className="border-t border-[#d4c9ae] dark:border-[#2d2820] p-4 sm:p-5">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                className="w-full rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                 onClick={() => setShowAll(false)}
               >
                 Show fewer
@@ -1496,7 +1637,7 @@ function PlanGroup({
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 p-6 text-center">
-            <p className="text-sm font-medium text-[#6b6253]">
+            <p className="text-sm font-medium text-[#6b6253] dark:text-[#8a7d69]">
               {title === "Wait / low priority"
                 ? "No low-priority items right now."
                 : title === "Do not chase"
@@ -1608,24 +1749,24 @@ function ActionDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="w-full overflow-y-auto border-[#d4c9ae] bg-[#faf5e8] p-0 sm:max-w-xl"
+        className="w-full overflow-y-auto border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-0 sm:max-w-xl"
         side="right"
         style={{ boxShadow: "-8px 0 32px rgba(0,0,0,0.08)" }}
       >
         {item && invoice ? (
           <>
-            <SheetHeader className="border-b border-[#d4c9ae] p-5">
-              <SheetTitle className="text-2xl text-[#1d1813]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
+            <SheetHeader className="border-b border-[#d4c9ae] dark:border-[#2d2820] p-5">
+              <SheetTitle className="text-2xl text-[#1d1813] dark:text-[#f0e8d5]" style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}>
                 {invoice.customerName}
               </SheetTitle>
-              <SheetDescription className="text-[#6b6253]">
+              <SheetDescription className="text-[#6b6253] dark:text-[#8a7d69]">
                 Invoice {invoice.invoiceNumber} ·{" "}
                 {formatCurrency(invoice.amountOutstanding)} outstanding
               </SheetDescription>
             </SheetHeader>
 
             <div className="space-y-5 p-5">
-              <section className="grid gap-3 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
+              <section className="grid gap-3 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
                 <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
                 <InfoLine
                   label="Days overdue"
@@ -1648,14 +1789,14 @@ function ActionDrawer({
                 />
               )}
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                   Recommendation
                 </p>
-                <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
+                <h3 className="mt-3 text-lg font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                   {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+                <p className="mt-2 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
                   {actionMeta?.explanation ?? item.reason}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1668,20 +1809,20 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
                 <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                       What do you need to do?
                     </p>
-                    <p className="mt-1 text-sm text-[#6b6253]">
+                    <p className="mt-1 text-sm text-[#6b6253] dark:text-[#8a7d69]">
                       Choose the job first. Zentra adjusts the reason, safety
                       checks, fields, and draft.
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Action Scenario</label>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">Action Scenario</label>
                       <Select
                         value={actionScenario}
                         onValueChange={(value) => {
@@ -1689,7 +1830,7 @@ function ActionDrawer({
                           onActionScenarioChange(next);
                         }}
                       >
-                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8] dark:bg-[#211d17]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1702,12 +1843,12 @@ function ActionDrawer({
                       </Select>
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">Message Tone</label>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">Message Tone</label>
                       <Select
                         value={tone}
                         onValueChange={(value) => onToneChange(value as DraftTone)}
                       >
-                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8]">
+                        <SelectTrigger className="w-full rounded-full bg-[#faf5e8] dark:bg-[#211d17]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1730,38 +1871,55 @@ function ActionDrawer({
                 onChange={onScenarioDetailsChange}
               />
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                       Draft message
                     </p>
-                    <p className="mt-1 text-sm text-[#6b6253]">
+                    <p className="mt-1 text-sm text-[#6b6253] dark:text-[#8a7d69]">
                       Copy-only in MVP. Review before sending.
                     </p>
                   </div>
                   <Badge
                     variant="outline"
-                    className="rounded-full border-[#d4c9ae] bg-[#f3ecd8]"
+                    className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c]"
                   >
                     {draftSource ?? "template"} · {draftConfidence}
                   </Badge>
                 </div>
                 <div className="mt-4 space-y-2" id="draft-section">
-                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
                     Subject
                   </label>
                   <Input
                     value={subject}
                     onChange={(event) => onSubjectChange(event.target.value)}
-                    className="rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+                    className="rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                   />
                 </div>
                 <Textarea
-                  className="mt-4 min-h-64 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
+                  className="mt-4 min-h-64 resize-none rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] leading-6"
                   value={draft}
                   onChange={(event) => onDraftChange(event.target.value)}
                 />
+
+                {/* ── Payment link — inserts a Stripe pay-now URL into the draft ── */}
+                {invoice && (
+                  <PaymentLinkButton
+                    invoiceRef={invoice.invoiceNumber ?? "INV"}
+                    clientName={invoice.customerName}
+                    amountOutstanding={invoice.amountOutstanding}
+                    onInsert={(url) =>
+                      onDraftChange(
+                        draft
+                          ? `${draft}\n\nPay now: ${url}`
+                          : `Pay now: ${url}`,
+                      )
+                    }
+                  />
+                )}
+
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
                   <p className="font-semibold">Human review required</p>
                   <p className="mt-1">{riskNotes}</p>
@@ -1769,8 +1927,8 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                   Safety checks
                 </p>
                 <div className="mt-3 space-y-3">
@@ -1778,21 +1936,21 @@ function ActionDrawer({
                     actionMeta.safetyResult.checks.map((check) => (
                       <div
                         key={`${check.label}-${check.message}`}
-                        className="rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3"
+                        className="rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-[#1d1813]">
+                          <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                             {check.label}
                           </p>
                           <SafetyBadge value={check.status} />
                         </div>
-                        <p className="mt-1 text-xs leading-5 text-[#6b6253]">
+                        <p className="mt-1 text-xs leading-5 text-[#6b6253] dark:text-[#8a7d69]">
                           {check.message}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <div className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm text-[#3d3428]">
+                    <div className="flex items-center gap-2 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm text-[#3d3428] dark:text-[#d8ccb5]">
                       <ShieldCheck className="size-4" />
                       No blocking safety issues found.
                     </div>
@@ -1800,13 +1958,13 @@ function ActionDrawer({
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                       Classify customer reply
                     </p>
-                    <p className="mt-1 text-sm text-[#6b6253]">
+                    <p className="mt-1 text-sm text-[#6b6253] dark:text-[#8a7d69]">
                       Paste a reply to turn it into an AR state and next action.
                     </p>
                   </div>
@@ -1815,7 +1973,7 @@ function ActionDrawer({
                       <Button
                         type="button"
                         variant="ghost"
-                        className="rounded-full px-3 text-[#8d8472] hover:text-[#1d1813]"
+                        className="rounded-full px-3 text-[#8d8472] dark:text-[#6a5f4e] hover:text-[#1d1813] dark:text-[#f0e8d5]"
                         onClick={() => onReplyTextChange("")}
                       >
                         Clear
@@ -1824,7 +1982,7 @@ function ActionDrawer({
                     <Button
                       type="button"
                       variant="outline"
-                      className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                      className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                       onClick={onClassifyReply}
                       disabled={!replyText.trim() || isClassifyingReply}
                     >
@@ -1833,23 +1991,23 @@ function ActionDrawer({
                   </div>
                 </div>
                 <Textarea
-                  className="mt-4 min-h-28 resize-none rounded-2xl border-[#d4c9ae] bg-[#faf5e8] leading-6"
+                  className="mt-4 min-h-28 resize-none rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] leading-6"
                   value={replyText}
                   onChange={(event) => onReplyTextChange(event.target.value)}
                   placeholder="Paste the customer reply here..."
                 />
                 {replyClassification ? (
-                  <div className="mt-4 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+                  <div className="mt-4 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-[#1d1813]">
+                        <p className="text-sm font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                           {humanLabel(replyClassification.classification)}
                         </p>
-                        <p className="mt-1 text-sm leading-6 text-[#6b6253]">
+                        <p className="mt-1 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
                           {replyClassification.reason}
                         </p>
                       </div>
-                      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+                      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
                         {replyClassification.source} · {replyClassification.confidence}
                       </Badge>
                     </div>
@@ -1880,7 +2038,7 @@ function ActionDrawer({
                     ) : null}
                     {replyClassification.classification === "dispute" ? (
                       <div className="mt-4">
-                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
                           Dispute reason
                         </label>
                         <Textarea
@@ -1888,7 +2046,7 @@ function ActionDrawer({
                           onChange={(event) =>
                             onReplyDisputeReasonChange(event.target.value)
                           }
-                          className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+                          className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                         />
                       </div>
                     ) : null}
@@ -1910,8 +2068,8 @@ function ActionDrawer({
                 ) : null}
               </section>
 
-              <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+              <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                   Activity history
                 </p>
                 <div className="mt-3 space-y-3">
@@ -1919,13 +2077,13 @@ function ActionDrawer({
                     <div key={event.id} className="flex gap-3">
                       <span className="mt-1 size-2 rounded-full bg-[#1d1813]" />
                       <div>
-                        <p className="text-sm font-medium text-[#1d1813]">
+                        <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                           {event.title}
                         </p>
-                        <p className="text-xs leading-5 text-[#6b6253]">
+                        <p className="text-xs leading-5 text-[#6b6253] dark:text-[#8a7d69]">
                           {event.description}
                         </p>
-                        <p className="mt-1 text-xs text-[#a09885]">
+                        <p className="mt-1 text-xs text-[#a09885] dark:text-[#8a7d69]">
                           {formatDate(event.createdAt)}
                         </p>
                       </div>
@@ -1935,7 +2093,7 @@ function ActionDrawer({
               </section>
             </div>
 
-            <div className="sticky bottom-0 grid gap-2 border-t border-[#d4c9ae] bg-[#faf5e8]/95 p-4 backdrop-blur sm:grid-cols-2">
+            <div className="sticky bottom-0 grid gap-2 border-t border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]/95 p-4 backdrop-blur sm:grid-cols-2">
               <Button
                 className="rounded-full bg-[#1d1813] text-white hover:bg-[#3d3428]"
                 onClick={onGenerate}
@@ -1950,7 +2108,7 @@ function ActionDrawer({
               </Button>
               <Button
                 variant="outline"
-                className="rounded-full border-[#d4c9ae] bg-[#faf5e8]"
+                className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
                 onClick={onCopy}
               >
                 <Copy className="size-4" />
@@ -1968,7 +2126,7 @@ function ActionDrawer({
                     if (val === "do_not_chase") onDoNotChase();
                   }}
                 >
-                  <SelectTrigger className="w-full rounded-full border-[#d4c9ae] bg-[#faf5e8] font-medium">
+                  <SelectTrigger className="w-full rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] font-medium">
                     <SelectValue placeholder="Change status →" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1981,6 +2139,27 @@ function ActionDrawer({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ── Email & WhatsApp — send the draft directly to the client ── */}
+              {invoice && (
+                <>
+                  <div className="sm:col-span-2">
+                    <EmailSendButton
+                      invoiceRef={invoice.invoiceNumber ?? "INV"}
+                      clientName={invoice.customerName}
+                      toEmail={invoice.customerEmail ?? ""}
+                      draft={draft}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <WhatsAppSendButton
+                      invoiceRef={invoice.invoiceNumber ?? "INV"}
+                      clientName={invoice.customerName}
+                      draft={draft}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </>
         ) : null}
@@ -2033,13 +2212,13 @@ function ScenarioFields({
         <FieldInput label="Owner / responsible person" value={details.disputeOwner} onChange={(value) => onChange({ disputeOwner: value })} />
         <FieldInput label="Next resolution date" type="date" value={details.nextResolutionDate} onChange={(value) => onChange({ nextResolutionDate: value })} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
             Notes
           </label>
           <Textarea
             value={details.disputeNotes}
             onChange={(event) => onChange({ disputeNotes: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>
@@ -2052,13 +2231,13 @@ function ScenarioFields({
         <InfoLine label="Open invoices" value={`${customerInvoices.length}`} />
         <InfoLine label="Total outstanding" value={formatCurrency(customerInvoices.reduce((sum, item) => sum + item.amountOutstanding, 0))} />
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
             Statement summary
           </label>
           <Textarea
             value={details.statementSummary}
             onChange={(event) => onChange({ statementSummary: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>
@@ -2079,13 +2258,13 @@ function ScenarioFields({
       <ScenarioFieldCard title="Internal escalation">
         <FieldInput label="Account manager / owner" value={details.internalOwner} onChange={(value) => onChange({ internalOwner: value })} />
         <div>
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
             Escalation note
           </label>
           <Textarea
             value={details.escalationNote}
             onChange={(event) => onChange({ escalationNote: event.target.value })}
-            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+            className="mt-2 min-h-20 rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>
@@ -2102,14 +2281,14 @@ function CustomerBehaviourCard({
 }) {
   if (!profile || profile.totalInvoices < 2 || profile.riskLabel === "unknown") {
     return (
-      <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+      <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
           Customer behaviour
         </p>
-        <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
+        <h3 className="mt-3 text-lg font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
           Not enough history yet.
         </h3>
-        <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+        <p className="mt-2 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
           Based on previous imported data, Zentra needs more invoice history
           before suggesting a customer pattern.
         </p>
@@ -2118,27 +2297,27 @@ function CustomerBehaviourCard({
   }
 
   return (
-    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
+    <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
             Customer behaviour
           </p>
-          <h3 className="mt-3 text-lg font-semibold text-[#1d1813]">
+          <h3 className="mt-3 text-lg font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             Based on previous imported data, this customer looks{" "}
             {profile.riskLabel}.
           </h3>
         </div>
-        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#f3ecd8]">
+        <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c]">
           {profile.riskLabel}
         </Badge>
       </div>
-      <p className="mt-2 text-sm leading-6 text-[#6b6253]">
+      <p className="mt-2 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
         {profile.memoryNotes[0]}
       </p>
       {profile.averageDaysLate === 0 && profile.invoicesPaidLate === 0 && profile.missedPromisesCount === 0 && profile.disputesCount === 0 ? (
-        <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3">
-          <p className="text-sm text-[#3d3428]">Clean payment history. No missed promises or disputes recorded.</p>
+        <div className="mt-4 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3">
+          <p className="text-sm text-[#3d3428] dark:text-[#d8ccb5]">Clean payment history. No missed promises or disputes recorded.</p>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 [&>*]:overflow-hidden">
@@ -2174,21 +2353,21 @@ function CustomerBehaviourCard({
           />
         </div>
       )}
-      <div className="mt-4 rounded-xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]">
+      <div className="mt-4 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm leading-6 text-[#3d3428] dark:text-[#d8ccb5]">
         <p>
-          <span className="font-medium text-[#1d1813]">Payment behaviour:</span>{" "}
+          <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">Payment behaviour:</span>{" "}
           {profile.lastPaymentBehaviour}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-[#1d1813]">Suggested tone:</span>{" "}
+          <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">Suggested tone:</span>{" "}
           {humanLabel(profile.preferredToneSuggestion)}
         </p>
         <p className="mt-2">
-          <span className="font-medium text-[#1d1813]">Recommendation:</span>{" "}
+          <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">Recommendation:</span>{" "}
           {profile.recommendation}.
         </p>
         <p className="mt-2">
-          <span className="font-medium text-[#1d1813]">Terms note:</span>{" "}
+          <span className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">Terms note:</span>{" "}
           {profile.paymentTermsRecommendation}
         </p>
       </div>
@@ -2204,8 +2383,8 @@ function ScenarioFieldCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+    <section className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
         {title}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">{children}</div>
@@ -2226,14 +2405,14 @@ function FieldInput({
 }) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+      <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
         {label}
       </label>
       <Input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 rounded-2xl border-[#d4c9ae] bg-[#faf5e8]"
+        className="mt-2 rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]"
       />
     </div>
   );
@@ -2242,16 +2421,16 @@ function FieldInput({
 function DashboardLoadingState() {
   return (
     <div className="space-y-6">
-      <div className="h-32 animate-pulse rounded-3xl bg-[#faf5e8]" />
+      <div className="h-32 animate-pulse rounded-3xl bg-[#faf5e8] dark:bg-[#211d17]" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="h-36 animate-pulse rounded-2xl bg-[#faf5e8]"
+            className="h-36 animate-pulse rounded-2xl bg-[#faf5e8] dark:bg-[#211d17]"
           />
         ))}
       </div>
-      <div className="h-96 animate-pulse rounded-2xl bg-[#faf5e8]" />
+      <div className="h-96 animate-pulse rounded-2xl bg-[#faf5e8] dark:bg-[#211d17]" />
     </div>
   );
 }
@@ -2259,12 +2438,12 @@ function DashboardLoadingState() {
 function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-md rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
-        <AlertTriangle className="mx-auto size-8 text-[#1d1813]" />
-        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
+      <div className="max-w-md rounded-3xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-8 text-center">
+        <AlertTriangle className="mx-auto size-8 text-[#1d1813] dark:text-[#f0e8d5]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
           Collections plan could not load
         </h1>
-        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
           The import data or ranking rules failed to load. No messages have been
           generated or sent.
         </p>
@@ -2282,12 +2461,12 @@ function DashboardErrorState({ onRetry }: { onRetry: () => void }) {
 function DashboardEmptyState() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="max-w-lg rounded-3xl border border-[#d4c9ae] bg-[#faf5e8] p-8 text-center">
-        <FileText className="mx-auto size-9 text-[#1d1813]" />
-        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813]">
+      <div className="max-w-lg rounded-3xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-8 text-center">
+        <FileText className="mx-auto size-9 text-[#1d1813] dark:text-[#f0e8d5]" />
+        <h1 className="mt-4 text-2xl font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
           Import invoices to build a collections plan
         </h1>
-        <p className="mt-3 text-sm leading-6 text-[#6b6253]">
+        <p className="mt-3 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
           Zentra needs an overdue invoice export before it can rank actions,
           explain reasons, and prepare safe draft messages.
         </p>
@@ -2310,11 +2489,11 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 overflow-hidden">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] dark:text-[#8a7d69] truncate">
         {label}
       </p>
-      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5 text-[#1d1813]" title={value}>{value}</p>
-      {detail ? <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[#8d8472]" title={detail}>{detail}</p> : null}
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5 text-[#1d1813] dark:text-[#f0e8d5]" title={value}>{value}</p>
+      {detail ? <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[#8d8472] dark:text-[#6a5f4e]" title={detail}>{detail}</p> : null}
     </div>
   );
 }
@@ -2322,10 +2501,10 @@ function Metric({
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 overflow-hidden">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] truncate">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] dark:text-[#8a7d69] truncate">
         {label}
       </p>
-      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-[#1d1813]" title={value}>
+      <p className="mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]" title={value}>
         {value}
       </p>
     </div>
@@ -2345,7 +2524,7 @@ function StatusBadge({
       ? "border-red-200 bg-red-50 text-red-700"
       : value === "medium"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-[#d4c9ae] bg-[#f3ecd8] text-[#3d3428]";
+        : "border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c] text-[#3d3428] dark:text-[#d8ccb5]";
 
   return (
     <Badge variant="outline" className={`rounded-full ${tone}`}>
@@ -2800,31 +2979,31 @@ function buildActionDraftMessage(
   );
 
   if (scenario === "ASK_FOR_PAYMENT_DATE") {
-    return `Hi there,\n\nI am checking in on invoice ${invoice.invoiceNumber}, which is showing with ${amount} outstanding.\n\nCould you confirm the expected payment date so we can update our records?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nI am checking in on invoice ${invoice.invoiceNumber}, which is showing with ${amount} outstanding.\n\nCould you confirm the expected payment date so we can update our records?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "INTERNAL_ESCALATION") {
     return `Internal escalation\n\nCustomer: ${invoice.customerName}\nInvoice: ${invoice.invoiceNumber}\nOutstanding: ${amount}\nOwner: ${details.internalOwner || "Account manager"}\n\n${details.escalationNote || item.reason}`;
   }
   if (scenario === "THANK_YOU_AFTER_PAYMENT") {
-    return `Hi there,\n\nThank you for arranging payment for invoice ${invoice.invoiceNumber}. We appreciate your help getting this sorted.\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nThank you for arranging payment for invoice ${invoice.invoiceNumber}. We appreciate your help getting this sorted.\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "STATEMENT_OF_ACCOUNT") {
-    return `Hi there,\n\nI am checking the open items on your account. We currently have ${customerInvoices.length} open invoice${customerInvoices.length === 1 ? "" : "s"} totalling ${formatCurrency(totalOutstanding)}.\n\nCould you confirm which items are approved for payment, or whether you need a statement of account from us?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nI am checking the open items on your account. We currently have ${customerInvoices.length} open invoice${customerInvoices.length === 1 ? "" : "s"} totalling ${formatCurrency(totalOutstanding)}.\n\nCould you confirm which items are approved for payment, or whether you need a statement of account from us?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "REQUEST_REMITTANCE") {
-    return `Hi there,\n\nThanks for the update on invoice ${invoice.invoiceNumber}. The balance of ${amount} is still showing as outstanding on our side.\n\nCould you send remittance advice${details.paymentReference ? ` for reference ${details.paymentReference}` : ""} so we can match this correctly?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nThanks for the update on invoice ${invoice.invoiceNumber}. The balance of ${amount} is still showing as outstanding on our side.\n\nCould you send remittance advice${details.paymentReference ? ` for reference ${details.paymentReference}` : ""} so we can match this correctly?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "PROMISE_FOLLOW_UP") {
-    return `Hi there,\n\nI am following up on invoice ${invoice.invoiceNumber}. We had a payment date noted${details.promisedDate ? ` for ${formatDate(details.promisedDate)}` : ""}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nI am following up on invoice ${invoice.invoiceNumber}. We had a payment date noted${details.promisedDate ? ` for ${formatDate(details.promisedDate)}` : ""}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "RESOLVE_DISPUTE") {
-    return `Hi there,\n\nThanks for raising the query on invoice ${invoice.invoiceNumber}. We have noted the issue and will review it before sending any further payment reminders.\n\nCould you share any details that would help ${details.disputeOwner || "the team"} resolve this by ${details.nextResolutionDate ? formatDate(details.nextResolutionDate) : "the next update"}?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nThanks for raising the query on invoice ${invoice.invoiceNumber}. We have noted the issue and will review it before sending any further payment reminders.\n\nCould you share any details that would help ${details.disputeOwner || "the team"} resolve this by ${details.nextResolutionDate ? formatDate(details.nextResolutionDate) : "the next update"}?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "ASK_FOR_AP_CONTACT") {
-    return `Hi there,\n\nWe are trying to confirm the best ${details.requestedContactRole || "accounts payable"} contact for invoice ${invoice.invoiceNumber}.\n\nCould you point us to the right person or email address for payment queries?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nWe are trying to confirm the best ${details.requestedContactRole || "accounts payable"} contact for invoice ${invoice.invoiceNumber}.\n\nCould you point us to the right person or email address for payment queries?\n\nThanks,\nZentra Flow`;
   }
   if (scenario === "CONFIRM_INVOICE_RECEIVED") {
-    return `Hi there,\n\nI wanted to confirm that invoice ${invoice.invoiceNumber} for ${amount}, due on ${dueDate}, has reached the right team.\n\nCould you let me know whether it has been received and is scheduled for payment?\n\nThanks,\nZentra Collect`;
+    return `Hi there,\n\nI wanted to confirm that invoice ${invoice.invoiceNumber} for ${amount}, due on ${dueDate}, has reached the right team.\n\nCould you let me know whether it has been received and is scheduled for payment?\n\nThanks,\nZentra Flow`;
   }
 
   return buildDraftMessage(item, invoice);

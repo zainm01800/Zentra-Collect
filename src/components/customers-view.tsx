@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Edit2, Users } from "lucide-react";
+import Link from "next/link";
+import { Edit2, ExternalLink, Users, FileText } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
@@ -113,8 +114,56 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
+// ── Credit limit bar ──────────────────────────────────────────────────────────
+function CreditLimitBar({ outstanding, creditLimit }: { outstanding: number; creditLimit: number }) {
+  const pct = Math.min(100, Math.round((outstanding / creditLimit) * 100));
+  const isOver = outstanding > creditLimit;
+  const isWarning = pct >= 80;
+
+  const barColor = isOver
+    ? "var(--zn-risk)"
+    : isWarning
+    ? "var(--zn-warn)"
+    : "var(--zn-safe)";
+
+  return (
+    <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--zn-line-soft)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>
+          Credit limit
+        </span>
+        <div className="flex items-center gap-2">
+          {isOver && (
+            <span
+              className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}
+            >
+              Over limit
+            </span>
+          )}
+          <span className="text-[12px] font-semibold tabular-nums" style={{ color: isOver ? "var(--zn-risk)" : "var(--zn-ink-2)" }}>
+            {formatCurrency(outstanding)} / {formatCurrency(creditLimit)}
+          </span>
+          <span className="text-[11px] font-medium tabular-nums" style={{ color: barColor }}>
+            {pct}%
+          </span>
+        </div>
+      </div>
+      <div
+        className="w-full h-1.5 rounded-full overflow-hidden"
+        style={{ background: "var(--zn-line-soft)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: barColor }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Customer detail panel ─────────────────────────────────────────────────────
-function CustomerDetail({ customerId }: { customerId: string }) {
+export function CustomerDetail({ customerId }: { customerId: string }) {
   const customer = demoCustomers.find((c) => c.id === customerId);
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -142,7 +191,7 @@ function CustomerDetail({ customerId }: { customerId: string }) {
               {initials(customer.name)}
             </div>
             <div>
-              <h2 className="text-[20px] font-semibold text-[#1d1813] leading-tight">
+              <h2 className="text-[20px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] leading-tight">
                 {customer.name}
               </h2>
               <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
@@ -168,16 +217,36 @@ function CustomerDetail({ customerId }: { customerId: string }) {
               </div>
             </div>
           </div>
-          <span
-            className="zn-chip flex-shrink-0"
-            style={{ background: RISK_COLOR[risk].bg, color: RISK_COLOR[risk].text, borderColor: "transparent" }}
-          >
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span
-              className="size-1.5 rounded-full inline-block mr-1"
-              style={{ background: RISK_COLOR[risk].text }}
-            />
-            {RISK_LABEL[risk]}
-          </span>
+              className="zn-chip"
+              style={{ background: RISK_COLOR[risk].bg, color: RISK_COLOR[risk].text, borderColor: "transparent" }}
+            >
+              <span
+                className="size-1.5 rounded-full inline-block mr-1"
+                style={{ background: RISK_COLOR[risk].text }}
+              />
+              {RISK_LABEL[risk]}
+            </span>
+            <Link
+              href={`/customers/${customerId}/statement`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+              title="View statement"
+              aria-label="View statement"
+            >
+              <FileText className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+            </Link>
+            <Link
+              href={`/customers/${customerId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+              title="Open full page"
+              aria-label="Open full page"
+            >
+              <ExternalLink className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+            </Link>
+          </div>
         </div>
 
         {/* Stats row */}
@@ -191,12 +260,17 @@ function CustomerDetail({ customerId }: { customerId: string }) {
           ].map(({ label, value }) => (
             <div key={label} className="flex flex-col gap-1">
               <div className="zn-label !p-0">{label}</div>
-              <div className="text-[18px] font-semibold text-[#1d1813] tabular-nums leading-none mt-0.5">
+              <div className="text-[18px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] tabular-nums leading-none mt-0.5">
                 {value}
               </div>
             </div>
           ))}
         </div>
+
+        {/* Credit limit utilisation */}
+        {customer.creditLimit && customer.creditLimit > 0 && (
+          <CreditLimitBar outstanding={stats.outstanding} creditLimit={customer.creditLimit} />
+        )}
       </div>
 
       {/* Behaviour note */}
@@ -258,7 +332,7 @@ function CustomerDetail({ customerId }: { customerId: string }) {
         {/* Sparkline */}
         <div className="zn-card p-5">
           <div className="zn-label !p-0 mb-1">Days late</div>
-          <div className="text-[15px] font-medium text-[#1d1813] mb-4">Last 6 months</div>
+          <div className="text-[15px] font-medium text-[#1d1813] dark:text-[#f0e8d5] mb-4">Last 6 months</div>
           {stats.avgDaysLate > 0 ? (
             <Sparkline data={stats.sparkData} />
           ) : (
@@ -280,13 +354,14 @@ function CustomerDetail({ customerId }: { customerId: string }) {
           ) : (
             <div className="flex flex-col">
               {stats.open.slice(0, 6).map((inv) => (
-                <div
+                <Link
                   key={inv.id}
-                  className="flex items-center justify-between px-5 py-3"
+                  href={`/invoices/${inv.id}`}
+                  className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
                   style={{ borderTop: "1px solid var(--zn-line-soft)" }}
                 >
                   <div>
-                    <div className="text-[13px] font-medium text-[#1d1813]">{inv.invoiceNumber}</div>
+                    <div className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">{inv.invoiceNumber}</div>
                     <div className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
                       Due {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                       {inv.daysOverdue > 0 && (
@@ -296,10 +371,10 @@ function CustomerDetail({ customerId }: { customerId: string }) {
                       )}
                     </div>
                   </div>
-                  <div className="text-[14px] font-semibold tabular-nums text-[#1d1813]">
+                  <div className="text-[14px] font-semibold tabular-nums text-[#1d1813] dark:text-[#f0e8d5]">
                     {formatCurrency(inv.amountOutstanding)}
                   </div>
-                </div>
+                </Link>
               ))}
               {stats.open.length > 6 && (
                 <div
@@ -355,7 +430,7 @@ export function CustomersView() {
           <Users className="size-5" style={{ color: "var(--zn-ink-3)" }} />
         </div>
         <div>
-          <p className="text-[15px] font-semibold text-[#1d1813]">No customers yet</p>
+          <p className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">No customers yet</p>
           <p className="mt-1 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
             Import an invoice export to see your customers here.
           </p>
@@ -425,8 +500,8 @@ export function CustomersView() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[13px] font-semibold text-[#1d1813] truncate">{c.name}</span>
-                      <span className="text-[12.5px] font-medium tabular-nums text-[#1d1813] flex-shrink-0">
+                      <span className="text-[13px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">{c.name}</span>
+                      <span className="text-[12.5px] font-medium tabular-nums text-[#1d1813] dark:text-[#f0e8d5] flex-shrink-0">
                         {formatCurrency(c.outstanding)}
                       </span>
                     </div>

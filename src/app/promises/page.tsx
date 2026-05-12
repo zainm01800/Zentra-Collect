@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { PromisesTable, type PromiseRow } from "@/components/promises-table";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -46,17 +45,16 @@ export default async function PromisesPage() {
   const likelyCash = due.reduce((s, p) => s + p.amount, 0);
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
-        <PageHeader
+    <div className="flex flex-col gap-5">
+      <PageHeader
           kicker="Kept and missed"
           title="Promises"
           sub='Every "I&apos;ll pay on Friday" tracked, with a clear next step when it slips. Click a row to review.'
         />
 
         {isDemo && (
-          <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-500">
-            Showing sample data — import your invoices to track real promises.
+          <div className="rounded-lg px-3.5 py-2.5 text-[12.5px]" style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line)" }}>
+            Sample data — import your invoices to track real promises.
           </div>
         )}
 
@@ -85,6 +83,5 @@ export default async function PromisesPage() {
           </div>
         </div>
       </div>
-    </AppShell>
   );
 }

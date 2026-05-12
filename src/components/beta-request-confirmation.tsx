@@ -198,19 +198,19 @@ export function BetaRequestConfirmation() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf8f1] px-4 py-10 text-neutral-950">
+    <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] px-4 py-10 text-neutral-950 dark:text-[#f0e8d5]">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-[2rem] border border-black/10 bg-white/70 p-6 shadow-sm lg:p-8">
+        <section className="rounded-[2rem] border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6 shadow-sm lg:p-8">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-neutral-950 text-white">
             <LockKeyhole className="size-5" />
           </div>
-          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
             Request founding access
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight">
             Tell us where AR gets messy.
           </h1>
-          <p className="mt-4 text-base leading-7 text-neutral-600">
+          <p className="mt-4 text-base leading-7 text-neutral-600 dark:text-[#8a7d69]">
             Founding access is limited while Zentra Collect is in beta. We use
             this request to prioritise serious early users and bookkeepers.
           </p>
@@ -218,18 +218,18 @@ export function BetaRequestConfirmation() {
             <PriceCard title="Single Business beta" price={"\u00A329/month"} detail="One business, early beta, 12-month founding lock." />
             <PriceCard title="Bookkeeper beta" price={"\u00A379/month"} detail="Up to 5 client ledgers, early portfolio features, 12-month founding lock." />
           </div>
-          <p className="mt-6 text-xs leading-5 text-neutral-500">
+          <p className="mt-6 text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
             TODO: replace local request storage with Supabase, a beta_requests
             table, and an owner email notification before production.
           </p>
         </section>
 
-        <Card className="rounded-[2rem] border-black/10 bg-white/80 shadow-sm">
+        <Card className="rounded-[2rem] border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#28231c] shadow-sm">
           <CardHeader>
             <CardTitle className="text-3xl">
               {submitted ? "Thanks - request received" : "Request founding access"}
             </CardTitle>
-            <p className="text-sm leading-6 text-neutral-600">
+            <p className="text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
               {submitted
                 ? "Thanks - we'll review your request and contact you about early access."
                 : "A few quick details help us understand whether Zentra is a good fit."}
@@ -314,7 +314,7 @@ export function BetaRequestConfirmation() {
                     id="optionalMessage"
                     value={optionalMessage}
                     onChange={(event) => setOptionalMessage(event.target.value)}
-                    className="min-h-28 rounded-2xl border-black/10 bg-[#fbf8f1]"
+                    className="min-h-28 rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]"
                     placeholder="Anything useful about your current collections process?"
                   />
                 </div>
@@ -382,14 +382,14 @@ function ConfirmationPanel({
         </a>
       </Button>
 
-      <div className="rounded-3xl border border-black/10 bg-[#fbf8f1] p-5">
+      <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-5">
         <Label htmlFor="approvalCode">Owner approval code</Label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Input
             id="approvalCode"
             value={approvalCode}
             onChange={(event) => setApprovalCode(event.target.value)}
-            className="rounded-2xl border-black/10 bg-white"
+            className="rounded-2xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]"
             placeholder="Enter approval code"
           />
           <Button
@@ -407,7 +407,7 @@ function ConfirmationPanel({
       <Button
         type="button"
         variant="outline"
-        className="w-full rounded-full border-black/10 bg-transparent"
+        className="w-full rounded-full border-black/10 dark:border-white/10 bg-transparent"
         onClick={openDemoWhileWaiting}
       >
         View demo while waiting
@@ -426,10 +426,10 @@ function PriceCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-3xl border border-black/10 bg-[#fbf8f1] p-5">
+    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-5">
       <p className="font-semibold">{title}</p>
       <p className="mt-2 text-3xl font-semibold">{price}</p>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">{detail}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">{detail}</p>
     </div>
   );
 }
@@ -455,7 +455,7 @@ function Field({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-2xl border-black/10 bg-[#fbf8f1]"
+        className="rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]"
       />
     </div>
   );
@@ -476,7 +476,7 @@ function SelectField({
     <div className="space-y-2">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full rounded-2xl border-black/10 bg-[#fbf8f1]">
+        <SelectTrigger className="w-full rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

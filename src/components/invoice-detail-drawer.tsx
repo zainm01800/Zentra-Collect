@@ -80,16 +80,16 @@ export function InvoiceDetailDrawer({
   return (
     <>
       {/* Header */}
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#d4c9ae] px-5 py-4">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#d4c9ae] dark:border-[#2d2820] px-5 py-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={invoice.status} />
             <UrgencyBadge urgency={getInvoiceUrgency(invoice)} />
           </div>
-          <p className="mt-2 text-base font-semibold text-[#1d1813]">
+          <p className="mt-2 text-base font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             {invoice.customerName}
           </p>
-          <p className="mt-0.5 text-sm text-[#8d8472]">
+          <p className="mt-0.5 text-sm text-[#8d8472] dark:text-[#6a5f4e]">
             {invoice.invoiceNumber} &middot; {formatCurrency(invoice.amount)} &middot; due{" "}
             {formatDate(invoice.dueDate)}
           </p>
@@ -97,7 +97,7 @@ export function InvoiceDetailDrawer({
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#a09885] transition-colors hover:bg-[#f3ecd8] hover:text-[#3d3428]"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#a09885] dark:text-[#8a7d69] transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820] hover:text-[#3d3428] dark:text-[#d8ccb5]"
           aria-label="Close"
         >
           <X className="size-4" />
