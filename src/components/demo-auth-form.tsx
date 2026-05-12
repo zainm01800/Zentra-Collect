@@ -103,18 +103,24 @@ export function DemoAuthForm() {
           // Returning user check — if they already have an account row, skip
           // onboarding and go straight to the dashboard.
           if (data.user) {
-            type MemberRow = { account_id: string; zentra_accounts: { plan_id: string } | null };
+            // Two separate queries to avoid RLS blocking nested joins.
             const { data: member } = await supabase
               .from("zentra_account_members")
-              .select("account_id, zentra_accounts(plan_id)")
+              .select("account_id")
               .eq("user_id", data.user.id)
               .limit(1)
-              .maybeSingle<MemberRow>();
+              .maybeSingle<{ account_id: string }>();
 
-            if (member) {
-              // DB stores uppercase plan IDs (e.g. "BOOKKEEPER_PRO") but
+            if (member?.account_id) {
+              const { data: accountRow } = await supabase
+                .from("zentra_accounts")
+                .select("plan_id")
+                .eq("id", member.account_id)
+                .maybeSingle<{ plan_id: string }>();
+
+              // DB stores uppercase plan IDs (e.g. "BOOKKEEPER_STARTER") but
               // billing/plans.ts uses lowercase keys — normalise here.
-              const planId = ((member.zentra_accounts?.plan_id ?? "trial").toLowerCase()) as PlanId;
+              const planId = ((accountRow?.plan_id ?? "trial").toLowerCase()) as PlanId;
               const account = createLocalAccount({
                 name: nextName || data.user.email?.split("@")[0] || "User",
                 email: data.user.email ?? email,
