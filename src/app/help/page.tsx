@@ -99,9 +99,9 @@ export default function HelpPage() {
               color: "var(--zn-surface)",
             }}
           >
-            <span style={{ color: "rgba(250,245,232,0.55)" }}>AI is used for three things only: </span>
+            <span className="opacity-55">AI is used for three things only: </span>
             drafting the body of your message, classifying customer replies, and
-            suggesting column mappings on import. <span style={{ color: "rgba(250,245,232,0.55)" }}>You confirm each one. Ranking, scenario selection, and safety checks are 100% rule-based.</span>
+            suggesting column mappings on import. <span className="opacity-55">You confirm each one. Ranking, scenario selection, and safety checks are 100% rule-based.</span>
           </div>
         </div>
 

@@ -131,7 +131,7 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
                 { label: "Weekly digest history", value: "Included" },
               ]
             : [
-                { label: "CSV / Excel imports", value: "5 / month" },
+                { label: "CSV / Excel imports", value: "2 trial imports" },
                 { label: "Active invoices",     value: "100" },
                 { label: "AI draft messages",   value: "25" },
                 { label: "Re-import comparison", value: "Included" },

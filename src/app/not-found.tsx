@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Page not found · Zentra Flow",
+  description: "The page you're looking for doesn't exist.",
+};
 
 export default function NotFound() {
   return (

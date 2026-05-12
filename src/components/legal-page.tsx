@@ -24,18 +24,15 @@ export function LegalPage({
     >
       {/* Top bar — mirrors the marketing site so the page feels like part of zentracollect.co.uk */}
       <header
-        className="sticky top-0 z-30 backdrop-blur"
-        style={{
-          background: "rgba(233,223,201,0.85)",
-          borderBottom: "1px solid var(--zn-line)",
-        }}
+        className="sticky top-0 z-30 backdrop-blur border-b bg-[rgba(233,223,201,0.88)] dark:bg-[rgba(33,29,23,0.88)]"
+        style={{ borderColor: "var(--zn-line)" }}
       >
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
             </span>
           </Link>
           <Link

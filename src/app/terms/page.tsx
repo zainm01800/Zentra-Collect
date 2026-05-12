@@ -13,8 +13,7 @@ export default function TermsPage() {
         <p>
           Zentra Flow (the &quot;Service&quot;) is provided by Zentra Ltd
           (&quot;Zentra&quot;, &quot;we&quot;, &quot;us&quot;), a company
-          registered in England &amp; Wales [company number to insert].
-          Registered address: [address to insert]. Contact:{" "}
+          registered in England &amp; Wales. Contact:{" "}
           <a href="mailto:hello@zentracollect.co.uk" className="underline underline-offset-2">hello@zentracollect.co.uk</a>.
         </p>
       </Section>
