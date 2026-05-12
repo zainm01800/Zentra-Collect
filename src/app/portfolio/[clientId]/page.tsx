@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { ZentraDashboard } from "@/components/zentra-dashboard";
 import { Button } from "@/components/ui/button";
 import { UpgradeScreen } from "@/components/access/upgrade-screen";
@@ -28,7 +27,7 @@ export default async function PortfolioClientPage({
   if (!access.allowed) {
     const config = getRedirectOrUpgradePrompt(snapshot, "bookkeeper_portfolio")!;
     return (
-      <AppShell>
+      <>
         <div className="mb-4 flex items-center gap-2">
           <Button asChild variant="ghost" size="sm" className="-ml-2">
             <Link href="/portfolio">
@@ -38,7 +37,7 @@ export default async function PortfolioClientPage({
           </Button>
         </div>
         <UpgradeScreen feature="bookkeeper_portfolio" config={config} />
-      </AppShell>
+      </>
     );
   }
 
@@ -56,7 +55,7 @@ export default async function PortfolioClientPage({
   );
 
   return (
-    <AppShell>
+    <>
       {/* Breadcrumb */}
       <div className="mb-4 flex items-center gap-2">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
@@ -77,6 +76,6 @@ export default async function PortfolioClientPage({
 
       {/* Reuse the same ZentraDashboard, filtered to this client's invoices */}
       <ZentraDashboard initialInvoices={clientInvoices} />
-    </AppShell>
+    </>
   );
 }

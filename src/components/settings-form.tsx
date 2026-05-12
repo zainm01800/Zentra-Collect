@@ -2,6 +2,7 @@
 
 import { Mail, Save, CheckCircle2, AlertTriangle, Zap, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
+import { WorkspaceSetupCard } from "@/components/workspace-setup-card";
 import { UpgradePromptModal } from "@/components/billing-gates";
 import { AutoSendModal } from "@/components/auto-send-modal";
 import { EmailAddonUpgradeModal } from "@/components/email-addon-upgrade-modal";
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { requirePlanAccess, toAccountState } from "@/lib/account/access";
 import { incrementClientLedgerUsage } from "@/lib/account/usage";
@@ -32,9 +34,12 @@ import {
 } from "@/lib/email/settings-store";
 import { getPlanConfig } from "@/lib/account/plans";
 
-export function SettingsForm() {
+export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
   const { account } = useLocalAccount();
   const [upgradePrompt, setUpgradePrompt] = useState<string | null>(null);
+
+  const validTabs = ["business", "workspace", "email", "system"];
+  const initialTab = defaultTab && validTabs.includes(defaultTab) ? defaultTab : "business";
 
   function addClientLedger() {
     const access = requirePlanAccess(account, "add_client_ledger");
@@ -54,115 +59,175 @@ export function SettingsForm() {
   }
 
   return (
-    <form className="grid gap-5 lg:grid-cols-[1fr_360px]">
+    <form className="space-y-0">
       <UpgradePromptModal
         open={Boolean(upgradePrompt)}
         title="Client ledger access"
         description={upgradePrompt ?? ""}
         onClose={() => setUpgradePrompt(null)}
       />
-      <Card className="rounded-lg">
-        <CardHeader>
-          <CardTitle>Business settings</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Business name" defaultValue="Zentra Demo Studio" />
-          <Field label="Sender name" defaultValue="Zain from Zentra Demo Studio" />
-          <Field label="Reply-to email" defaultValue="accounts@example.co.uk" />
-          <div className="space-y-2">
-            <Label>Default tone</Label>
-            <Select defaultValue="Neutral">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Friendly">Friendly</SelectItem>
-                <SelectItem value="Neutral">Neutral</SelectItem>
-                <SelectItem value="Firm">Firm</SelectItem>
-                <SelectItem value="Final notice">Final notice</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Field label="Payment terms" defaultValue="14 days" />
-          <Field label="Default reminder schedule" defaultValue="3, 10, 24, 45 days overdue" />
-          <div className="space-y-2 sm:col-span-2">
-            <Label>Brand voice notes</Label>
-            <Textarea
-              defaultValue="Professional, calm, clear, and relationship-preserving. Avoid legal language unless reviewed."
-              className="min-h-28"
-            />
-          </div>
-          <div className="flex items-center justify-between rounded-lg border p-4 sm:col-span-2">
-            <div>
-              <p className="text-sm font-medium">Late fee language enabled</p>
-              <p className="text-sm text-muted-foreground">
-                Keep off until terms and statutory rules are confirmed.
-              </p>
-            </div>
-            <Switch />
-          </div>
-          <div className="flex justify-end sm:col-span-2">
-            <Button className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]">
-              <Save className="size-4" />
-              Save settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="space-y-5">
-        <Card className="rounded-lg">
-          <CardHeader>
-            <CardTitle>Client ledgers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Add client ledgers on bookkeeper plans. Single-business plans stay
-              focused on one company.
-            </p>
-            <Button type="button" variant="outline" className="w-full" onClick={addClientLedger}>
-              Add client ledger
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="rounded-lg">
-          <CardHeader>
-            <CardTitle>Accounting connection</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Demo mode is active. CSV import is available now; accounting
-              integrations are stubbed for a later production pass.
-            </p>
-            <Button type="button" variant="outline" className="w-full">
-              Connect accounting system
-            </Button>
-          </CardContent>
-        </Card>
-        <OutboundEmailCard />
-        <EmailSettingsCard />
-        <Card className="rounded-lg">
-          <CardHeader>
-            <CardTitle>AI status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              OpenAI runs server-side when <span className="font-mono">OPENAI_API_KEY</span>{" "}
-              is present. Otherwise Zentra uses template drafts.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-lg">
-          <CardHeader>
-            <CardTitle>Stripe billing</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Subscription billing is reserved for production setup.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue={initialTab} className="w-full">
+        <TabsList className="mb-5 h-9 rounded-lg p-1 bg-muted w-full sm:w-auto">
+          <TabsTrigger value="business"  className="rounded-md text-[13px] px-4">Business</TabsTrigger>
+          <TabsTrigger value="workspace" className="rounded-md text-[13px] px-4">Workspace</TabsTrigger>
+          <TabsTrigger value="email"     className="rounded-md text-[13px] px-4">Email</TabsTrigger>
+          <TabsTrigger value="system"    className="rounded-md text-[13px] px-4">System</TabsTrigger>
+        </TabsList>
+
+        {/* ── Business tab ─────────────────────────────────────────────── */}
+        <TabsContent value="business" className="mt-0">
+          <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+            <Card className="rounded-lg">
+              <CardHeader className="pb-3">
+                <CardTitle>Business settings</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <Field label="Business name"           defaultValue="Zentra Demo Studio" />
+                <Field label="Sender name"             defaultValue="Zain from Zentra Demo Studio" />
+                <Field label="Reply-to email"          defaultValue="accounts@example.co.uk" />
+                <div className="space-y-1.5">
+                  <Label>Default tone</Label>
+                  <Select defaultValue="Neutral">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Friendly">Friendly</SelectItem>
+                      <SelectItem value="Neutral">Neutral</SelectItem>
+                      <SelectItem value="Firm">Firm</SelectItem>
+                      <SelectItem value="Final notice">Final notice</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Payment terms</Label>
+                  <Select defaultValue="14">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="21">21 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                      <SelectItem value="45">45 days</SelectItem>
+                      <SelectItem value="60">60 days</SelectItem>
+                      <SelectItem value="90">90 days</SelectItem>
+                      <SelectItem value="receipt">On receipt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Reminder schedule</Label>
+                  <Select defaultValue="standard-extended">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gentle">Gentle — 7, 14, 30 days</SelectItem>
+                      <SelectItem value="standard">Standard — 3, 10, 24 days</SelectItem>
+                      <SelectItem value="standard-extended">Standard+ — 3, 10, 24, 45 days</SelectItem>
+                      <SelectItem value="firm">Firm — 1, 5, 10, 21 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Brand voice notes</Label>
+                  <Textarea
+                    defaultValue="Professional, calm, clear, and relationship-preserving. Avoid legal language unless reviewed."
+                    className="min-h-20 resize-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
+                  <div>
+                    <p className="text-sm font-medium">Late fee language enabled</p>
+                    <p className="text-xs text-muted-foreground">
+                      Keep off until terms and statutory rules are confirmed.
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <div className="flex justify-end sm:col-span-2">
+                  <Button className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]">
+                    <Save className="size-4" />
+                    Save settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <Card className="rounded-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle>Client ledgers</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Add client ledgers on bookkeeper plans. Single-business plans stay focused on one company.
+                  </p>
+                  <Button type="button" variant="outline" className="w-full" onClick={addClientLedger}>
+                    Add client ledger
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="rounded-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle>Accounting connection</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Demo mode is active. CSV import is available now; accounting integrations are stubbed for a later production pass.
+                  </p>
+                  <Button type="button" variant="outline" className="w-full">
+                    Connect accounting system
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Workspace tab ─────────────────────────────────────────────── */}
+        <TabsContent value="workspace" className="mt-0">
+          <WorkspaceSetupCard />
+        </TabsContent>
+
+        {/* ── Email tab ─────────────────────────────────────────────────── */}
+        <TabsContent value="email" className="mt-0">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <OutboundEmailCard />
+            <EmailSettingsCard />
+          </div>
+        </TabsContent>
+
+        {/* ── System tab ────────────────────────────────────────────────── */}
+        <TabsContent value="system" className="mt-0">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Card className="rounded-lg">
+              <CardHeader className="pb-3">
+                <CardTitle>AI status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  OpenAI runs server-side when <span className="font-mono text-xs">OPENAI_API_KEY</span>{" "}
+                  is present. Otherwise Zentra uses template drafts.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-lg">
+              <CardHeader className="pb-3">
+                <CardTitle>Stripe billing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Subscription billing is reserved for production setup.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </form>
   );
 }
@@ -201,7 +266,6 @@ function EmailSettingsCard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoMode]);
 
-  // Derive access tier
   type AccessTier = "none" | "addon-upgrade" | "full";
   let accessTier: AccessTier = "none";
 
@@ -233,7 +297,7 @@ function EmailSettingsCard() {
   return (
     <>
       <Card className="rounded-lg">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Mail className="size-4" />
             Email auto-send
@@ -278,7 +342,7 @@ function EmailSettingsCard() {
                 ) : status === "arming" ? (
                   <AlertTriangle className="size-4 text-amber-500" />
                 ) : (
-                  <span className="size-4 rounded-full bg-zinc-200 inline-block" />
+                  <span className="size-4 rounded-full bg-zinc-200 dark:bg-zinc-700 inline-block" />
                 )}
                 <span className="text-muted-foreground">
                   {isDemoMode
@@ -366,23 +430,16 @@ function EmailSettingsCard() {
   );
 }
 
-// ── Outbound email credentials card ──────────────────────────────────────────
-
-/**
- * Simple card for configuring outbound SMTP credentials used by the
- * "Send email" button in the chase drawer. Saves to the same
- * zentra_email_settings table as the auto-send setup.
- */
 function OutboundEmailCard() {
-  useLocalAccount(); // keep hook call for potential future use
+  useLocalAccount();
 
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [fromName, setFromName]   = useState("");
-  const [showPass, setShowPass]   = useState(false);
-  const [saving, setSaving]       = useState(false);
-  const [saved, setSaved]         = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [fromName, setFromName] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   async function handleSave() {
     if (!email.trim() || !password.trim()) return;
@@ -418,7 +475,7 @@ function OutboundEmailCard() {
 
   return (
     <Card className="rounded-lg">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Mail className="size-4" />
           Outbound email
@@ -463,8 +520,7 @@ function OutboundEmailCard() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              For Gmail use an App Password (requires 2FA).
-              For Outlook use your regular password.
+              For Gmail use an App Password (requires 2FA). For Outlook use your regular password.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -476,9 +532,7 @@ function OutboundEmailCard() {
               onChange={(e) => setFromName(e.target.value)}
             />
           </div>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           {saved && (
             <p className="text-sm text-emerald-600 flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5" /> Email credentials saved.
@@ -503,7 +557,7 @@ function OutboundEmailCard() {
 function Field({ label, defaultValue }: { label: string; defaultValue: string }) {
   const id = label.toLowerCase().replaceAll(" ", "-");
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} defaultValue={defaultValue} />
     </div>

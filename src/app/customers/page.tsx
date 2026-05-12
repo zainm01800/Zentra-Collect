@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { CustomersView } from "@/components/customers-view";
 import { PageHeader } from "@/components/page-header";
 
@@ -11,8 +10,7 @@ export const metadata: Metadata = {
 
 export default function CustomersPage() {
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <PageHeader
           kicker="Collections"
           title="Customers"
@@ -20,6 +18,5 @@ export default function CustomersPage() {
         />
         <CustomersView />
       </div>
-    </AppShell>
   );
 }

@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { ImportGate } from "@/components/import-gate";
 
 import type { Metadata } from "next";
@@ -9,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ImportPage() {
-  return (
-    <AppShell>
-      <ImportGate />
-    </AppShell>
-  );
+  return <ImportGate />;
 }

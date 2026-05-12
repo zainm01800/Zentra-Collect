@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppShellWrapper } from "@/components/app-shell-wrapper";
 import "./globals.css";
 
 // Plausible — no-op until NEXT_PUBLIC_PLAUSIBLE_DOMAIN is set.
@@ -112,7 +113,9 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         ) : null}
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <AppShellWrapper>{children}</AppShellWrapper>
+        </TooltipProvider>
       </body>
     </html>
   );

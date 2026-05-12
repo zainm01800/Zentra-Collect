@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Menu,
   PiggyBank,
+  Plus,
   Receipt,
   ShieldAlert,
   Settings,
@@ -37,6 +38,8 @@ import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { toAccountState } from "@/lib/account/access";
+import { readWorkspacePrefs, type WorkspacePrefs } from "@/lib/prefs";
+import { MODULES, type ModuleKey } from "@/lib/modules";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
@@ -50,18 +53,18 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-const workspaceNav: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard",        icon: LayoutDashboard },
-  { href: "/import",    label: "Import invoices",  icon: ArrowUpFromLine },
-  { href: "/portfolio", label: "Portfolio",         icon: Wallet },
-  { href: "/digest",    label: "Weekly digest",    icon: FileText },
+const overviewNav: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/portfolio", label: "Portfolio",     icon: Wallet },
+  { href: "/digest",    label: "Weekly digest", icon: FileText },
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/chase-today", label: "Collections", icon: CreditCard },
-  { href: "/customers",   label: "Customers",   icon: Users },
-  { href: "/promises",    label: "Promises",    icon: AlertTriangle },
-  { href: "/disputes",    label: "Disputes",    icon: ShieldAlert },
+  { href: "/import",      label: "Import invoices", icon: ArrowUpFromLine },
+  { href: "/chase-today", label: "Chase plan",      icon: CreditCard },
+  { href: "/customers",   label: "Customers",       icon: Users },
+  { href: "/promises",    label: "Promises",        icon: AlertTriangle },
+  { href: "/disputes",    label: "Disputes",        icon: ShieldAlert },
 ];
 
 const financeNav: NavItem[] = [
@@ -85,6 +88,25 @@ const mobileBottomNav: NavItem[] = [
   { href: "/settings",   label: "Settings",  icon: Settings },
 ];
 
+// ── Nav hidden-items helpers ──────────────────────────────────────────────────
+
+const NAV_HIDDEN_KEY = "zentra.navHidden.v1";
+
+// Dashboard is always visible — everything else can be hidden
+const ALWAYS_VISIBLE = new Set(["/dashboard"]);
+
+function readHiddenHrefs(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const s = window.localStorage.getItem(NAV_HIDDEN_KEY);
+    return s ? new Set(JSON.parse(s) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+
+function writeHiddenHrefs(hidden: Set<string>) {
+  try { window.localStorage.setItem(NAV_HIDDEN_KEY, JSON.stringify([...hidden])); } catch {}
+}
+
 // ── Nav collapse helpers ──────────────────────────────────────────────────────
 
 const COLLAPSE_KEY = "zentra.navCollapse.v1";
@@ -103,23 +125,36 @@ function writeCollapse(state: Record<string, boolean>) {
 
 // ── NavLink ───────────────────────────────────────────────────────────────────
 
-function NavLink({ item, active, badge }: { item: NavItem; active: boolean; badge?: number }) {
+function NavLink({ item, active, badge, onHide }: { item: NavItem; active: boolean; badge?: number; onHide?: () => void }) {
   return (
-    <Link
-      href={item.href}
-      className={cn("zn-nav-item", active && "active")}
-    >
-      <item.icon className="zn-nav-icon size-4" />
-      <span className="flex-1">{item.label}</span>
-      {badge != null && badge > 0 && (
-        <span
-          className="text-[10px] font-bold min-w-[17px] h-[17px] rounded-full flex items-center justify-center px-1 tabular-nums"
-          style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+    <div className="group/navitem flex items-center gap-0.5">
+      <Link
+        href={item.href}
+        className={cn("zn-nav-item flex-1 min-w-0", active && "active")}
+      >
+        <item.icon className="zn-nav-icon size-4" />
+        <span className="flex-1 truncate">{item.label}</span>
+        {badge != null && badge > 0 && (
+          <span
+            className="text-[10px] font-bold min-w-[17px] h-[17px] rounded-full flex items-center justify-center px-1 tabular-nums"
+            style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+          >
+            {badge}
+          </span>
+        )}
+      </Link>
+      {onHide && (
+        <button
+          type="button"
+          onClick={onHide}
+          title={`Hide ${item.label}`}
+          className="opacity-0 group-hover/navitem:opacity-100 transition-opacity flex-shrink-0 size-5 rounded flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5"
+          style={{ color: "var(--zn-ink-3)" }}
         >
-          {badge}
-        </span>
+          <X className="size-3" />
+        </button>
       )}
-    </Link>
+    </div>
   );
 }
 
@@ -133,6 +168,7 @@ function CollapsibleSection({
   onToggle,
   isActive,
   badges,
+  onHide,
   className,
 }: {
   label: string;
@@ -142,6 +178,7 @@ function CollapsibleSection({
   onToggle: (key: string) => void;
   isActive: (href: string) => boolean;
   badges?: Partial<Record<string, number>>;
+  onHide?: (href: string) => void;
   className?: string;
 }) {
   // Never collapse a section that contains the current page
@@ -174,6 +211,7 @@ function CollapsibleSection({
               item={item}
               active={isActive(item.href)}
               badge={badges?.[item.href]}
+              onHide={onHide && !ALWAYS_VISIBLE.has(item.href) ? () => onHide(item.href) : undefined}
             />
           ))}
         </div>
@@ -218,8 +256,61 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
 
   // Collapsible section state — Finance collapses by default
-  const [collapse, setCollapse] = useState<Record<string, boolean>>({ finance: true });
+  const [collapse, setCollapse] = useState<Record<string, boolean>>({ overview: false, collections: false, finance: true });
   useEffect(() => { setCollapse(readCollapse()); }, []);
+
+  // Hidden nav items — user can hide/restore individual items
+  const [hiddenHrefs, setHiddenHrefs] = useState<Set<string>>(new Set());
+  useEffect(() => { setHiddenHrefs(readHiddenHrefs()); }, []);
+  const [hiddenExpanded, setHiddenExpanded] = useState(false);
+
+  function hideNavItem(href: string) {
+    setHiddenHrefs((prev) => {
+      const next = new Set([...prev, href]);
+      writeHiddenHrefs(next);
+      return next;
+    });
+  }
+  function restoreNavItem(href: string) {
+    setHiddenHrefs((prev) => {
+      const next = new Set([...prev]);
+      next.delete(href);
+      writeHiddenHrefs(next);
+      return next;
+    });
+  }
+
+  // Workspace prefs — module visibility + dashboard widgets
+  const [workspacePrefs, setWorkspacePrefs] = useState<WorkspacePrefs | null>(null);
+  useEffect(() => {
+    setWorkspacePrefs(readWorkspacePrefs());
+    function onPrefs(e: Event) {
+      setWorkspacePrefs((e as CustomEvent<WorkspacePrefs>).detail);
+    }
+    window.addEventListener("zentra:workspaceprefs", onPrefs);
+    return () => window.removeEventListener("zentra:workspaceprefs", onPrefs);
+  }, []);
+
+  // Build the visible Finance nav items from enabled modules (cashflow/expenses/tax/reports)
+  const visibleFinanceItems = useMemo<NavItem[]>(() => {
+    if (!workspacePrefs) return [];
+    const enabledHrefs = new Set<string>();
+    (Object.keys(workspacePrefs.modules) as ModuleKey[]).forEach((key) => {
+      if (workspacePrefs.modules[key] && key !== "collections") {
+        MODULES[key].navHrefs.forEach((h) => enabledHrefs.add(h));
+      }
+    });
+    return financeNav.filter((item) => enabledHrefs.has(item.href));
+  }, [workspacePrefs]);
+
+  // Hide the entire Collections nav section when the module is off
+  const collectionsEnabled = workspacePrefs?.modules.collections ?? true;
+
+  // Show "+ Add modules" when any module is disabled (so the user can re-enable from anywhere)
+  const someModulesHidden = workspacePrefs
+    ? (Object.keys(workspacePrefs.modules) as ModuleKey[])
+        .some((k) => !workspacePrefs.modules[k])
+    : false;
   function toggleSection(key: string) {
     setCollapse((prev) => {
       const next = { ...prev, [key]: !prev[key] };
@@ -253,7 +344,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <span className="zn-brand-mark">Z</span>
           <span className="flex flex-col leading-[1.1]">
             <span className="text-[14px] font-semibold tracking-[-0.01em]" style={{ color: "var(--zn-ink)" }}>Zentra</span>
-            <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+            <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
           </span>
         </Link>
 
@@ -262,38 +353,101 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Scrollable nav — grows to fill space, scrolls if sections overflow */}
         <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
-          {/* Workspace */}
+          {/* Overview */}
           <CollapsibleSection
-            label="Workspace"
-            sectionKey="workspace"
-            items={workspaceNav}
+            label="Overview"
+            sectionKey="overview"
+            items={overviewNav.filter((i) => !hiddenHrefs.has(i.href))}
             collapse={collapse}
             onToggle={toggleSection}
             isActive={isActive}
+            onHide={hideNavItem}
             className="mb-[14px]"
           />
 
-          {/* Collections — badge shows today's logged outcomes */}
-          <CollapsibleSection
-            label="Collections"
-            sectionKey="collections"
-            items={collectionsNav}
-            collapse={collapse}
-            onToggle={toggleSection}
-            isActive={isActive}
-            badges={collectionsBadges}
-            className="mb-[14px]"
-          />
+          {/* Collections — only shown when the Collections module is enabled */}
+          {collectionsEnabled && (
+            <CollapsibleSection
+              label="Collections"
+              sectionKey="collections"
+              items={collectionsNav.filter((i) => !hiddenHrefs.has(i.href))}
+              collapse={collapse}
+              onToggle={toggleSection}
+              isActive={isActive}
+              badges={collectionsBadges}
+              onHide={hideNavItem}
+              className="mb-[14px]"
+            />
+          )}
 
-          {/* Finance — starts collapsed */}
-          <CollapsibleSection
-            label="Finance"
-            sectionKey="finance"
-            items={financeNav}
-            collapse={collapse}
-            onToggle={toggleSection}
-            isActive={isActive}
-          />
+          {/* Finance — dynamically built from enabled modules */}
+          {visibleFinanceItems.length > 0 && (
+            <CollapsibleSection
+              label="Finance"
+              sectionKey="finance"
+              items={visibleFinanceItems.filter((i) => !hiddenHrefs.has(i.href))}
+              collapse={collapse}
+              onToggle={toggleSection}
+              isActive={isActive}
+              onHide={hideNavItem}
+            />
+          )}
+
+          {/* Hidden pages — restore section */}
+          {hiddenHrefs.size > 0 && (
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
+              <button
+                type="button"
+                onClick={() => setHiddenExpanded((v) => !v)}
+                className="zn-section-label w-full flex items-center justify-between cursor-pointer select-none"
+              >
+                <span>Hidden pages</span>
+                <ChevronRight
+                  className="size-3 transition-transform duration-200"
+                  style={{
+                    color: "var(--zn-ink-3)",
+                    transform: hiddenExpanded ? "rotate(90deg)" : "none",
+                    opacity: 0.7,
+                  }}
+                />
+              </button>
+              {hiddenExpanded && (
+                <div className="flex flex-col gap-0.5 mt-1">
+                  {[...overviewNav, ...collectionsNav, ...financeNav]
+                    .filter((i) => hiddenHrefs.has(i.href))
+                    .map((item) => (
+                      <div key={item.href} className="flex items-center gap-2 px-1.5 py-1 rounded-lg">
+                        <item.icon className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-ink-3)" }} />
+                        <span className="flex-1 text-[12px] truncate" style={{ color: "var(--zn-ink-3)" }}>
+                          {item.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => restoreNavItem(item.href)}
+                          title={`Restore ${item.label}`}
+                          className="flex-shrink-0 size-5 rounded flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          style={{ color: "var(--zn-ink-3)" }}
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Re-discovery: surface the workspace setup when modules are hidden */}
+          {someModulesHidden && (
+            <Link
+              href="/settings?tab=workspace"
+              className="zn-nav-item mt-3"
+              style={{ color: "var(--zn-ink-3)" }}
+            >
+              <Plus className="zn-nav-icon size-4" />
+              <span className="flex-1 text-[12px]">Add modules</span>
+            </Link>
+          )}
         </div>
 
         {/* Bottom: settings + help icon, then account badge — always visible */}
@@ -339,7 +493,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         >
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
-            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Flow</span>
+            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Collect</span>
           </Link>
           <MobileAccountPill />
         </header>

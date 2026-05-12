@@ -236,9 +236,16 @@ export function AgedDebtReport() {
         </div>
 
         {open.length === 0 ? (
-          <div className="px-5 py-12 text-center">
+          <div className="px-5 py-12 text-center flex flex-col items-center gap-3">
             <p className="text-[14px] font-medium" style={{ color: "var(--zn-ink-2)" }}>No open invoices</p>
-            <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>Import invoices to see your aged debt report.</p>
+            <p className="text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>Import an overdue invoice export to see your aged debt breakdown.</p>
+            <a
+              href="/import"
+              className="zn-pill mt-1"
+              style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", fontSize: 12, height: 30 }}
+            >
+              Import invoices
+            </a>
           </div>
         ) : (
           <div className="overflow-x-auto">

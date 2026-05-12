@@ -1,4 +1,3 @@
-import { AccountPlanSettings } from "@/components/account-plan-settings";
 import { SettingsForm } from "@/components/settings-form";
 import { AddonSuccessBanner } from "@/components/addon-success-banner";
 
@@ -16,10 +15,9 @@ export default async function SettingsPage({
 }) {
   const params = await searchParams;
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <AddonSuccessBanner addonSuccess={params.addon_success} />
-      <AccountPlanSettings />
-      <SettingsForm />
+      <SettingsForm defaultTab={params.tab} />
     </div>
   );
 }

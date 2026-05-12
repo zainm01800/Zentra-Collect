@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -16,6 +16,7 @@ import {
   Loader2,
   MailPlus,
   ShieldCheck,
+  SlidersHorizontal,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -101,6 +102,11 @@ import type {
   CustomerBehaviourProfile,
   Invoice,
 } from "@/types/zentra";
+import {
+  readWorkspacePrefs,
+  setWidget,
+  type WorkspacePrefs,
+} from "@/lib/prefs";
 
 const referenceDate = "2026-05-07";
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -319,6 +325,9 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [hideSidebar, setHideSidebar] = useState(false);
+  const [prefs, setPrefs] = useState<WorkspacePrefs>(() => readWorkspacePrefs());
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const customizerRef = useRef<HTMLDivElement>(null);
 
   const customers = useMemo(
     () => (importSummary ? inferCustomersFromInvoices(invoices) : demoCustomers),
@@ -366,6 +375,35 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     : null;
 
   const summary = useMemo(() => buildSummary(invoices, plan), [invoices, plan]);
+
+  // Close customizer on outside click + sync prefs from custom event
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (customizerRef.current && !customizerRef.current.contains(e.target as Node)) {
+        setShowCustomizer(false);
+      }
+    }
+    function onPrefs(e: Event) {
+      setPrefs((e as CustomEvent<WorkspacePrefs>).detail);
+    }
+    document.addEventListener("mousedown", handleClick);
+    window.addEventListener("zentra:workspaceprefs", onPrefs);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("zentra:workspaceprefs", onPrefs);
+    };
+  }, []);
+
+  function toggleWidget<K extends keyof WorkspacePrefs["widgets"]>(key: K) {
+    const next = setWidget(key, !prefs.widgets[key]);
+    setPrefs(next);
+  }
+
+  // Reflow: only render the right column when we have something to show there
+  const hasRightColumn =
+    prefs.widgets.riskInsights ||
+    prefs.widgets.weeklyBrief ||
+    account?.planId === "demo";
 
   function openReview(item: CollectionsPlanItem) {
     const invoice = invoices.find((current) => current.id === item.invoiceId);
@@ -725,6 +763,11 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     );
   }
 
+  // Hide all collections content entirely when the Collections module is off.
+  if (!prefs.modules.collections) {
+    return null;
+  }
+
   if (!invoices.length) {
     return <DashboardEmptyState />;
   }
@@ -805,23 +848,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         </section>
       ) : null}
 
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="zn-label mb-1.5">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-          </div>
-          <h1 className="zn-page-h1 zn-page-h1-lg">
-            {(() => {
-              const h = new Date().getHours();
-              return h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
-            })()}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/digest" className="zn-pill zn-pill-ghost">Weekly digest</Link>
-          <Link href="/chase-today" className="zn-pill">Chase queue →</Link>
-        </div>
-      </section>
+      {/* Greeting + customise moved to <DashboardGreeting /> (always shown, even when collections is off) */}
 
       {importSummary ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
@@ -867,8 +894,11 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         ))}
       </section>
 
-      {/* Two-column body: focus & changes  ·  risk & weekly brief */}
-      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      {/* Body: reflows to single column when right column is empty */}
+      <section className={hasRightColumn
+        ? "grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+        : "grid gap-[18px]"
+      }>
 
         {/* LEFT */}
         <div className="flex flex-col gap-5">
@@ -1111,11 +1141,11 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="flex flex-col gap-5">
+        {/* RIGHT — rendered only when at least one widget is visible */}
+        {hasRightColumn && <div className="flex flex-col gap-5">
 
           {/* Risk insights */}
-          <div className="zn-card p-5">
+          {prefs.widgets.riskInsights && <div className="zn-card p-5">
             <div className="mb-3.5">
               <div className="zn-label !p-0 mb-1">Risk insights</div>
               <h2 className="text-[18px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">Where the risk sits</h2>
@@ -1194,10 +1224,10 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                 });
               })()}
             </div>
-          </div>
+          </div>}
 
           {/* Weekly brief — ink black header card */}
-          <div className="zn-card overflow-hidden p-0">
+          {prefs.widgets.weeklyBrief && <div className="zn-card overflow-hidden p-0">
             <div
               className="p-[18px]"
               style={{ background: "var(--zn-bg-inverse)", color: "var(--zn-surface)" }}
@@ -1252,7 +1282,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                   })}
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Demo getting-started card — right column, bottom */}
           {account?.planId === "demo" && (
@@ -1298,7 +1328,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </section>
 
       <ActionDrawer

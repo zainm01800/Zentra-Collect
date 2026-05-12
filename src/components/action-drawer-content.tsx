@@ -471,7 +471,7 @@ export function ActionDrawerContent({
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl bg-white/60 px-3 py-2.5">
+    <div className="min-w-0 rounded-xl bg-white/60 dark:bg-[#28231c] px-3 py-2.5">
       <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
         {label}
       </p>

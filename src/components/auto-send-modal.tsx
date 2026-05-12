@@ -147,8 +147,8 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
               <span
                 className={`w-5 h-5 rounded-full flex items-center justify-center font-medium ${
                   s === step
-                    ? "bg-zinc-900 text-white"
-                    : "bg-zinc-100 text-zinc-400"
+                    ? "bg-zinc-900 dark:bg-[#f0e8d5] text-white dark:text-[#1a1612]"
+                    : "bg-zinc-100 dark:bg-[#28231c] text-zinc-400 dark:text-[#6a5f4e]"
                 }`}
               >
                 {i + 1}
@@ -162,20 +162,20 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
         {step === "risk" && (
           <div className="space-y-4">
             {isDemoMode && (
-              <div className="rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-3 text-sm text-zinc-600 flex items-start gap-2">
-                <span className="font-semibold text-zinc-800 shrink-0">Demo mode.</span>
+              <div className="rounded-xl bg-zinc-100 dark:bg-[#28231c] border border-zinc-200 dark:border-[#2d2820] px-4 py-3 text-sm text-zinc-600 dark:text-[#8a7d69] flex items-start gap-2">
+                <span className="font-semibold text-zinc-800 dark:text-[#d8ccb5] shrink-0">Demo mode.</span>
                 <span>
                   No real emails will be sent. This walkthrough shows you exactly how auto-send
                   works — SMTP credentials are not saved and the send log is simulated.
                 </span>
               </div>
             )}
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-              <div className="flex items-center gap-2 font-medium text-amber-900">
+            <div className="rounded-2xl border border-amber-200 dark:border-[#3d2a0a] bg-amber-50 dark:bg-[#221a08] p-4 space-y-2">
+              <div className="flex items-center gap-2 font-medium text-amber-900 dark:text-[#f0c060]">
                 <AlertTriangle className="size-4" />
                 {isDemoMode ? "How auto-send works" : "Important — read before enabling"}
               </div>
-              <ul className="text-sm text-amber-800 space-y-1.5 list-disc pl-5">
+              <ul className="text-sm text-amber-800 dark:text-[#c8a040] space-y-1.5 list-disc pl-5">
                 <li>Emails are sent automatically to your customers on a configured schedule.</li>
                 <li>You must review your chase plan before enabling — auto-send acts on it as-is.</li>
                 <li>
@@ -208,7 +208,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
               password). Gmail and Outlook support app passwords in their security settings.
             </p>
             {isDemoMode && (
-              <div className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-500">
+              <div className="rounded-xl bg-zinc-100 dark:bg-[#28231c] px-3 py-2 text-xs text-zinc-500 dark:text-[#8a7d69]">
                 Demo mode — no real emails will be sent.
               </div>
             )}
@@ -338,8 +338,8 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
                         onClick={() => toggleDay(day)}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                           active
-                            ? "bg-zinc-900 text-white border-zinc-900"
-                            : "bg-white dark:bg-[#211d17] text-zinc-600 border-zinc-200 hover:border-zinc-400"
+                            ? "bg-zinc-900 dark:bg-[#f0e8d5] text-white dark:text-[#1a1612] border-zinc-900 dark:border-transparent"
+                            : "bg-white dark:bg-[#211d17] text-zinc-600 dark:text-[#8a7d69] border-zinc-200 dark:border-[#2d2820] hover:border-zinc-400 dark:hover:border-[#4a3f30]"
                         }`}
                       >
                         {dayLabels[day]}
@@ -376,28 +376,28 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
 
         {step === "confirm" && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-zinc-50 border border-zinc-200 p-4 space-y-2 text-sm">
+            <div className="rounded-2xl bg-zinc-50 dark:bg-[#28231c] border border-zinc-200 dark:border-[#2d2820] p-4 space-y-2 text-sm">
               <div className="font-medium">Review your settings</div>
               <div className="text-muted-foreground space-y-1">
                 <div>
-                  <span className="text-zinc-900">From:</span> {smtp.fromName} &lt;{smtp.email}&gt;
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">From:</span> {smtp.fromName} &lt;{smtp.email}&gt;
                 </div>
                 <div>
-                  <span className="text-zinc-900">Send time:</span> {rules.sendHourUtc}:00 UTC
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">Send time:</span> {rules.sendHourUtc}:00 UTC
                 </div>
                 <div>
-                  <span className="text-zinc-900">Days:</span>{" "}
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">Days:</span>{" "}
                   {rules.sendDays
                     .split(",")
                     .map((d) => dayLabels[d])
                     .join(", ")}
                 </div>
                 <div>
-                  <span className="text-zinc-900">Max per run:</span> {rules.maxPerRun} emails
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">Max per run:</span> {rules.maxPerRun} emails
                 </div>
               </div>
             </div>
-            <div className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-600">
+            <div className="rounded-xl bg-zinc-100 dark:bg-[#28231c] px-3 py-2 text-xs text-zinc-600 dark:text-[#8a7d69]">
               After clicking enable, there is a <strong>5-minute window</strong> to cancel
               before the first send is permitted.
             </div>

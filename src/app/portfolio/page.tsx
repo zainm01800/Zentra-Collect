@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { PortfolioGate } from "@/components/portfolio-gate";
 
 import type { Metadata } from "next";
@@ -9,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PortfolioPage() {
-  return (
-    <AppShell>
-      <PortfolioGate />
-    </AppShell>
-  );
+  return <PortfolioGate />;
 }

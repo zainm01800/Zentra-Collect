@@ -97,13 +97,13 @@ export function UsageLimitBanner({
   actionLabel?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+    <div className="rounded-2xl border border-amber-200 dark:border-[#3d2a0a] bg-amber-50 dark:bg-[#221a08] p-4 text-amber-950 dark:text-[#f0c060]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-semibold">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-amber-900">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-amber-800 dark:text-[#c8a040]">{description}</p>
         </div>
-        <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
+        <Button asChild className="rounded-full bg-neutral-950 dark:bg-[#f0c060] dark:text-[#1a1200] hover:bg-neutral-800 dark:hover:bg-[#d4aa40] shrink-0">
           <Link href="/#pricing">{actionLabel}</Link>
         </Button>
       </div>

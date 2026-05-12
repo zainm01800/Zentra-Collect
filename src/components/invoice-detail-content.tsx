@@ -79,9 +79,9 @@ export function InvoiceDetailContent({
   }
 
   return (
-    <div className={cn("flex flex-col h-full bg-[#fdfcf9]", className)}>
+    <div className={cn("flex flex-col h-full bg-[#fdfcf9] dark:bg-[#1a1612]", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-black/5 bg-white/50 backdrop-blur sticky top-0 z-20">
+      <div className="flex items-center justify-between p-6 border-b border-black/5 dark:border-white/5 bg-white/50 dark:bg-[#1a1612]/80 backdrop-blur sticky top-0 z-20">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <StatusBadge 
@@ -96,7 +96,7 @@ export function InvoiceDetailContent({
           </p>
         </div>
         {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-neutral-100 dark:bg-[#28231c] transition-colors">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-neutral-100 dark:hover:bg-[#28231c] transition-colors">
             <X className="size-6 text-neutral-400" />
           </Button>
         )}

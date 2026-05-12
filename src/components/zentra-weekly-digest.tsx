@@ -66,8 +66,7 @@ export function ZentraWeeklyDigest() {
           description="Demo accounts can preview the weekly brief with sample data. Start a trial to generate briefs from your own invoice exports."
           actionLabel="Start trial"
         />
-      ) : null}
-      {account && !canUseFeature(account.planId, "weeklyDigest") ? (
+      ) : account && !canUseFeature(account.planId, "weeklyDigest") ? (
         <LockedFeatureCard
           title="Advanced weekly reports are locked on this plan."
           description="You can view this preview, but saved weekly summaries and report history are available on paid plans."
