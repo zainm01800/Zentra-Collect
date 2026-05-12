@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { AgedDebtReport } from "@/components/aged-debt-report";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Aged debt — Zentra Flow",
+  title: "Aged debt",
   description: "Outstanding invoices broken down by how overdue they are.",
 };
 
 export default function AgedDebtPage() {
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <Link
             href="/reports"
@@ -40,7 +38,6 @@ export default function AgedDebtPage() {
         </div>
 
         <AgedDebtReport />
-      </div>
-    </AppShell>
+    </div>
   );
 }

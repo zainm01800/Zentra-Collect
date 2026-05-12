@@ -1,4 +1,3 @@
-import { AppShell }              from "@/components/app-shell";
 import { ZentraDashboard }       from "@/components/zentra-dashboard";
 import { CheckoutSuccessBanner } from "@/components/checkout-success-banner";
 import { FinancialHeader }       from "@/components/financial-header";
@@ -54,7 +53,7 @@ export default async function DashboardPage({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <AppShell>
+    <>
       <CheckoutSuccessBanner
         checkoutSuccess={checkoutSuccess}
         importSyncFailed={importSyncFailed}
@@ -87,6 +86,6 @@ export default async function DashboardPage({
         monthlyIncome={monthlyIncome}
         autoOpenInvoiceForm={autoOpenNewInvoice}
       />
-    </AppShell>
+    </>
   );
 }

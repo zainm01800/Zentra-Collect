@@ -10,7 +10,6 @@
  *  - Feeds into tax reserve calculation and MTD quarterly tracker
  */
 
-import { AppShell }            from "@/components/app-shell";
 import { ExpensePageClient }   from "@/components/expense-page-client";
 import type { Metadata }       from "next";
 
@@ -20,9 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function ExpensesPage() {
-  return (
-    <AppShell>
-      <ExpensePageClient />
-    </AppShell>
-  );
+  return <ExpensePageClient />;
 }

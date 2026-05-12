@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { CustomerDetail } from "@/components/customers-view";
 import type { Metadata } from "next";
 
@@ -16,8 +15,7 @@ export default async function CustomerDetailPage({
   const { id } = await params;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5 max-w-3xl">
+    <div className="flex flex-col gap-5 max-w-3xl">
         {/* Back */}
         <Link
           href="/customers"
@@ -30,7 +28,6 @@ export default async function CustomerDetailPage({
 
         {/* Detail panel */}
         <CustomerDetail customerId={id} />
-      </div>
-    </AppShell>
+    </div>
   );
 }

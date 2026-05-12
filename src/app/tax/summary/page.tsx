@@ -10,7 +10,6 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import {
   getFinancialSettings,
   getMonthlyIncomeSeries,
@@ -105,8 +104,7 @@ export default async function TaxSummaryPage() {
   };
 
   return (
-    <AppShell>
-      <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto">
         {/* Back link — server-safe, no event handlers */}
         <div className="mb-6 print:hidden">
           <Link
@@ -121,7 +119,6 @@ export default async function TaxSummaryPage() {
 
         {/* Print button lives inside the client component */}
         <TaxYearSummaryPrint {...summary} />
-      </div>
-    </AppShell>
+    </div>
   );
 }

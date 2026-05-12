@@ -278,7 +278,7 @@ export default function Home() {
             {[
               { kicker: "One pane",   value: "All clients",   sub: "Sortable by overdue, exceptions, or risk" },
               { kicker: "Per client", value: "Weekly brief",  sub: "Email-ready summaries for client meetings" },
-              { kicker: "Pricing",    value: "From £49/mo",   sub: "Up to 5 client ledgers on Starter" },
+              { kicker: "Pricing",    value: "From £99/mo",   sub: "Up to 5 client ledgers on Starter" },
             ].map((m) => (
               <div key={m.kicker} className="zn-stat">
                 <div className="zn-label">{m.kicker}</div>

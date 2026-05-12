@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { ShieldAlert } from "lucide-react";
 import { DisputeActions } from "@/components/dispute-actions";
@@ -25,7 +24,12 @@ function buildDemoDisputes(): DisputeRow[] {
       raised: new Date(Date.now() - (idx + 1) * 7 * 86400000).toISOString(),
       kind: ["Pricing query", "Goods not received", "Wrong PO", "Incorrect tax"][idx % 4],
       status: ["Awaiting evidence", "Customer reviewing", "Internal review", "Owner action"][idx % 4],
-      note: "Customer believes the line items don't match the original PO. Awaiting clarification from their AP.",
+      note: [
+        "Customer believes the line items don't match the original PO. Awaiting clarification from their AP.",
+        "Customer says goods were not received in full. Awaiting delivery confirmation from their warehouse team.",
+        "Invoice references an incorrect PO number. Correct PO sent — waiting for customer to reprocess.",
+        "VAT applied at standard rate; customer claims they are exempt. Awaiting evidence of exemption certificate.",
+      ][idx % 4],
       owner: ["Mo", "Sara", "Amir", "Mo"][idx % 4],
     }));
 }
@@ -36,8 +40,7 @@ export default async function DisputesPage() {
   const isDemo = dbDisputes.length === 0;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <PageHeader
           kicker="Exceptions desk"
           title="Disputes & holds"
@@ -103,7 +106,6 @@ export default async function DisputesPage() {
             </div>
           ))}
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }

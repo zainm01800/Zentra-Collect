@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Mail, User } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { getInvoiceUrgency, getSuggestedAction } from "@/lib/invoice-logic";
@@ -46,12 +45,11 @@ export default async function InvoicePage({
   const uColor    = urgencyColor(urgency);
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5 max-w-3xl">
+    <div className="flex flex-col gap-5 max-w-3xl">
 
-        {/* Back */}
-        <Link
-          href="/chase-today"
+      {/* Back */}
+      <Link
+        href="/chase-today"
           className="flex items-center gap-1.5 text-[12.5px] font-medium w-fit transition-opacity hover:opacity-70"
           style={{ color: "var(--zn-ink-3)" }}
         >
@@ -255,9 +253,8 @@ export default async function InvoicePage({
             style={{ color: "var(--zn-ink-3)" }}
           >
             View all invoices for {invoice.customerName} →
-          </Link>
-        </div>
+        </Link>
       </div>
-    </AppShell>
+    </div>
   );
 }

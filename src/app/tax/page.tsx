@@ -12,7 +12,6 @@
 
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import {
   getFinancialSettings,
   getMonthlyIncomeSeries,
@@ -83,9 +82,9 @@ function nextSaPayment(): { isoDate: string; friendly: string; description: stri
   const jul31     = make(y,     7, 31);
   const jan31Next = make(y + 1, 1, 31);
 
-  const pick = now <= jan31     ? { date: jan31,     friendly: "31 January",  desc: "1st payment on account" } :
-               now <= jul31     ? { date: jul31,     friendly: "31 July",     desc: "2nd payment on account" } :
-               /* else */         { date: jan31Next, friendly: "31 January",  desc: "1st payment on account" };
+  const pick = now <= jan31     ? { date: jan31,     friendly: `31 January ${y}`,       desc: "1st payment on account" } :
+               now <= jul31     ? { date: jul31,     friendly: `31 July ${y}`,           desc: "2nd payment on account" } :
+               /* else */         { date: jan31Next, friendly: `31 January ${y + 1}`,    desc: "1st payment on account" };
 
   return {
     isoDate:     pick.date.toISOString().slice(0, 10),
@@ -529,8 +528,7 @@ export default async function TaxPage() {
   };
 
   return (
-    <AppShell>
-      <div className="space-y-5">
+    <div className="space-y-5">
         {/* ── Page heading ───────────────────────────────────────────────── */}
         <div>
           <h1
@@ -597,7 +595,7 @@ export default async function TaxPage() {
         {/* Fine print */}
         <p className="text-[11.5px] text-center pb-2" style={{ color: "var(--zn-ink-3)" }}>
           Figures are estimates only and do not constitute tax advice.
-          Tax rates shown are for the UK 2024/25 tax year.{" "}
+          Tax rates shown are estimates for the current UK tax year.{" "}
           <a
             href="/settings"
             className="underline hover:no-underline"
@@ -606,7 +604,6 @@ export default async function TaxPage() {
             Update your tax rate in Settings.
           </a>
         </p>
-      </div>
-    </AppShell>
+    </div>
   );
 }

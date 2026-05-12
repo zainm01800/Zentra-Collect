@@ -145,7 +145,7 @@ export function OnboardingFlow() {
     persistOnboarding(option);
 
     if (option.type === "demo") {
-      window.open("/demo", "_blank", "noopener,noreferrer");
+      router.push("/demo");
       return;
     }
 

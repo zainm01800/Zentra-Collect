@@ -177,10 +177,10 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Demo mode is active. CSV import is available now; accounting integrations are stubbed for a later production pass.
+                    Connect your accounting software to sync invoices automatically. CSV import is available now.
                   </p>
-                  <Button type="button" variant="outline" className="w-full">
-                    Connect accounting system
+                  <Button type="button" variant="outline" className="w-full" disabled>
+                    Accounting integrations coming soon
                   </Button>
                 </CardContent>
               </Card>
@@ -210,8 +210,7 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  OpenAI runs server-side when <span className="font-mono text-xs">OPENAI_API_KEY</span>{" "}
-                  is present. Otherwise Zentra uses template drafts.
+                  AI drafting is active. Message suggestions are generated server-side and never sent automatically.
                 </p>
               </CardContent>
             </Card>
@@ -221,7 +220,7 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Subscription billing is reserved for production setup.
+                  Billing is managed securely via Stripe. To update your plan or payment details, contact support.
                 </p>
               </CardContent>
             </Card>

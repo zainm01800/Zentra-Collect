@@ -295,7 +295,9 @@ export function DemoAuthForm() {
 
               {mode === "signup" ? (
                 <p className="text-[11.5px] leading-[1.55]" style={{ color: "var(--zn-ink-3)" }}>
-                  By starting a trial you agree to our terms. We&apos;ll email you a confirmation link before the trial activates. Trials are limited to one per business email.
+                  By starting a trial you agree to our{" "}
+                  <a href="/terms" className="underline hover:no-underline" style={{ color: "var(--zn-ink-2)" }}>terms</a>.
+                  {" "}We&apos;ll email you a confirmation link before the trial activates. Trials are limited to one per business email.
                 </p>
               ) : null}
             </form>

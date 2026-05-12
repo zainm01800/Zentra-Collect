@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { CustomerStatement } from "@/components/customer-statement";
 import type { Metadata } from "next";
 
@@ -16,8 +15,7 @@ export default async function CustomerStatementPage({
   const { id } = await params;
 
   return (
-    <AppShell>
-      <div className="max-w-3xl space-y-5 print:max-w-none print:space-y-0">
+    <div className="max-w-3xl space-y-5 print:max-w-none print:space-y-0">
         <Link
           href={`/customers/${id}`}
           className="inline-flex items-center gap-1.5 text-[12.5px] font-medium transition-opacity hover:opacity-70 print:hidden"
@@ -28,7 +26,6 @@ export default async function CustomerStatementPage({
         </Link>
 
         <CustomerStatement customerId={id} />
-      </div>
-    </AppShell>
+    </div>
   );
 }

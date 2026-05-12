@@ -85,7 +85,7 @@ export function AddInvoiceDrawer({
           <SheetHeader>
             <SheetTitle>Add invoice manually</SheetTitle>
             <SheetDescription>
-              Demo/manual mode. In production, Xero should provide these invoice facts.
+              Fill in the invoice details below. Import a CSV to add multiple invoices at once.
             </SheetDescription>
           </SheetHeader>
 

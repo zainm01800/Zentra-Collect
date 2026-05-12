@@ -13,14 +13,13 @@
  *   (works only when TRUELAYER_ENV != "production")
  */
 
-import { AppShell }                from "@/components/app-shell";
 import { BankTransactionsList }    from "@/components/bank-transactions-list";
 import { BankStatementImportCard } from "@/components/bank-statement-import-card";
 import { getBankConnection, fetchBankTransactions } from "@/actions/bank-feed";
 import type { Metadata }           from "next";
 
 export const metadata: Metadata = {
-  title: "Zentra Flow — Bank feed",
+  title: "Bank feed",
   description: "Connect your bank to automatically detect when invoices have been paid.",
 };
 
@@ -60,8 +59,7 @@ export default async function BankingPage({
   }
 
   return (
-    <AppShell>
-      <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8 max-w-2xl">
 
         {/* ── Page header ───────────────────────────────────────────────── */}
         <div>
@@ -198,8 +196,7 @@ export default async function BankingPage({
         {/* ── Manual CSV import ─────────────────────────────────────────── */}
         <BankStatementImportCard />
 
-      </div>
-    </AppShell>
+    </div>
   );
 }
 
@@ -207,52 +204,18 @@ export default async function BankingPage({
 
 function SetupInstructions() {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col items-center gap-4 py-4 text-center">
       <div>
-        <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-          Set up TrueLayer
+        <p className="text-[15px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+          Open Banking coming soon
         </p>
-        <p className="mt-1 text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
-          Add these environment variables to connect a bank account:
+        <p className="mt-1 text-[13px] max-w-sm mx-auto" style={{ color: "var(--zn-ink-2)" }}>
+          Direct bank connection via Open Banking is in progress. In the meantime,
+          use the CSV import below to upload a statement from any major UK bank.
         </p>
       </div>
-
-      <div className="space-y-2">
-        {[
-          ["TRUELAYER_CLIENT_ID",     "Your app's client ID from console.truelayer.com"],
-          ["TRUELAYER_CLIENT_SECRET", "Your app's client secret"],
-          ["TRUELAYER_ENV",           "sandbox (default) or production"],
-        ].map(([key, desc]) => (
-          <div
-            key={key}
-            className="rounded-[8px] px-3 py-2.5"
-            style={{ background: "var(--zn-bg-2)", border: "1px solid var(--zn-line-soft)" }}
-          >
-            <p
-              className="text-[12px] font-semibold font-mono"
-              style={{ color: "var(--zn-ink)" }}
-            >
-              {key}
-            </p>
-            <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-              {desc}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-        Register your app at{" "}
-        <a
-          href="https://console.truelayer.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          console.truelayer.com
-        </a>{" "}
-        and set the redirect URI to{" "}
-        <code className="font-mono text-[11px]">[your-domain]/api/banking/callback</code>.
+      <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+        Powered by TrueLayer · Read-only access · No card details required
       </p>
     </div>
   );

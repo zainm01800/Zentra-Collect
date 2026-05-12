@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -113,8 +112,7 @@ export default function ReportsPage() {
   const ageingMax = Math.max(1, ...m.ageing.map((d) => d.amount));
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
         <PageHeader
           kicker="Performance"
           title="Reports"
@@ -208,7 +206,6 @@ export default function ReportsPage() {
             ))}
           </div>
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }
