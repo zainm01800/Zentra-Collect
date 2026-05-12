@@ -25,7 +25,7 @@ const defaults: EmailUiSettings = {
   isEnabled: false,
   armedAt: null,
   connectedEmail: null,
-  fromName: "Zentra Collect",
+  fromName: "Zentra Flow",
   sendHourUtc: 9,
   sendDays: "1,2,3,4,5",
   maxPerRun: 5,

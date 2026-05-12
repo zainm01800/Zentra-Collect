@@ -247,7 +247,7 @@ const SAFETY_CONTROLS = [
     Icon: ShieldCheck,
     label: "Auto-send disabled",
     detail:
-      "Zentra Collect never sends emails automatically — by design, not just by default.",
+      "Zentra Flow never sends emails automatically — by design, not just by default.",
   },
   {
     Icon: Shield,

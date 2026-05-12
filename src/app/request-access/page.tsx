@@ -252,7 +252,7 @@ function ConfirmationScreen() {
       <p className="mt-3 max-w-md text-base leading-7 text-neutral-500 dark:text-[#8a7d69]">
         Thanks — we&rsquo;ll review your request and contact you about early
         access. Founding spaces are limited, and we&rsquo;ll prioritise users
-        whose workflow matches what Zentra Collect is built for.
+        whose workflow matches what Zentra Flow is built for.
       </p>
       <p className="mt-4 text-sm text-neutral-400">
         No automatic access has been granted. You&rsquo;ll hear from us by
@@ -372,7 +372,7 @@ export default function RequestAccessPage() {
               Request founding access
             </h1>
             <p className="mt-4 text-base leading-7 text-neutral-500 dark:text-[#8a7d69]">
-              Zentra Collect is in private beta. We&rsquo;re onboarding a small
+              Zentra Flow is in private beta. We&rsquo;re onboarding a small
               group of bookkeepers and service businesses to help us sharpen the
               product before we open more widely. Fill in the form and we&rsquo;ll
               be in touch.
@@ -545,7 +545,7 @@ export default function RequestAccessPage() {
 
                 <div>
                   <Label>
-                    If Zentra Collect solves this for you, would you pay founding pricing?
+                    If Zentra Flow solves this for you, would you pay founding pricing?
                   </Label>
                   <FieldHint>
                     Founding pricing will be lower than published rates and locked

@@ -155,7 +155,7 @@ export function generateWeeklyDigestBrief({
         behaviourProfiles.find((profile) => profile.customerId === item.customerId),
       )
       .filter(Boolean) as CustomerBehaviourProfile[],
-    emailSubject: "Your weekly Zentra Collect brief",
+    emailSubject: "Your weekly Zentra Flow brief",
     emailBody: buildEmailBody({
       totalCashNeedingAttention,
       activeActions: activeActions.length,
@@ -224,7 +224,7 @@ function buildEmailBody(input: {
   return [
     "Hi,",
     "",
-    "Here is this week's Zentra Collect brief.",
+    "Here is this week's Zentra Flow brief.",
     "",
     `Cash needing attention: ${formatCurrency(input.totalCashNeedingAttention)}`,
     `Actions recommended this week: ${input.activeActions}`,
@@ -238,7 +238,7 @@ function buildEmailBody(input: {
     "",
     `Recommended focus: ${input.recommendedFocus}`,
     "",
-    "Open Zentra Collect to review the chase plan before sending any messages.",
+    "Open Zentra Flow to review the chase plan before sending any messages.",
   ].join("\n");
 }
 

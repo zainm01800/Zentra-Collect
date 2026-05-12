@@ -77,7 +77,7 @@ const faqs = [
   },
   {
     q: "Is this debt collection or legal advice?",
-    a: "No. Zentra is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
+    a: "No. Zentra Flow is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
   },
 ];
 
@@ -89,18 +89,15 @@ export default function Home() {
     >
       {/* ─── Top nav ─── */}
       <header
-        className="sticky top-0 z-30 backdrop-blur"
-        style={{
-          background: "rgba(233,223,201,0.85)",
-          borderBottom: "1px solid var(--zn-line)",
-        }}
+        className="sticky top-0 z-30 backdrop-blur border-b bg-[rgba(233,223,201,0.88)] dark:bg-[rgba(33,29,23,0.88)]"
+        style={{ borderColor: "var(--zn-line)" }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428] dark:text-[#d8ccb5]">
@@ -130,7 +127,7 @@ export default function Home() {
             Upload overdue invoices. Get a ranked chase plan in minutes.
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-            Zentra Collect turns AR ageing reports into clear next actions —
+            Zentra Flow turns AR ageing reports into clear next actions —
             who to chase, what to ask for, what to ignore, what cash is likely
             to land. Action + reason + draft message, in one calm workspace.
           </p>
@@ -456,7 +453,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6]" style={{ color: "rgba(250,245,232,0.55)" }}>
-              Zentra Collect is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
+              Zentra Flow is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
             </p>
           </div>
         </div>
@@ -467,7 +464,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
+            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Flow</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
             <Link href="/help"    className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Help</Link>
