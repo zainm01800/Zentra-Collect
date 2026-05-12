@@ -111,7 +111,9 @@ export function DemoAuthForm() {
               .maybeSingle<MemberRow>();
 
             if (member) {
-              const planId = (member.zentra_accounts?.plan_id ?? "TRIAL") as PlanId;
+              // DB stores uppercase plan IDs (e.g. "BOOKKEEPER_PRO") but
+              // billing/plans.ts uses lowercase keys — normalise here.
+              const planId = ((member.zentra_accounts?.plan_id ?? "trial").toLowerCase()) as PlanId;
               const account = createLocalAccount({
                 name: nextName || data.user.email?.split("@")[0] || "User",
                 email: data.user.email ?? email,
