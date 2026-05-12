@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useTransition } from "react";
 import { Check, Pencil, X } from "lucide-react";
@@ -228,7 +228,7 @@ function BankBalanceInput({
             type="button"
             onClick={enterEdit}
             aria-label="Edit bank balance"
-            className="flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[11.5px] font-medium transition-colors hover:bg-[#f3ecd8]"
+            className="flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[11.5px] font-medium transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
             style={{ color: "var(--zn-ink-3)" }}
           >
             <Pencil className="size-3" strokeWidth={2} />

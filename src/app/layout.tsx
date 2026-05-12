@@ -33,12 +33,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zentracollect.co.u
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Zentra Flow — Collections decisioning for UK bookkeepers",
-    template: "%s · Zentra Flow",
+    default: "Zentra Collect — Collections decisioning for UK bookkeepers",
+    template: "%s · Zentra Collect",
   },
   description:
     "Upload overdue invoices. Get a ranked chase plan in minutes. Action + reason + draft message — you review and send. Built for UK bookkeepers and small businesses.",
-  applicationName: "Zentra Flow",
+  applicationName: "Zentra Collect",
   authors: [{ name: "Zentra" }],
   keywords: [
     "AR ageing",
@@ -52,8 +52,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_GB",
-    siteName: "Zentra Flow",
-    title: "Zentra Flow — Collections decisioning for UK bookkeepers",
+    siteName: "Zentra Collect",
+    title: "Zentra Collect — Collections decisioning for UK bookkeepers",
     description:
       "Upload overdue invoices. Get a ranked chase plan in minutes. Action + reason + draft message — you review and send.",
     url: SITE_URL,
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zentra Flow — Collections decisioning",
+    title: "Zentra Collect — Collections decisioning",
     description: "Upload overdue invoices. Get a ranked chase plan in minutes.",
     // Image auto-discovered from src/app/twitter-image.tsx (or falls back to opengraph-image.tsx)
   },
@@ -92,9 +92,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {/* Theme init — runs before hydration to prevent flash of wrong mode */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('zentra.theme.v1');if(t==='dark')document.documentElement.classList.add('dark');}catch{}})();`,
+          }}
+        />
         {plausibleDomain ? (
           <Script
             defer

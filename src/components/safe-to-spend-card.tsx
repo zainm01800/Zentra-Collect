@@ -53,22 +53,22 @@ function formatGBP(amount: number): string {
 
 const STATUS_CONFIG = {
   safe: {
-    bg:    "#d6dec5",             // --zn-safe-soft
-    color: "#4f6b3e",             // --zn-safe
+    bg:    "var(--zn-safe-soft)",
+    color: "var(--zn-safe)",
     label: "Safe zone",
     pulse: false,
   },
   caution: {
-    bg:    "#ecdcae",             // --zn-warn-soft
-    color: "#a07522",             // --zn-warn
+    bg:    "var(--zn-warn-soft)",
+    color: "var(--zn-warn)",
     label: "Spend carefully",
     pulse: false,
   },
   low: {
-    bg:    "#efcdc9",             // --zn-risk-soft
-    color: "#9a3535",             // --zn-risk
+    bg:    "var(--zn-risk-soft)",
+    color: "var(--zn-risk)",
     label: "Keep spending low",
-    pulse: true,                  // dot pulses to convey urgency
+    pulse: true,
   },
 } as const;
 
@@ -134,7 +134,7 @@ export function SafeToSpendCard({
     return (
       <div
         className="relative overflow-hidden rounded-[18px] px-6 py-6"
-        style={{ background: "var(--zn-ink)" }}
+        style={{ background: "var(--zn-bg-inverse)" }}
         aria-busy="true"
         aria-label="Safe to spend — loading"
       >
@@ -179,7 +179,7 @@ export function SafeToSpendCard({
   return (
     <div
       className="relative overflow-hidden rounded-[18px] px-6 py-6"
-      style={{ background: "var(--zn-ink)" }}
+      style={{ background: "var(--zn-bg-inverse)" }}
     >
       {/*
         Subtle warm radial glow at top-left.

@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Cookies",
-  description: "How Zentra Flow uses cookies.",
+  description: "How Zentra Collect uses cookies.",
 };
 
 export default function CookiesPage() {
@@ -11,7 +11,7 @@ export default function CookiesPage() {
     <LegalPage kicker="Legal" title="Cookies" lastUpdated="10 May 2026">
       <Section title="Short version">
         <p>
-          Zentra Flow uses only the cookies it needs to keep you signed in
+          Zentra Collect uses only the cookies it needs to keep you signed in
           and the service running. We do not use third-party advertising,
           tracking, or social-media cookies.
         </p>
@@ -75,7 +75,7 @@ export default function CookiesPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-[18px] font-semibold mb-2 text-[#1d1813]">{title}</h2>
+      <h2 className="text-[18px] font-semibold mb-2 text-[#1d1813] dark:text-[#f0e8d5]">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   );

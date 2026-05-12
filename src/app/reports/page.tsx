@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -8,7 +9,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Reports",
-  description: "Did the chasing actually work? See what's recovering, what's slipping, and where time goes.",
+  description: "Track recovered cash, open balance trends, promise rates, and aged debt — see whether your collections effort is working.",
 };
 
 const RECOVERED_TREND = [12, 9, 14, 18, 11, 16, 22, 19, 24, 21, 27, 31];
@@ -37,7 +38,7 @@ function Bar({ label, count, amount, max }: { label: string; count: number; amou
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-3">
           <span className="zn-label">{label}</span>
-          <span className="text-[11px] text-[#8d8472]">{count} inv</span>
+          <span className="text-[11px] text-[#8d8472] dark:text-[#6a5f4e]">{count} inv</span>
         </div>
         <span className="text-[13px] font-medium tabular-nums">{formatCurrency(amount)}</span>
       </div>
@@ -117,12 +118,11 @@ export default function ReportsPage() {
         <PageHeader
           kicker="Performance"
           title="Reports"
-          sub="Did the chasing actually work? See what's recovering, what's slipping, and where time goes."
+          sub="Is the chasing working? Track recovered cash, promise rates, and where your open balance is sitting."
           actions={
-            <>
-              <button className="zn-pill zn-pill-ghost">Last 90 days</button>
-              <button className="zn-pill">Export</button>
-            </>
+            <Link href="/aged-debt" className="zn-pill zn-pill-ghost">
+              Aged debt report <ArrowRight className="size-3.5" />
+            </Link>
           }
         />
 
@@ -157,38 +157,50 @@ export default function ReportsPage() {
           <div className="zn-stat">
             <div className="zn-label">Avg days to pay</div>
             <div className="zn-stat-num mt-2">
-              {m.avgDaysToPay}<span className="text-[16px] text-[#8d8472]">d</span>
+              {m.avgDaysToPay}<span className="text-[16px] text-[#8d8472] dark:text-[#6a5f4e]">d</span>
             </div>
-            <div className="text-[12px] text-[#6b6253] mt-1">across {demoInvoices.filter(i => i.daysOverdue > 0).length} overdue invoices</div>
+            <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] mt-1">across {demoInvoices.filter(i => i.daysOverdue > 0).length} overdue invoices</div>
           </div>
           <div className="zn-stat">
             <div className="zn-label">Chase to paid ratio</div>
             <div className="zn-stat-num mt-2">
-              {m.chaseToPaidRatio}<span className="text-[16px] text-[#8d8472]">×</span>
+              {m.chaseToPaidRatio}<span className="text-[16px] text-[#8d8472] dark:text-[#6a5f4e]">×</span>
             </div>
-            <div className="text-[12px] text-[#6b6253] mt-1">avg chases per paid invoice</div>
+            <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] mt-1">avg chases per paid invoice</div>
           </div>
           <div className="zn-stat">
             <div className="zn-label">Promise kept rate</div>
             <div className="zn-stat-num mt-2" style={{ color: "var(--zn-safe)" }}>
               {m.promiseKeptRate}%
             </div>
-            <div className="text-[12px] text-[#6b6253] mt-1">{m.promised} active promise{m.promised === 1 ? "" : "s"}</div>
+            <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] mt-1">{m.promised} active promise{m.promised === 1 ? "" : "s"}</div>
           </div>
           <div className="zn-stat">
             <div className="zn-label">Open disputes</div>
             <div className="zn-stat-num mt-2" style={{ color: m.disputeCount ? "var(--zn-risk)" : "var(--zn-ink)" }}>
               {m.disputeCount}
             </div>
-            <div className="text-[12px] text-[#6b6253] mt-1">awaiting resolution</div>
+            <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] mt-1">awaiting resolution</div>
           </div>
         </div>
 
         {/* Ageing breakdown */}
         <div className="zn-card p-[22px]">
-          <div className="mb-4">
-            <div className="zn-label mb-1">Ageing</div>
-            <h2 className="text-[18px] font-semibold">Where the open balance sits</h2>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <div className="zn-label mb-1">Aged debt</div>
+              <h2 className="text-[18px] font-semibold">Where the open balance sits</h2>
+              <p className="text-[12.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                Broken down by how long each invoice has been outstanding.
+              </p>
+            </div>
+            <Link
+              href="/aged-debt"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+              style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+            >
+              Full report <ArrowRight className="size-3" />
+            </Link>
           </div>
           <div className="flex flex-col gap-3">
             {m.ageing.map((d) => (

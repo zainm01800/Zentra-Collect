@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       port,
       user: email,
       password,
-      fromName: fromName ?? "Zentra Flow",
+      fromName: fromName ?? "Zentra Collect",
     });
 
     return NextResponse.json({ ...result, host, port });

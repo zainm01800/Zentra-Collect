@@ -38,24 +38,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (member) {
-      // Returning user — check whether they've completed financial setup.
-      // If the settings row doesn't exist yet, send them to onboarding so
-      // Safe to Spend can be initialised before they hit the dashboard.
-      const { data: settings } = await supabase
-        .from("zentra_financial_settings")
-        .select("id")
-        .eq("account_id", member.account_id)
-        .maybeSingle();
-
-      if (settings) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-
-      // Has an account but no financial settings → run them through setup.
-      return NextResponse.redirect(new URL("/onboarding", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
-  // No account found — send to onboarding (will prompt them to set up).
   return NextResponse.redirect(new URL("/onboarding", request.url));
 }

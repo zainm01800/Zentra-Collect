@@ -26,7 +26,7 @@ export function PlanBadge({ account }: { account: AccountLike }) {
   const plan = getPlanConfig(accountState.planId);
 
   return (
-    <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
+    <span className="inline-flex items-center rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] px-3 py-1 text-xs font-medium text-neutral-700 dark:text-[#d8ccb5]">
       {plan.name}
     </span>
   );
@@ -38,7 +38,7 @@ export function TrialCountdownBadge({ account }: { account: AccountLike }) {
 
   if (accountState.planId === "DEMO") {
     return (
-      <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
+      <span className="inline-flex items-center rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] px-3 py-1 text-xs font-medium text-neutral-700 dark:text-[#d8ccb5]">
         Demo sample data
       </span>
     );
@@ -73,15 +73,15 @@ export function UsageMeter({
   const percent = limit === "unlimited" ? 0 : Math.min(100, (used / limit) * 100);
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white/70 p-3">
+    <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-3">
       <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-neutral-700">{label}</span>
-        <span className="text-neutral-500">
+        <span className="font-medium text-neutral-700 dark:text-[#d8ccb5]">{label}</span>
+        <span className="text-neutral-500 dark:text-[#8a7d69]">
           {used} / {limit === "unlimited" ? "unlimited" : limit}
         </span>
       </div>
       {limit !== "unlimited" ? (
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-[#2d2820]">
           <div
             className="h-full rounded-full bg-neutral-950"
             style={{ width: `${percent}%` }}
@@ -107,16 +107,16 @@ export function LimitReachedModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[2rem] border border-black/10 bg-[#fbf8f1] p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-[2rem] border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-5 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-lg font-semibold text-neutral-950">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
+            <p className="text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
               {result?.reason ??
                 "You've reached a plan limit. Upgrade to continue using this feature."}
             </p>
             {typeof result?.limit === "number" ? (
-              <p className="mt-3 text-xs text-neutral-500">
+              <p className="mt-3 text-xs text-neutral-500 dark:text-[#8a7d69]">
                 Used {result.used ?? 0} of {result.limit}
               </p>
             ) : null}
@@ -124,7 +124,7 @@ export function LimitReachedModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-black/10 bg-white/70 p-2"
+            className="rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-2"
             aria-label="Close limit reached modal"
           >
             <X className="size-4" />
@@ -134,7 +134,7 @@ export function LimitReachedModal({
           <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
             <Link href="/#pricing">Upgrade</Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
+          <Button asChild variant="outline" className="rounded-full border-black/10 dark:border-white/10 bg-transparent">
             <Link href="/pricing">View pricing</Link>
           </Button>
         </div>
@@ -153,9 +153,9 @@ export function UpgradePromptCard({
   recommendedPlan?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-black/10 bg-white/70 p-6">
-      <p className="text-lg font-semibold text-neutral-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
+    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6">
+      <p className="text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">{description}</p>
       {recommendedPlan ? (
         <p className="mt-3 text-xs uppercase tracking-[0.16em] text-neutral-400">
           Recommended: {recommendedPlan}
@@ -165,7 +165,7 @@ export function UpgradePromptCard({
         <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
           <Link href="/#pricing">View pricing</Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
+        <Button asChild variant="outline" className="rounded-full border-black/10 dark:border-white/10 bg-transparent">
           <Link href="/beta-request">Request founding access</Link>
         </Button>
       </div>
@@ -175,22 +175,22 @@ export function UpgradePromptCard({
 
 export function DemoModeBanner() {
   return (
-    <div className="rounded-xl border border-black/10 bg-white px-4 py-3 shadow-sm">
+    <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white">
             <BarChart3 className="size-3.5" />
           </span>
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-neutral-950">Demo workspace</p>
-            <p className="hidden text-[12px] text-neutral-500 sm:block">You&apos;re viewing sample data. Start a trial to upload your own invoices.</p>
+            <p className="text-[13px] font-semibold text-neutral-950 dark:text-[#f0e8d5]">Demo workspace</p>
+            <p className="hidden text-[12px] text-neutral-500 dark:text-[#8a7d69] sm:block">You&apos;re viewing sample data. Start a trial to upload your own invoices.</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild size="sm" className="h-8 rounded-full bg-neutral-950 px-4 text-[12px] font-semibold text-white hover:bg-neutral-800">
             <Link href="/onboarding">Start 14-day trial</Link>
           </Button>
-          <Button asChild size="sm" variant="outline" className="hidden h-8 rounded-full border-black/10 bg-transparent px-4 text-[12px] font-semibold sm:flex">
+          <Button asChild size="sm" variant="outline" className="hidden h-8 rounded-full border-black/10 dark:border-white/10 bg-transparent px-4 text-[12px] font-semibold sm:flex">
             <Link href="/#pricing">View pricing</Link>
           </Button>
         </div>
@@ -269,10 +269,10 @@ export function GracePeriodWarning({ account }: { account: AccountLike }) {
     : "the end of your grace period";
 
   return (
-    <div className="rounded-xl border border-black/10 bg-white/80 px-4 py-3">
+    <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#28231c] px-4 py-3">
       <div className="flex items-center gap-2.5">
         <AlertTriangle className="size-4 shrink-0 text-amber-600" />
-        <p className="text-[12px] text-neutral-600">
+        <p className="text-[12px] text-neutral-600 dark:text-[#8a7d69]">
           Your trial data remains available until {date}. Export or upgrade to keep using Zentra.
         </p>
       </div>
@@ -294,19 +294,19 @@ export function LockedFeatureCard({
   const result = account ? requirePlanAccess(account, action) : null;
 
   return (
-    <div className="rounded-3xl border border-black/10 bg-white/70 p-6">
-      <div className="flex size-10 items-center justify-center rounded-2xl bg-[#fbf8f1] text-neutral-950">
+    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6">
+      <div className="flex size-10 items-center justify-center rounded-2xl bg-[#fbf8f1] dark:bg-[#211d17] text-neutral-950 dark:text-[#f0e8d5]">
         <LockKeyhole className="size-4" />
       </div>
-      <p className="mt-5 text-lg font-semibold text-neutral-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">
+      <p className="mt-5 text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
         {result?.reason ?? description}
       </p>
       <div className="mt-5 flex flex-wrap gap-3">
         <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
           <Link href="/#pricing">View pricing</Link>
         </Button>
-        <Button asChild variant="outline" className="rounded-full border-black/10 bg-transparent">
+        <Button asChild variant="outline" className="rounded-full border-black/10 dark:border-white/10 bg-transparent">
           <Link href="/beta-request">Request founding access</Link>
         </Button>
       </div>

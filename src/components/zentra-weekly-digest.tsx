@@ -78,7 +78,7 @@ export function ZentraWeeklyDigest() {
         <div>
           <div className="zn-label mb-1.5">Weekly digest</div>
           <h1 className="zn-page-h1">This week&apos;s collections brief</h1>
-          <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+          <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
             A Monday-ready summary for owners and bookkeepers. Preview only, no
             emails are sent.
           </p>
@@ -125,7 +125,7 @@ export function ZentraWeeklyDigest() {
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-5">
           <BriefSection title="Cash needing attention">
-            <p className="text-sm leading-6 text-[#6b6253]">
+            <p className="text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
               {formatCurrency(digest.totalCashNeedingAttention)} is currently
               tied to invoices that Zentra believes need review or action.
             </p>
@@ -179,7 +179,7 @@ export function ZentraWeeklyDigest() {
           </BriefSection>
 
           <BriefSection title="Likely cash this week">
-            <p className="text-sm leading-6 text-[#6b6253]">
+            <p className="text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
               {formatCurrency(digest.cashLikelyToLandThisWeek)} is linked to
               promises due this week. Check the bank before following up.
             </p>
@@ -199,52 +199,52 @@ export function ZentraWeeklyDigest() {
           </BriefSection>
 
           <BriefSection title="Suggested focus">
-            <p className="text-sm leading-6 text-[#6b6253]">
+            <p className="text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
               {digest.recommendedFocus}
             </p>
-            <p className="mt-3 text-sm leading-6 text-[#6b6253]">
+            <p className="mt-3 text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
               What changed since last import: {digest.changedSinceLastImport}
             </p>
           </BriefSection>
         </div>
 
         <aside className="space-y-5">
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+          <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+                  <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
                     Email preview
                   </CardDescription>
                   <CardTitle className="mt-2 text-xl">
-                    Your weekly Zentra Flow brief
+                    Your weekly Zentra Collect brief
                   </CardTitle>
                 </div>
-                <Mail className="size-5 text-[#8d8472]" />
+                <Mail className="size-5 text-[#8d8472] dark:text-[#6a5f4e]" />
               </div>
             </CardHeader>
             <CardContent>
-              <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+              <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
                 Subject
               </label>
-              <div className="mt-2 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] px-3 py-2 text-sm text-[#1d1813]">
+              <div className="mt-2 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] px-3 py-2 text-sm text-[#1d1813] dark:text-[#f0e8d5]">
                 {digest.emailSubject}
               </div>
-              <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472]">
+              <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.14em] text-[#8d8472] dark:text-[#6a5f4e]">
                 Body
               </label>
               <Textarea
                 readOnly
                 value={digest.emailBody}
-                className="mt-2 min-h-96 resize-none rounded-2xl border-[#d4c9ae] bg-white text-sm leading-6"
+                className="mt-2 min-h-96 resize-none rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-white dark:bg-[#211d17] text-sm leading-6"
               />
-              <p className="mt-3 text-xs leading-5 text-[#8d8472]">
+              <p className="mt-3 text-xs leading-5 text-[#8d8472] dark:text-[#6a5f4e]">
                 Preview only. Zentra does not send weekly emails in this MVP.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+          <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
             <CardHeader>
               <CardTitle>Digest source</CardTitle>
               <CardDescription>
@@ -252,7 +252,7 @@ export function ZentraWeeklyDigest() {
                 behaviour, and latest import comparison.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-[#6b6253]">
+            <CardContent className="space-y-3 text-sm text-[#6b6253] dark:text-[#8a7d69]">
               <InfoLine label="Week starting" value={formatDate(digest.weekStarting)} />
               <InfoLine label="Invoices analysed" value={`${invoices.length}`} />
               <InfoLine
@@ -300,7 +300,7 @@ function BriefSection({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -319,12 +319,12 @@ function Row({
   value: string;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p className="text-sm font-medium text-[#1d1813]">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-[#6b6253]">{meta}</p>
+        <p className="text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-[#6b6253] dark:text-[#8a7d69]">{meta}</p>
       </div>
-      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+      <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
         {value}
       </Badge>
     </div>
@@ -332,16 +332,16 @@ function Row({
 }
 
 function EmptyText({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-[#8d8472]">{children}</p>;
+  return <p className="text-sm text-[#8d8472] dark:text-[#6a5f4e]">{children}</p>;
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885]">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#a09885] dark:text-[#8a7d69]">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-[#1d1813]">{value}</p>
+      <p className="mt-1 text-sm font-medium text-[#1d1813] dark:text-[#f0e8d5]">{value}</p>
     </div>
   );
 }

@@ -141,25 +141,25 @@ export const demoBookkeeperClients: BookkeeperClient[] = clientBusinesses.map(
 );
 
 const customers: Customer[] = [
-  customer("cust-brightpath", "biz-acme-studio", "BrightPath Media Ltd", "accounts@brightpathmedia.co.uk", "Sarah Lee", "Finance Manager", "regular customer", "Usually pays after one polite reminder."),
-  customer("cust-northline", "biz-acme-studio", "Northline Creative", "finance@northlinecreative.co.uk", "Nina Green", "Accounts Payable", "slow payer", "Often requests invoice copies and PO references."),
-  customer("cust-atlas", "biz-acme-studio", "Atlas IT Support", "payments@atlasitsupport.co.uk", "Mark Collins", "Operations Director", "new customer", "First quarter working together."),
-  customer("cust-greenstone", "biz-acme-studio", "Greenstone Consulting", "ap@greenstoneconsulting.co.uk", "Claire Wade", "AP Lead", "problematic payer", "Several late payments and one unresolved query."),
-  customer("cust-riverbank", "biz-acme-studio", "Riverbank Studios", "hello@riverbankstudios.co.uk", "Sam Taylor", "Studio Manager", "regular customer", "Friendly relationship; prefers email reminders."),
-  customer("cust-clearview", "biz-bloom-bridge", "Clearview Recruitment", "finance@clearviewrecruitment.co.uk", "Helen Price", "Finance Controller", "regular customer", "Pays reliably once scope queries are resolved."),
-  customer("cust-ashford", "biz-bloom-bridge", "Ashford Digital", "accounts@ashforddigital.co.uk", "Amit Rao", "Founder", "high-value customer", "High value but slow to confirm payment dates."),
-  customer("cust-bluepeak", "biz-bloom-bridge", "BluePeak Design", "studio@bluepeakdesign.co.uk", "Rachel Owen", "Director", "slow payer", "Needs concise reminders with payment link."),
-  customer("cust-harbour", "biz-calder-it", "Harbour Works Ltd", "accounts@harbourworks.co.uk", "Gareth Mills", "Accounts", "regular customer", "Sometimes pays but forgets remittance advice."),
-  customer("cust-lancaster", "biz-calder-it", "Lancaster Dental Group", "finance@lancasterdental.co.uk", "Amelia Frost", "Practice Manager", "regular customer", "Prefers monthly statement summaries."),
-  customer("cust-maple", "biz-calder-it", "Maple & Stone Property", undefined, undefined, undefined, "new customer", "AP contact missing from export."),
-  customer("cust-orchard", "biz-finch-field", "Orchard HR Ltd", "accounts@orchardhr.co.uk", "Beth Naylor", "Finance Assistant", "regular customer", "Generally prompt, currently has a disputed invoice."),
-  customer("cust-pioneer", "biz-finch-field", "Pioneer Retail Group", "ap@pioneerretail.co.uk", "Liam Ford", "Accounts Payable", "strategic account", "Large account; use measured language."),
-  customer("cust-summit", "biz-rowan-creative", "Summit Ventures", "finance@summitventures.co.uk", "Olivia Reed", "Finance Lead", "problematic payer", "Multiple missed promises."),
-  customer("cust-studio-elevate", "biz-rowan-creative", "Studio Elevate", "hello@studioelevate.co.uk", "Martha Jones", "Producer", "regular customer", "Often asks for statement of account."),
+  customer("cust-brightpath", "biz-acme-studio", "BrightPath Media Ltd", "accounts@brightpathmedia.co.uk", "Sarah Lee", "Finance Manager", "regular customer", "Usually pays after one polite reminder.", 15000),
+  customer("cust-northline", "biz-acme-studio", "Northline Creative", "finance@northlinecreative.co.uk", "Nina Green", "Accounts Payable", "slow payer", "Often requests invoice copies and PO references.", 8000),
+  customer("cust-atlas", "biz-acme-studio", "Atlas IT Support", "payments@atlasitsupport.co.uk", "Mark Collins", "Operations Director", "new customer", "First quarter working together.", 5000),
+  customer("cust-greenstone", "biz-acme-studio", "Greenstone Consulting", "ap@greenstoneconsulting.co.uk", "Claire Wade", "AP Lead", "problematic payer", "Several late payments and one unresolved query.", 10000),
+  customer("cust-riverbank", "biz-acme-studio", "Riverbank Studios", "hello@riverbankstudios.co.uk", "Sam Taylor", "Studio Manager", "regular customer", "Friendly relationship; prefers email reminders.", 12000),
+  customer("cust-clearview", "biz-bloom-bridge", "Clearview Recruitment", "finance@clearviewrecruitment.co.uk", "Helen Price", "Finance Controller", "regular customer", "Pays reliably once scope queries are resolved.", 20000),
+  customer("cust-ashford", "biz-bloom-bridge", "Ashford Digital", "accounts@ashforddigital.co.uk", "Amit Rao", "Founder", "high-value customer", "High value but slow to confirm payment dates.", 50000),
+  customer("cust-bluepeak", "biz-bloom-bridge", "BluePeak Design", "studio@bluepeakdesign.co.uk", "Rachel Owen", "Director", "slow payer", "Needs concise reminders with payment link.", 7500),
+  customer("cust-harbour", "biz-calder-it", "Harbour Works Ltd", "accounts@harbourworks.co.uk", "Gareth Mills", "Accounts", "regular customer", "Sometimes pays but forgets remittance advice.", 18000),
+  customer("cust-lancaster", "biz-calder-it", "Lancaster Dental Group", "finance@lancasterdental.co.uk", "Amelia Frost", "Practice Manager", "regular customer", "Prefers monthly statement summaries.", 25000),
+  customer("cust-maple", "biz-calder-it", "Maple & Stone Property", undefined, undefined, undefined, "new customer", "AP contact missing from export.", 6000),
+  customer("cust-orchard", "biz-finch-field", "Orchard HR Ltd", "accounts@orchardhr.co.uk", "Beth Naylor", "Finance Assistant", "regular customer", "Generally prompt, currently has a disputed invoice.", 15000),
+  customer("cust-pioneer", "biz-finch-field", "Pioneer Retail Group", "ap@pioneerretail.co.uk", "Liam Ford", "Accounts Payable", "strategic account", "Large account; use measured language.", 75000),
+  customer("cust-summit", "biz-rowan-creative", "Summit Ventures", "finance@summitventures.co.uk", "Olivia Reed", "Finance Lead", "problematic payer", "Multiple missed promises.", 20000),
+  customer("cust-studio-elevate", "biz-rowan-creative", "Studio Elevate", "hello@studioelevate.co.uk", "Martha Jones", "Producer", "regular customer", "Often asks for statement of account.", 12000),
   customer("cust-willow", "biz-rowan-creative", "Willow Training Co", "accounts@willowtraining.co.uk", "Peter Hale", "Accounts", "do not chase" as RelationshipType, "Temporarily excluded from chasing by user."),
-  customer("cust-kentmere", "biz-merebrook", "Kentmere Kitchens", "payments@kentmerekitchens.co.uk", "Jo Martin", "Finance", "slow payer", "Promise dates need close tracking."),
-  customer("cust-elmstead", "biz-merebrook", "Elmstead Legal Services", "billing@elmsteadlegal.co.uk", "Nadia Spencer", "Billing Manager", "regular customer", "Formal tone preferred."),
-  customer("cust-redfern", "biz-merebrook", "Redfern Architecture", "accounts@redfernarchitecture.co.uk", "Chris Walton", "Practice Manager", "high-value customer", "High-value advisory work; avoid pressure language."),
+  customer("cust-kentmere", "biz-merebrook", "Kentmere Kitchens", "payments@kentmerekitchens.co.uk", "Jo Martin", "Finance", "slow payer", "Promise dates need close tracking.", 10000),
+  customer("cust-elmstead", "biz-merebrook", "Elmstead Legal Services", "billing@elmsteadlegal.co.uk", "Nadia Spencer", "Billing Manager", "regular customer", "Formal tone preferred.", 30000),
+  customer("cust-redfern", "biz-merebrook", "Redfern Architecture", "accounts@redfernarchitecture.co.uk", "Chris Walton", "Practice Manager", "high-value customer", "High-value advisory work; avoid pressure language.", 40000),
 ];
 
 export const demoCustomers = customers;
@@ -340,6 +340,7 @@ function customer(
   contactRole: string | undefined,
   relationshipType: RelationshipType,
   customerNotes: string,
+  creditLimit?: number,
 ): Customer {
   return {
     id,
@@ -353,6 +354,7 @@ function customer(
     relationshipType,
     customerNotes,
     doNotChase: relationshipType === "do not chase",
+    creditLimit,
     createdAt: "2026-01-15",
   };
 }
@@ -485,7 +487,7 @@ function buildActivity(
       businessId,
       type: "imported",
       title: "Imported from overdue invoice export",
-      description: "Invoice row imported into Zentra Flow demo mode.",
+      description: "Invoice row imported into Zentra Collect demo mode.",
       createdAt: "2026-05-07T09:30:00.000Z",
       createdBy: demoUser,
     },

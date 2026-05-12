@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 /**
  * src/components/whatsapp-send-button.tsx
@@ -101,7 +101,7 @@ export function WhatsAppSendButton({
         <button
           type="button"
           onClick={handleOpen}
-          className="w-full flex items-center justify-between rounded-[10px] border px-3 py-2.5 transition-colors hover:bg-[#f3ecd8]"
+          className="w-full flex items-center justify-between rounded-[10px] border px-3 py-2.5 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
           style={{ borderColor: "var(--zn-line)", background: "transparent" }}
         >
           <span className="flex items-center gap-2">
@@ -133,7 +133,7 @@ export function WhatsAppSendButton({
             <button
               type="button"
               onClick={handleClose}
-              className="rounded p-0.5 transition-colors hover:bg-[#ece3cc]"
+              className="rounded p-0.5 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
               aria-label="Close"
             >
               <X className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />

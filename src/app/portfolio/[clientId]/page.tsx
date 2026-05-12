@@ -68,7 +68,7 @@ export default async function PortfolioClientPage({
       </div>
 
       {/* Context banner */}
-      <div className="mb-6 rounded-xl border border-black/8 bg-white px-4 py-3 text-sm text-neutral-700">
+      <div className="mb-6 rounded-xl border border-black/8 bg-white dark:bg-[#211d17] px-4 py-3 text-sm text-neutral-700 dark:text-[#d8ccb5]">
         <strong>Bookkeeper view</strong> — collections plan for{" "}
         <strong>{bookkeeperClient.business.name}</strong>. Contact:{" "}
         {bookkeeperClient.primaryContactName} &middot;{" "}

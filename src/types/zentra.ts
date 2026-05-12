@@ -190,6 +190,7 @@ export interface Customer {
   relationshipType: RelationshipType;
   customerNotes?: string;
   doNotChase?: boolean;
+  creditLimit?: number;
   createdAt: string;
 }
 

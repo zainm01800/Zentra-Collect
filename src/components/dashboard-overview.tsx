@@ -133,7 +133,7 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 );
               })}
               {focusInvoices.length === 0 && (
-                <div className="px-6 py-8 text-center text-neutral-500">
+                <div className="px-6 py-8 text-center text-neutral-500 dark:text-[#8a7d69]">
                   No urgent actions today. Good job!
                 </div>
               )}
@@ -182,7 +182,7 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Highest risk customer</p>
-                  <p className="text-sm font-bold text-neutral-950">{risk.highestRiskCustomer || "None"}</p>
+                  <p className="text-sm font-bold text-neutral-950 dark:text-[#f0e8d5]">{risk.highestRiskCustomer || "None"}</p>
                 </div>
               </div>
 
@@ -192,7 +192,7 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Biggest overdue balance</p>
-                  <p className="text-sm font-bold text-neutral-950">
+                  <p className="text-sm font-bold text-neutral-950 dark:text-[#f0e8d5]">
                     {risk.biggestBalance ? `${risk.biggestBalance.customer} (${formatCurrency(risk.biggestBalance.amount)})` : "None"}
                   </p>
                 </div>
@@ -204,7 +204,7 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Repeat late payers</p>
-                  <p className="text-sm font-bold text-neutral-950">{risk.repeatLatePayersCount} customers</p>
+                  <p className="text-sm font-bold text-neutral-950 dark:text-[#f0e8d5]">{risk.repeatLatePayersCount} customers</p>
                 </div>
               </div>
 
@@ -214,7 +214,7 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Missed promises</p>
-                  <p className="text-sm font-bold text-neutral-950">{risk.missedPromisesCount} missed dates</p>
+                  <p className="text-sm font-bold text-neutral-950 dark:text-[#f0e8d5]">{risk.missedPromisesCount} missed dates</p>
                 </div>
               </div>
             </div>
@@ -236,10 +236,10 @@ export function DashboardOverview({ invoices, onReviewAction }: DashboardOvervie
                 <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">Top 3 attention needed</p>
                 <div className="space-y-2">
                   {brief.top3NeedsAttention.map((inv) => (
-                    <div key={inv.id} className="flex items-center justify-between gap-2 rounded-xl border border-black/5 bg-white p-3">
+                    <div key={inv.id} className="flex items-center justify-between gap-2 rounded-xl border border-black/5 bg-white dark:bg-[#211d17] p-3">
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-neutral-950">{inv.customerName}</p>
-                        <p className="text-[10px] text-neutral-500">{formatCurrency(inv.amount)} · {inv.daysOverdue}d</p>
+                        <p className="truncate text-xs font-bold text-neutral-950 dark:text-[#f0e8d5]">{inv.customerName}</p>
+                        <p className="text-[10px] text-neutral-500 dark:text-[#8a7d69]">{formatCurrency(inv.amount)} · {inv.daysOverdue}d</p>
                       </div>
                       <ArrowRight className="size-3 text-neutral-300" />
                     </div>

@@ -27,9 +27,9 @@ export function ZentraImportSummary() {
   if (!summary || !diff) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="max-w-lg rounded-3xl border-[#d4c9ae] bg-[#faf5e8] text-center shadow-none ring-0">
+        <Card className="max-w-lg rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] text-center shadow-none ring-0">
           <CardHeader>
-            <FileSearch className="mx-auto size-9 text-[#1d1813]" />
+            <FileSearch className="mx-auto size-9 text-[#1d1813] dark:text-[#f0e8d5]" />
             <CardTitle className="text-2xl">No import summary yet</CardTitle>
             <CardDescription className="leading-6">
               Upload a newer AR export to compare it with the previous import.
@@ -47,19 +47,19 @@ export function ZentraImportSummary() {
 
   return (
     <div className="space-y-8">
-      <section className="flex flex-col gap-4 border-b border-[#d4c9ae] pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <section className="flex flex-col gap-4 border-b border-[#d4c9ae] dark:border-[#2d2820] pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d8472]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d8472] dark:text-[#6a5f4e]">
             Import summary
           </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-normal text-[#1d1813] sm:text-5xl">
+          <h1 className="mt-3 text-4xl font-semibold tracking-normal text-[#1d1813] dark:text-[#f0e8d5] sm:text-5xl">
             What changed since last import
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-[#6b6253]">
+          <p className="mt-3 max-w-2xl text-base leading-7 text-[#6b6253] dark:text-[#8a7d69]">
             {summary.fileName} imported on {formatDate(summary.importedAt)}.
           </p>
         </div>
-        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+        <Button asChild variant="outline" className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
           <Link href="/dashboard">
             <ArrowLeft className="size-4" />
             Back to dashboard
@@ -95,7 +95,7 @@ export function ZentraImportSummary() {
         />
       </section>
 
-      <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+      <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
         <CardHeader>
           <CardTitle>Top changes</CardTitle>
           <CardDescription>
@@ -129,17 +129,17 @@ function SummaryCard({
   detail: string;
 }) {
   return (
-    <Card className="rounded-2xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-2xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
-        <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472]">
+        <CardDescription className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8d8472] dark:text-[#6a5f4e]">
           {label}
         </CardDescription>
-        <CardTitle className="text-2xl font-semibold text-[#1d1813]">
+        <CardTitle className="text-2xl font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
           {value}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-[#8d8472]">{detail}</p>
+        <p className="text-sm text-[#8d8472] dark:text-[#6a5f4e]">{detail}</p>
       </CardContent>
     </Card>
   );
@@ -153,11 +153,11 @@ function ChangeSection({
   changes: ImportChange[];
 }) {
   return (
-    <Card className="rounded-3xl border-[#d4c9ae] bg-[#faf5e8] shadow-none ring-0">
+    <Card className="rounded-3xl border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] shadow-none ring-0">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>{title}</CardTitle>
-          <Badge variant="outline" className="rounded-full border-[#d4c9ae] bg-[#f3ecd8]">
+          <Badge variant="outline" className="rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#f3ecd8] dark:bg-[#28231c]">
             {changes.length}
           </Badge>
         </div>
@@ -177,7 +177,7 @@ function ChangeList({
   empty: string;
 }) {
   if (!changes.length) {
-    return <p className="text-sm text-[#8d8472]">{empty}</p>;
+    return <p className="text-sm text-[#8d8472] dark:text-[#6a5f4e]">{empty}</p>;
   }
 
   return (
@@ -185,16 +185,16 @@ function ChangeList({
       {changes.map((change) => (
         <div
           key={change.id}
-          className="rounded-2xl border border-[#d4c9ae] bg-[#faf5e8] p-3 text-sm leading-6 text-[#3d3428]"
+          className="rounded-2xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17] p-3 text-sm leading-6 text-[#3d3428] dark:text-[#d8ccb5]"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="font-medium text-[#1d1813]">
+              <p className="font-medium text-[#1d1813] dark:text-[#f0e8d5]">
                 {change.customerName} · {change.invoiceNumber}
               </p>
               <p>{change.message}</p>
             </div>
-            <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] bg-[#faf5e8]">
+            <Badge variant="outline" className="w-fit rounded-full border-[#d4c9ae] dark:border-[#2d2820] bg-[#faf5e8] dark:bg-[#211d17]">
               {change.severity}
             </Badge>
           </div>

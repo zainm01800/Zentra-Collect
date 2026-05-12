@@ -180,7 +180,7 @@ export function AutoSendToggle({
             }`}
           >
             <span
-              className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ml-0.5 ${
+              className={`w-3 h-3 rounded-full bg-white dark:bg-[#211d17] shadow-sm transition-transform ml-0.5 ${
                 isEnabled ? "translate-x-4" : "translate-x-0"
               }`}
             />

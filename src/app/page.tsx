@@ -100,14 +100,14 @@ export default function Home() {
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428]">
-            <Link href="#how-it-works" className="hover:text-[#1d1813]">How it works</Link>
-            <Link href="#bookkeepers" className="hover:text-[#1d1813]">For bookkeepers</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
-            <Link href="#faq" className="hover:text-[#1d1813]">FAQ</Link>
+          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[#3d3428] dark:text-[#d8ccb5]">
+            <Link href="#how-it-works" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">How it works</Link>
+            <Link href="#bookkeepers" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">For bookkeepers</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
+            <Link href="#faq" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">FAQ</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/login" className="zn-pill zn-pill-ghost">Sign in</Link>
@@ -130,7 +130,7 @@ export default function Home() {
             Upload overdue invoices. Get a ranked chase plan in minutes.
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-            Zentra Flow turns AR ageing reports into clear next actions —
+            Zentra Collect turns AR ageing reports into clear next actions —
             who to chase, what to ask for, what to ignore, what cash is likely
             to land. Action + reason + draft message, in one calm workspace.
           </p>
@@ -195,12 +195,12 @@ export default function Home() {
                     {row.rank}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold truncate text-[#1d1813]">{row.name}</div>
+                    <div className="text-[13px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">{row.name}</div>
                     <div className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
                       {row.sub}
                     </div>
                   </div>
-                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813]">
+                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813] dark:text-[#f0e8d5]">
                     {row.amount}
                   </div>
                   <span
@@ -220,7 +220,7 @@ export default function Home() {
       <Section eyebrow="What it answers" title="A focused decisioning layer for messy AR.">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {answers.map((item) => (
-            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
+            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">
               {item}
             </div>
           ))}
@@ -243,7 +243,7 @@ export default function Home() {
               >
                 {step.n}
               </span>
-              <p className="mt-5 text-[14px] font-semibold text-[#1d1813]">{step.title}</p>
+              <p className="mt-5 text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{step.title}</p>
               <p className="mt-1.5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>{step.sub}</p>
             </div>
           ))}
@@ -254,7 +254,7 @@ export default function Home() {
       <Section eyebrow="Scenarios" title="Every overdue invoice gets a different chase.">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {messyAr.map((item) => (
-            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813]">
+            <div key={item} className="zn-card p-4 text-[13.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">
               {item}
             </div>
           ))}
@@ -303,7 +303,7 @@ export default function Home() {
                 >
                   <Ico className="size-4" />
                 </span>
-                <span className="text-[13.5px] font-medium text-[#1d1813]">{item.label}</span>
+                <span className="text-[13.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">{item.label}</span>
               </div>
             );
           })}
@@ -335,7 +335,7 @@ export default function Home() {
                 }
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[13.5px] font-semibold text-[#1d1813]">{plan.name}</span>
+                  <span className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{plan.name}</span>
                   {isFeatured ? (
                     <span
                       className="zn-chip"
@@ -362,7 +362,7 @@ export default function Home() {
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
                   {getPricingBullets(plan.id).map((feature) => (
-                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428]">
+                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428] dark:text-[#d8ccb5]">
                       <CheckCircle2 className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
                       <span>{feature}</span>
                     </div>
@@ -405,7 +405,7 @@ export default function Home() {
         <div className="grid gap-3 md:grid-cols-2">
           {faqs.map((f) => (
             <div key={f.q} className="zn-card p-5">
-              <p className="text-[14px] font-semibold text-[#1d1813]">{f.q}</p>
+              <p className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{f.q}</p>
               <p className="mt-2 text-[13px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
                 {f.a}
               </p>
@@ -456,7 +456,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6]" style={{ color: "rgba(250,245,232,0.55)" }}>
-              Zentra Flow is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
+              Zentra Collect is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
             </p>
           </div>
         </div>
@@ -467,15 +467,15 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Flow</span>
+            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            <Link href="/help"    className="hover:text-[#1d1813]">Help</Link>
-            <Link href="#pricing" className="hover:text-[#1d1813]">Pricing</Link>
-            <Link href="/login"   className="hover:text-[#1d1813]">Sign in</Link>
-            <Link href="/terms"   className="hover:text-[#1d1813]">Terms</Link>
-            <Link href="/privacy" className="hover:text-[#1d1813]">Privacy</Link>
-            <Link href="/cookies" className="hover:text-[#1d1813]">Cookies</Link>
+            <Link href="/help"    className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Help</Link>
+            <Link href="#pricing" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Pricing</Link>
+            <Link href="/login"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Sign in</Link>
+            <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>
+            <Link href="/privacy" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Privacy</Link>
+            <Link href="/cookies" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Cookies</Link>
             <span>© {new Date().getFullYear()} Zentra</span>
           </div>
         </div>
@@ -500,7 +500,7 @@ function Section({
       <div className="mb-6 max-w-3xl">
         <div className="zn-label !p-0 mb-2">{eyebrow}</div>
         <h2
-          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5]"
           style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
         >
           {title}

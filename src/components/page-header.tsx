@@ -27,7 +27,7 @@ export function PageHeader({
           {title}
         </h1>
         {sub ? (
-          <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+          <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
             {sub}
           </p>
         ) : null}

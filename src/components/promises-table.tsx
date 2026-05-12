@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useReview } from "@/components/review-context";
 import { formatCurrency } from "@/lib/formatters";
@@ -46,7 +46,7 @@ export function PromisesTable({
             key={p.id}
             onClick={() => openReview(p.id)}
             style={{ borderTop: "1px solid var(--zn-line-soft)" }}
-            className="hover:bg-[#f3ecd8] transition-colors cursor-pointer"
+            className="hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820] transition-colors cursor-pointer"
           >
             <td className="text-[13px] font-semibold" style={{ padding: "14px 22px" }}>
               {p.customerName}

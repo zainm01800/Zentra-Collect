@@ -23,7 +23,7 @@ export default function NotFound() {
         </div>
         <div className="zn-label !p-0 mb-2">404 · not found</div>
         <h1
-          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+          className="text-[28px] sm:text-[32px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5]"
           style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
         >
           This page isn&apos;t in your workspace.

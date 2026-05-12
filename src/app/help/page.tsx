@@ -47,12 +47,12 @@ export default function HelpPage() {
         <div className="zn-card p-6 lg:p-7">
           <div className="zn-label !p-0 mb-1.5">How Zentra ranks</div>
           <h2
-            className="text-[22px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] mb-4"
+            className="text-[22px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5] mb-4"
             style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
           >
             We tell you why.
           </h2>
-          <p className="text-[13.5px] leading-relaxed text-[#6b6253] max-w-[720px] mb-5">
+          <p className="text-[13.5px] leading-relaxed text-[#6b6253] dark:text-[#8a7d69] max-w-[720px] mb-5">
             Every invoice gets a priority score from 0–100 based on a small set
             of deterministic signals. Same input, same output, every time —
             you can audit the result.
@@ -76,7 +76,7 @@ export default function HelpPage() {
                 }}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] font-semibold text-[#1d1813]">{row.signal}</span>
+                  <span className="text-[13px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{row.signal}</span>
                   <span
                     className="text-[10.5px] tabular-nums"
                     style={{
@@ -111,8 +111,8 @@ export default function HelpPage() {
         <div className="grid gap-3.5 lg:grid-cols-2">
           {faqs.map((f) => (
             <div key={f.q} className="zn-card p-5">
-              <h3 className="text-[14px] font-semibold mb-2 text-[#1d1813]">{f.q}</h3>
-              <p className="text-[13px] leading-relaxed text-[#6b6253]">{f.a}</p>
+              <h3 className="text-[14px] font-semibold mb-2 text-[#1d1813] dark:text-[#f0e8d5]">{f.q}</h3>
+              <p className="text-[13px] leading-relaxed text-[#6b6253] dark:text-[#8a7d69]">{f.a}</p>
             </div>
           ))}
         </div>

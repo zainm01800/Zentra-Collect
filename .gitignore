@@ -42,3 +42,4 @@ next-env.d.ts
 
 # local agent worktrees / generated builds
 .claude/
+.claude.zip

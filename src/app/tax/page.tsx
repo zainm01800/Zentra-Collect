@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/app/tax/page.tsx
  *
  * Tax reserve page — shows how much income tax + NI the user should be
@@ -10,6 +10,8 @@
  * expandable "Show calculation" section is client-interactive.
  */
 
+import Link from "next/link";
+import { FileText } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
   getFinancialSettings,
@@ -579,6 +581,18 @@ export default async function TaxPage() {
 
         {/* ── 5. Expandable calculation (client component) ──────────────── */}
         <TaxCalcDetails {...calcProps} />
+
+        {/* Year-end summary link */}
+        <div className="flex justify-center">
+          <Link
+            href="/tax/summary"
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12.5px] font-medium transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
+            style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+          >
+            <FileText className="size-3.5" />
+            View year-end summary
+          </Link>
+        </div>
 
         {/* Fine print */}
         <p className="text-[11.5px] text-center pb-2" style={{ color: "var(--zn-ink-3)" }}>

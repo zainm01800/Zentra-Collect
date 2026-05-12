@@ -83,23 +83,20 @@ export function DemoAuthForm() {
           });
           if (signUpError) throw signUpError;
         } else {
-          // Sign-in: authenticate then go straight to dashboard.
-          // AccountSync will pull the real plan from Supabase on mount.
           const { data, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
           if (signInError) throw signInError;
           const metadata = data.user?.user_metadata;
-          nextName = (metadata?.full_name as string | undefined) || nextName;
-          nextBusinessName = (metadata?.business_name as string | undefined) || nextBusinessName;
-          writePendingIdentity({
-            name: nextName || "Returning user",
-            email,
-            businessName: nextBusinessName || "",
-          });
-          router.push("/dashboard");
-          return;
+          if (metadata?.full_name && typeof metadata.full_name === "string") {
+            nextName = metadata.full_name;
+            setName(metadata.full_name);
+          }
+          if (metadata?.business_name && typeof metadata.business_name === "string") {
+            nextBusinessName = metadata.business_name;
+            setBusinessName(metadata.business_name);
+          }
         }
       } catch (caught) {
         const raw = caught instanceof Error ? caught.message : "";
@@ -110,11 +107,11 @@ export function DemoAuthForm() {
       setIsSubmitting(false);
     }
 
-    // Sign-up path: go to onboarding to pick a plan
     writePendingIdentity({
-      name: nextName,
+      name: mode === "signin" ? nextName || "Returning user" : nextName,
       email,
-      businessName: nextBusinessName,
+      businessName:
+        mode === "signin" ? nextBusinessName || "Demo business" : nextBusinessName,
     });
     router.push("/onboarding");
   }
@@ -131,7 +128,7 @@ export function DemoAuthForm() {
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
           <Link href="/" className="text-[13px] underline-offset-2 hover:underline" style={{ color: "var(--zn-ink-3)" }}>
@@ -150,7 +147,7 @@ export function DemoAuthForm() {
             </div>
             <div className="zn-label !p-0 mb-2">Account access</div>
             <h1
-              className="text-[34px] sm:text-[40px] tracking-[-0.015em] leading-[1.1] text-[#1d1813]"
+              className="text-[34px] sm:text-[40px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5]"
               style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
             >
               {mode === "signup" ? "Start your free trial." : "Welcome back."}
@@ -185,8 +182,8 @@ export function DemoAuthForm() {
               }}
             >
               {mode === "signup"
-                ? <>Just exploring? <Link href="/demo" className="underline underline-offset-2 text-[#1d1813] font-medium">Try the demo</Link> with sample data instead — no signup needed.</>
-                : <>No account yet? <Link href="/login?mode=signup" className="underline underline-offset-2 text-[#1d1813] font-medium">Start a free 14-day trial</Link> — no card required.</>}
+                ? <>Just exploring? <Link href="/demo" className="underline underline-offset-2 text-[#1d1813] dark:text-[#f0e8d5] font-medium">Try the demo</Link> with sample data instead — no signup needed.</>
+                : <>No account yet? <Link href="/login?mode=signup" className="underline underline-offset-2 text-[#1d1813] dark:text-[#f0e8d5] font-medium">Start a free 14-day trial</Link> — no card required.</>}
             </div>
           </section>
 
@@ -326,7 +323,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[12.5px] font-medium text-[#1d1813]">
+      <label htmlFor={id} className="text-[12.5px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">
         {label}
       </label>
       <input

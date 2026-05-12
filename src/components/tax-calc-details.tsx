@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 /**
  * tax-calc-details.tsx
@@ -120,7 +120,7 @@ export function TaxCalcDetails({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-[#f3ecd8]"
+        className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
       >
         <span
           className="text-[13.5px] font-semibold"

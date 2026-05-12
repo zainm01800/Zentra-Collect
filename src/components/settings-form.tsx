@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Save, CheckCircle2, AlertTriangle, Zap } from "lucide-react";
+import { Mail, Save, CheckCircle2, AlertTriangle, Zap, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UpgradePromptModal } from "@/components/billing-gates";
 import { AutoSendModal } from "@/components/auto-send-modal";
@@ -139,6 +139,7 @@ export function SettingsForm() {
             </Button>
           </CardContent>
         </Card>
+        <OutboundEmailCard />
         <EmailSettingsCard />
         <Card className="rounded-lg">
           <CardHeader>
@@ -362,6 +363,140 @@ function EmailSettingsCard() {
         planId={centralPlanId}
       />
     </>
+  );
+}
+
+// ── Outbound email credentials card ──────────────────────────────────────────
+
+/**
+ * Simple card for configuring outbound SMTP credentials used by the
+ * "Send email" button in the chase drawer. Saves to the same
+ * zentra_email_settings table as the auto-send setup.
+ */
+function OutboundEmailCard() {
+  useLocalAccount(); // keep hook call for potential future use
+
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [fromName, setFromName]   = useState("");
+  const [showPass, setShowPass]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  async function handleSave() {
+    if (!email.trim() || !password.trim()) return;
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/email/save-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: "local",
+          email: email.trim(),
+          password,
+          fromName: fromName.trim() || "Zentra Flow",
+        }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setSaved(true);
+        setPassword("");
+        setTimeout(() => setSaved(false), 4000);
+        window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
+      } else {
+        setError(json.error ?? "Save failed.");
+      }
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="rounded-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="size-4" />
+          Outbound email
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          Used when you click &ldquo;Send email&rdquo; in the chase drawer.
+          Credentials are encrypted before storage.
+        </p>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="smtp-email">Your email address</Label>
+            <Input
+              id="smtp-email"
+              type="email"
+              placeholder="accounts@yourcompany.co.uk"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="smtp-password">Email password / app password</Label>
+            <div className="relative">
+              <Input
+                id="smtp-password"
+                type={showPass ? "text" : "password"}
+                placeholder="App password or email password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                aria-label={showPass ? "Hide password" : "Show password"}
+              >
+                {showPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              For Gmail use an App Password (requires 2FA).
+              For Outlook use your regular password.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="smtp-from-name">From name</Label>
+            <Input
+              id="smtp-from-name"
+              placeholder="Your name or business name"
+              value={fromName}
+              onChange={(e) => setFromName(e.target.value)}
+            />
+          </div>
+          {error && (
+            <p className="text-sm text-red-600">{error}</p>
+          )}
+          {saved && (
+            <p className="text-sm text-emerald-600 flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5" /> Email credentials saved.
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={saving || !email.trim() || !password.trim()}
+            onClick={handleSave}
+          >
+            {saving ? "Saving…" : "Save credentials"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

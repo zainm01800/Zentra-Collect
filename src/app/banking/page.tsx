@@ -15,6 +15,7 @@
 
 import { AppShell }                from "@/components/app-shell";
 import { BankTransactionsList }    from "@/components/bank-transactions-list";
+import { BankStatementImportCard } from "@/components/bank-statement-import-card";
 import { getBankConnection, fetchBankTransactions } from "@/actions/bank-feed";
 import type { Metadata }           from "next";
 
@@ -72,8 +73,8 @@ export default async function BankingPage({
             Bank feed
           </h1>
           <p className="mt-1 text-[14px]" style={{ color: "var(--zn-ink-2)" }}>
-            Connect your business bank account to automatically spot when
-            invoices have been paid.
+            Connect your bank via Open Banking to automatically match payments to invoices —
+            or upload a CSV statement from any major UK bank if you prefer to stay manual.
           </p>
         </div>
 
@@ -193,6 +194,9 @@ export default async function BankingPage({
             fetchError={transactions.error}
           />
         )}
+
+        {/* ── Manual CSV import ─────────────────────────────────────────── */}
+        <BankStatementImportCard />
 
       </div>
     </AppShell>

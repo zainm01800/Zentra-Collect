@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 /**
  * src/components/log-outcome-button.tsx
@@ -175,7 +175,7 @@ export function LogOutcomeButton({
             <button
               type="button"
               onClick={closePanel}
-              className="rounded p-0.5 transition-colors hover:bg-[#f3ecd8]"
+              className="rounded p-0.5 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
               aria-label="Close"
             >
               <X className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />

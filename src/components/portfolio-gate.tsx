@@ -33,8 +33,8 @@ export function PortfolioGate() {
 
   return (
     <div className="zn-card p-5">
-      <div className="text-[15px] font-semibold mb-1 text-[#1d1813]">Bookkeeper portfolio</div>
-      <p className="text-[13px] text-[#6b6253]">
+      <div className="text-[15px] font-semibold mb-1 text-[#1d1813] dark:text-[#f0e8d5]">Bookkeeper portfolio</div>
+      <p className="text-[13px] text-[#6b6253] dark:text-[#8a7d69]">
         Portfolio access is enabled for this plan. The full multi-ledger backend
         is still demo-only until real tenancy and database storage are added.
       </p>
@@ -93,7 +93,7 @@ function DemoPortfolio() {
       <section>
         <div className="zn-label mb-1.5">Bookkeeper mode</div>
         <h1 className="zn-page-h1">Client portfolio</h1>
-        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253]">
+        <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
           One pane across every client ledger. Spot the ones that need you today.
         </p>
       </section>
@@ -157,10 +157,10 @@ function DemoPortfolio() {
                     {initials}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[14px] font-semibold text-[#1d1813] truncate">
+                    <div className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">
                       {client.business.name}
                     </div>
-                    <div className="text-[12px] text-[#6b6253] truncate">
+                    <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] truncate">
                       {client.portfolioLabel} · {client.primaryContactName}
                     </div>
                   </div>

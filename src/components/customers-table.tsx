@@ -57,7 +57,7 @@ export function CustomersTable({
           <tr
             key={r.name}
             onClick={() => openMostPressing(r.name)}
-            className="transition-colors hover:bg-[#f3ecd8] cursor-pointer"
+            className="transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820] cursor-pointer"
             style={{ borderTop: "1px solid var(--zn-line-soft)" }}
           >
             <td style={{ padding: "14px 22px" }}>
@@ -68,7 +68,7 @@ export function CustomersTable({
                 >
                   {r.name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase()}
                 </span>
-                <span className="text-[13.5px] font-semibold text-[#1d1813]">{r.name}</span>
+                <span className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{r.name}</span>
               </div>
             </td>
             <td className="text-[13px] font-medium tabular-nums" style={{ padding: "14px 10px", color: "var(--zn-ink)" }}>

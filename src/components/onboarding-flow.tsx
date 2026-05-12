@@ -224,11 +224,11 @@ export function OnboardingFlow() {
   // ── OTP verification screen ──────────────────────────────────────────────
   if (otpStep) {
     return (
-      <main className="min-h-screen bg-[#fbf8f1] flex items-center justify-center px-4">
+      <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] flex items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
-            <p className="text-sm text-[#6b6253]">
+            <p className="text-sm text-[#6b6253] dark:text-[#8a7d69]">
               We sent a 6-digit code to <strong>{otpEmail}</strong>. Enter it below to verify your account.
             </p>
           </div>
@@ -251,7 +251,7 @@ export function OnboardingFlow() {
               {otpLoading ? "Verifying…" : "Verify & start trial"}
             </Button>
             <button
-              className="w-full text-sm text-[#6b6253] hover:text-[#1d1813]"
+              className="w-full text-sm text-[#6b6253] dark:text-[#8a7d69] hover:text-[#1d1813] dark:text-[#f0e8d5]"
               onClick={async () => {
                 const supabase = createSupabaseBrowserClient();
                 await supabase.auth.signInWithOtp({ email: otpEmail, options: { shouldCreateUser: true } });
@@ -266,17 +266,17 @@ export function OnboardingFlow() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbf8f1] px-4 py-10 text-neutral-950">
+    <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] px-4 py-10 text-neutral-950 dark:text-[#f0e8d5]">
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-6 rounded-[2rem] border border-black/10 bg-white/70 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-8">
+        <div className="flex flex-col gap-6 rounded-[2rem] border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
               Account setup
             </p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight lg:text-5xl">
               How do you want to start?
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600 dark:text-[#8a7d69]">
               Demo gives you instant access with sample data. Trial lets you
               upload your own exports. Paid plans unlock everything with no
               usage caps.
@@ -290,13 +290,13 @@ export function OnboardingFlow() {
                 id="businessName"
                 value={businessName}
                 onChange={(event) => setBusinessName(event.target.value)}
-                className="rounded-2xl border-black/10 bg-[#fbf8f1]"
+                className="rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]"
               />
             </div>
             <div className="space-y-2 hidden">
               <Label>Placeholder</Label>
               <Select value={accountingSoftware}>
-                <SelectTrigger className="rounded-2xl border-black/10 bg-[#fbf8f1]">
+                <SelectTrigger className="rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -317,24 +317,24 @@ export function OnboardingFlow() {
           {options.map((option) => (
             <Card
               key={option.type}
-              className={`rounded-[1.75rem] border-black/10 bg-white/80 shadow-sm transition ${
+              className={`rounded-[1.75rem] border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#28231c] shadow-sm transition ${
                 selectedType === option.type ? "ring-2 ring-neutral-950" : ""
               }`}
               onMouseEnter={() => setSelectedType(option.type)}
             >
               <CardContent className="flex h-full flex-col p-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fbf8f1] text-neutral-950">
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fbf8f1] dark:bg-[#211d17] text-neutral-950 dark:text-[#f0e8d5]">
                     {option.icon}
                   </div>
                   {option.limited ? (
-                    <span className="rounded-full border border-black/10 bg-[#fbf8f1] px-3 py-1 text-xs font-medium text-neutral-600">
+                    <span className="rounded-full border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] px-3 py-1 text-xs font-medium text-neutral-600 dark:text-[#8a7d69]">
                       {option.limited}
                     </span>
                   ) : null}
                 </div>
 
-                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-[#8a7d69]">
                   {option.eyebrow}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight">
@@ -343,19 +343,18 @@ export function OnboardingFlow() {
                 {option.price ? (
                   <p className="mt-2 text-3xl font-semibold">{option.price}</p>
                 ) : null}
-                <p className="mt-3 text-sm leading-6 text-neutral-600">
+                <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">
                   {option.description}
                 </p>
 
-                <ul className="mt-5 space-y-3 text-sm text-neutral-700">
+                <ul className="mt-5 space-y-3 text-sm text-neutral-700 dark:text-[#d8ccb5]">
                   {option.points.map((point) => (
                     <li key={point} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-neutral-950" />
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-neutral-950 dark:text-[#f0e8d5]" />
                       <span>{point}</span>
                     </li>
                   ))}
                 </ul>
-
 
                 <Button
                   className="mt-auto w-full rounded-full bg-neutral-950 text-white hover:bg-neutral-800"

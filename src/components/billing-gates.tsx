@@ -17,7 +17,7 @@ import { formatAccountExpiry, type DemoUser } from "@/lib/demo-auth";
 export function PlanBadge({ account }: { account: BillingAccount }) {
   const plan = getPlanConfig(account.planId);
   return (
-    <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
+    <span className="inline-flex items-center rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] px-3 py-1 text-xs font-medium text-neutral-700 dark:text-[#d8ccb5]">
       {plan.name}
     </span>
   );
@@ -33,7 +33,7 @@ export function TrialCountdownBadge({
   const [now] = useState(() => Date.now());
   if (account.planId === "demo") {
     return (
-      <span className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium text-neutral-700">
+      <span className="inline-flex items-center rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] px-3 py-1 text-xs font-medium text-neutral-700 dark:text-[#d8ccb5]">
         Demo sample data
       </span>
     );
@@ -71,15 +71,15 @@ export function UsageMeter({
   const percent = limit === null ? 0 : Math.min(100, (used / limit) * 100);
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white/70 p-3">
+    <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-3">
       <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-neutral-700">{label}</span>
-        <span className="text-neutral-500">
+        <span className="font-medium text-neutral-700 dark:text-[#d8ccb5]">{label}</span>
+        <span className="text-neutral-500 dark:text-[#8a7d69]">
           {used} / {limit === null ? "unlimited" : limit}
         </span>
       </div>
       {limit !== null ? (
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-[#2d2820]">
           <div className="h-full rounded-full bg-neutral-950" style={{ width: `${percent}%` }} />
         </div>
       ) : null}
@@ -126,16 +126,16 @@ export function UpgradePromptModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[2rem] border border-black/10 bg-[#fbf8f1] p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-[2rem] border border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17] p-5 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-lg font-semibold text-neutral-950">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
+            <p className="text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">{description}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-black/10 bg-white/70 p-2"
+            className="rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-2"
             aria-label="Close upgrade prompt"
           >
             <X className="size-4" />
@@ -145,7 +145,7 @@ export function UpgradePromptModal({
           <Button asChild className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
             <Link href="/#pricing">View plans</Link>
           </Button>
-          <Button type="button" variant="outline" className="rounded-full border-black/10 bg-transparent" onClick={onClose}>
+          <Button type="button" variant="outline" className="rounded-full border-black/10 dark:border-white/10 bg-transparent" onClick={onClose}>
             Keep viewing
           </Button>
         </div>
@@ -164,9 +164,9 @@ export function LockedFeatureCard({
   feature?: PlanFeature;
 }) {
   return (
-    <div className="rounded-3xl border border-black/10 bg-white/70 p-6">
-      <p className="text-lg font-semibold text-neutral-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
+    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6">
+      <p className="text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">{description}</p>
       {feature ? (
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-neutral-400">
           Locked feature: {feature.replaceAll("_", " ")}

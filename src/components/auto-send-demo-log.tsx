@@ -43,7 +43,7 @@ export function AutoSendDemoLog() {
   if (!visible) return null;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+    <div className="rounded-2xl border border-zinc-200 bg-white dark:bg-[#211d17] overflow-hidden">
       <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Mail className="size-4 text-zinc-500" />
         <span className="text-sm font-medium text-zinc-800">Auto-send log</span>

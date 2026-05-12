@@ -90,13 +90,13 @@ export function InvoiceDetailContent({
             />
             {riskLabels.length > 0 && <SafetyBadge level="caution" />}
           </div>
-          <h2 className="text-2xl font-black tracking-tight text-neutral-950">{invoice.customerName}</h2>
+          <h2 className="text-2xl font-black tracking-tight text-neutral-950 dark:text-[#f0e8d5]">{invoice.customerName}</h2>
           <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
             {invoice.invoiceNumber} · {formatCurrency(invoice.amount)}
           </p>
         </div>
         {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-neutral-100 transition-colors">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-neutral-100 dark:bg-[#28231c] transition-colors">
             <X className="size-6 text-neutral-400" />
           </Button>
         )}
@@ -140,7 +140,7 @@ export function InvoiceDetailContent({
                   type="date"
                   value={promiseDate}
                   onChange={(event) => setPromiseDate(event.target.value)}
-                  className="h-11 rounded-full border-black/5 bg-neutral-50 px-5 text-sm font-bold shadow-none transition-all focus-visible:bg-white focus-visible:shadow-xl"
+                  className="h-11 rounded-full border-black/5 bg-neutral-50 dark:bg-[#211d17] px-5 text-sm font-bold shadow-none transition-all focus-visible:bg-white dark:bg-[#211d17] focus-visible:shadow-xl"
                 />
               </div>
               <Button
@@ -190,26 +190,26 @@ export function InvoiceDetailContent({
         {/* Activity & Details */}
         <div className="space-y-6 pb-12">
            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-neutral-400 px-2">Activity History</h3>
-           <div className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm">
+           <div className="rounded-[2rem] border border-black/5 bg-white dark:bg-[#211d17] p-6 shadow-sm">
              <ActivityTimeline items={invoice.activityHistory} />
            </div>
            
            <div className="flex items-center justify-between px-2">
              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-neutral-400">Invoice Items</h3>
-             <Button asChild variant="link" className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-950 p-0 h-auto">
+             <Button asChild variant="link" className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-950 dark:text-[#f0e8d5] p-0 h-auto">
                 <a href={invoice.paymentLink} target="_blank" rel="noreferrer">
                   Payment link <ExternalLink className="ml-1 size-3" />
                 </a>
               </Button>
            </div>
-           <div className="rounded-[2rem] border border-black/5 bg-white overflow-hidden shadow-sm">
+           <div className="rounded-[2rem] border border-black/5 bg-white dark:bg-[#211d17] overflow-hidden shadow-sm">
             {invoice.lineItems.map((item) => (
               <div
                 key={item.description}
-                className="flex items-center justify-between gap-4 border-b border-black/5 bg-white px-6 py-4 last:border-0"
+                className="flex items-center justify-between gap-4 border-b border-black/5 bg-white dark:bg-[#211d17] px-6 py-4 last:border-0"
               >
-                <span className="text-sm font-medium text-neutral-600">{item.description}</span>
-                <span className="text-sm font-black text-neutral-950">
+                <span className="text-sm font-medium text-neutral-600 dark:text-[#8a7d69]">{item.description}</span>
+                <span className="text-sm font-black text-neutral-950 dark:text-[#f0e8d5]">
                   {formatCurrency(item.quantity * item.unitPrice)}
                 </span>
               </div>
@@ -223,9 +223,9 @@ export function InvoiceDetailContent({
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-3xl border border-black/5 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+    <div className="flex flex-col gap-1 rounded-3xl border border-black/5 bg-white dark:bg-[#211d17] p-5 shadow-sm transition-all hover:shadow-md">
       <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{label}</p>
-      <p className="truncate text-sm font-black tracking-tight text-neutral-950">{value || "—"}</p>
+      <p className="truncate text-sm font-black tracking-tight text-neutral-950 dark:text-[#f0e8d5]">{value || "—"}</p>
     </div>
   );
 }
@@ -234,7 +234,7 @@ function QuickAction({ label, onClick }: { label: string; onClick: () => void })
   return (
     <Button
       variant="outline"
-      className="h-10 rounded-full border-black/5 bg-white px-5 text-[10px] font-black uppercase tracking-widest text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-950"
+      className="h-10 rounded-full border-black/5 bg-white dark:bg-[#211d17] px-5 text-[10px] font-black uppercase tracking-widest text-neutral-500 dark:text-[#8a7d69] transition-all hover:bg-neutral-50 dark:bg-[#211d17] hover:text-neutral-950 dark:text-[#f0e8d5]"
       onClick={onClick}
     >
       {label}

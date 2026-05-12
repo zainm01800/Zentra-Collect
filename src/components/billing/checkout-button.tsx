@@ -63,8 +63,8 @@ export function CheckoutButton({
   const baseStyles = "rounded-full px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full";
   const variants = {
     primary: "bg-neutral-950 text-white hover:bg-neutral-800",
-    secondary: "border border-black/15 bg-white text-neutral-950 hover:bg-neutral-50",
-    outline: "border border-black/15 bg-white text-neutral-700 hover:bg-neutral-50",
+    secondary: "border border-black/15 bg-white dark:bg-[#211d17] text-neutral-950 dark:text-[#f0e8d5] hover:bg-neutral-50 dark:bg-[#211d17]",
+    outline: "border border-black/15 bg-white dark:bg-[#211d17] text-neutral-700 dark:text-[#d8ccb5] hover:bg-neutral-50 dark:bg-[#211d17]",
   };
 
   return (

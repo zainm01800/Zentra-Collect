@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function LandingHero() {
   return (
-    <section className="border-b bg-white">
+    <section className="border-b bg-white dark:bg-[#211d17]">
       <div className="mx-auto grid min-h-[680px] max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_520px] lg:px-8 lg:py-20">
         <div className="flex flex-col justify-center">
           <Badge variant="outline" className="w-fit">
@@ -16,7 +16,7 @@ export function LandingHero() {
             Get paid faster without awkward invoice chasing
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">
-          Zentra Flow turns overdue invoices into a ranked collections plan:
+          Zentra Collect turns overdue invoices into a ranked collections plan:
             who to chase, what to say, and when to escalate.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -47,7 +47,7 @@ export function LandingHero() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold">
                 <Sparkles className="size-4" />
-            Zentra Flow
+            Zentra Collect
               </div>
               <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs text-emerald-200">
                 Daily plan

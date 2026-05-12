@@ -66,7 +66,7 @@ export function DemoEntry() {
         </div>
         <div className="zn-label !p-0 mb-2">Setting up your workspace</div>
         <h1
-          className="text-[24px] tracking-[-0.015em] leading-[1.2] text-[#1d1813]"
+          className="text-[24px] tracking-[-0.015em] leading-[1.2] text-[#1d1813] dark:text-[#f0e8d5]"
           style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
         >
           Opening the demo with sample data…

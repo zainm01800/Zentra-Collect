@@ -139,13 +139,13 @@ export function ActionDrawerContent({
   actionScenarioOptions: Array<{ value: ActionScenario; label: string }>;
 }) {
   return (
-    <div className="flex flex-col h-full bg-[#fbf8f1]">
-      <div className="flex items-center justify-between p-5 border-b border-black/10 sticky top-0 z-10 bg-[#fbf8f1]/90 backdrop-blur">
+    <div className="flex flex-col h-full bg-[#fbf8f1] dark:bg-[#211d17]">
+      <div className="flex items-center justify-between p-5 border-b border-black/10 dark:border-white/10 sticky top-0 z-10 bg-[#fbf8f1] dark:bg-[#211d17]/90 backdrop-blur">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-neutral-950">
+          <h2 className="text-xl font-bold tracking-tight text-neutral-950 dark:text-[#f0e8d5]">
             {invoice.customerName}
           </h2>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 dark:text-[#8a7d69]">
             Invoice {invoice.invoiceNumber} · {formatCurrency(invoice.amountOutstanding)} outstanding
           </p>
         </div>
@@ -157,7 +157,7 @@ export function ActionDrawerContent({
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-5 p-5">
-        <section className="grid grid-cols-1 gap-3 rounded-2xl border border-black/10 bg-white/70 p-4 sm:grid-cols-2">
+        <section className="grid grid-cols-1 gap-3 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4 sm:grid-cols-2">
           <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
           <InfoLine
             label="Days overdue"
@@ -180,14 +180,14 @@ export function ActionDrawerContent({
           />
         )}
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
           <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
             Recommendation
           </p>
-          <h3 className="mt-3 text-lg font-bold text-neutral-950">
+          <h3 className="mt-3 text-lg font-bold text-neutral-950 dark:text-[#f0e8d5]">
             {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
           </h3>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+          <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-[#8a7d69]">
             {actionMeta?.explanation ?? item.reason}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -200,13 +200,13 @@ export function ActionDrawerContent({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
           <div className="space-y-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
                 What do you need to do?
               </p>
-              <p className="mt-1 text-sm text-neutral-500">
+              <p className="mt-1 text-sm text-neutral-500 dark:text-[#8a7d69]">
                 Choose the job first. Zentra adjusts everything else.
               </p>
             </div>
@@ -217,7 +217,7 @@ export function ActionDrawerContent({
                   value={actionScenario}
                   onValueChange={(value) => onActionScenarioChange(value as ActionScenario)}
                 >
-                  <SelectTrigger className="w-full rounded-xl bg-white border-black/10 shadow-sm">
+                  <SelectTrigger className="w-full rounded-xl bg-white dark:bg-[#211d17] border-black/10 dark:border-white/10 shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -235,7 +235,7 @@ export function ActionDrawerContent({
                   value={tone}
                   onValueChange={(value) => onToneChange(value as DraftTone)}
                 >
-                  <SelectTrigger className="w-full rounded-xl bg-white border-black/10 shadow-sm">
+                  <SelectTrigger className="w-full rounded-xl bg-white dark:bg-[#211d17] border-black/10 dark:border-white/10 shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -258,7 +258,7 @@ export function ActionDrawerContent({
           onChange={onScenarioDetailsChange}
         />
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
@@ -267,7 +267,7 @@ export function ActionDrawerContent({
             </div>
             <Badge
               variant="outline"
-              className="rounded-full border-black/10 bg-neutral-100 font-semibold"
+              className="rounded-full border-black/10 dark:border-white/10 bg-neutral-100 dark:bg-[#28231c] font-semibold"
             >
               {draftSource ?? "template"} · {draftConfidence}
             </Badge>
@@ -279,11 +279,11 @@ export function ActionDrawerContent({
             <Input
               value={subject}
               onChange={(event) => onSubjectChange(event.target.value)}
-              className="rounded-xl border-black/10 bg-white"
+              className="rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]"
             />
           </div>
           <Textarea
-            className="mt-4 min-h-64 resize-none rounded-xl border-black/10 bg-white leading-relaxed"
+            className="mt-4 min-h-64 resize-none rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] leading-relaxed"
             value={draft}
             onChange={(event) => onDraftChange(event.target.value)}
           />
@@ -294,7 +294,7 @@ export function ActionDrawerContent({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
           <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
             Safety checks
           </p>
@@ -303,7 +303,7 @@ export function ActionDrawerContent({
               actionMeta.safetyResult.checks.map((check: UnifiedSafetyCheck) => (
                 <div
                   key={`${check.label}-${check.message}`}
-                  className="rounded-xl border border-black/10 bg-neutral-50 p-3"
+                  className="rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-[#211d17] p-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-bold text-neutral-900">
@@ -311,13 +311,13 @@ export function ActionDrawerContent({
                     </p>
                     <SafetyBadge value={check.status} />
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-500 dark:text-[#8a7d69]">
                     {check.message}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-emerald-50/50 p-3 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-white/10 bg-emerald-50/50 p-3 text-sm text-emerald-700">
                 <ShieldCheck className="size-4" />
                 No blocking safety issues found.
               </div>
@@ -325,13 +325,13 @@ export function ActionDrawerContent({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
                 Classify customer reply
               </p>
-              <p className="mt-1 text-sm text-neutral-500">
+              <p className="mt-1 text-sm text-neutral-500 dark:text-[#8a7d69]">
                 Paste a reply to automate next steps.
               </p>
             </div>
@@ -339,7 +339,7 @@ export function ActionDrawerContent({
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-full border-black/10 bg-white h-8"
+                className="rounded-full border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] h-8"
                 onClick={onClassifyReply}
                 disabled={!replyText.trim() || isClassifyingReply}
               >
@@ -348,23 +348,23 @@ export function ActionDrawerContent({
             </div>
           </div>
           <Textarea
-            className="mt-4 min-h-28 resize-none rounded-xl border-black/10 bg-white leading-relaxed"
+            className="mt-4 min-h-28 resize-none rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] leading-relaxed"
             value={replyText}
             onChange={(event) => onReplyTextChange(event.target.value)}
             placeholder="Paste the customer reply here..."
           />
           {replyClassification ? (
-            <div className="mt-4 rounded-xl border border-black/10 bg-neutral-50 p-4">
+            <div className="mt-4 rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-[#211d17] p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-neutral-900">
                     {humanLabel(replyClassification.classification)}
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                  <p className="mt-1 text-sm leading-relaxed text-neutral-600 dark:text-[#8a7d69]">
                     {replyClassification.reason}
                   </p>
                 </div>
-                <Badge variant="outline" className="w-fit rounded-full border-black/10 bg-white">
+                <Badge variant="outline" className="w-fit rounded-full border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]">
                   {replyClassification.source} · {replyClassification.confidence}
                 </Badge>
               </div>
@@ -389,7 +389,7 @@ export function ActionDrawerContent({
           ) : null}
         </section>
 
-        <section className="rounded-2xl border border-black/10 bg-white/70 p-4 pb-6">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4 pb-6">
           <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
             Activity history
           </p>
@@ -398,10 +398,10 @@ export function ActionDrawerContent({
               <div key={event.id} className="flex gap-4">
                 <span className="mt-1.5 size-2 shrink-0 rounded-full bg-neutral-950" />
                 <div>
-                  <p className="text-sm font-bold text-neutral-950">
+                  <p className="text-sm font-bold text-neutral-950 dark:text-[#f0e8d5]">
                     {event.title}
                   </p>
-                  <p className="text-xs leading-relaxed text-neutral-500">
+                  <p className="text-xs leading-relaxed text-neutral-500 dark:text-[#8a7d69]">
                     {event.description}
                   </p>
                   <p className="mt-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
@@ -414,7 +414,7 @@ export function ActionDrawerContent({
         </section>
       </div>
 
-      <div className="sticky bottom-0 grid gap-2 border-t border-black/10 bg-[#fbf8f1]/95 p-5 backdrop-blur z-10">
+      <div className="sticky bottom-0 grid gap-2 border-t border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]/95 p-5 backdrop-blur z-10">
         <div className="grid grid-cols-2 gap-2">
           <Button
             className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800 h-11"
@@ -430,7 +430,7 @@ export function ActionDrawerContent({
           </Button>
           <Button
             variant="outline"
-            className="rounded-full border-black/10 bg-white h-11 font-semibold"
+            className="rounded-full border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] h-11 font-semibold"
             onClick={onCopy}
           >
             <Copy className="size-4" />
@@ -449,10 +449,10 @@ export function ActionDrawerContent({
               if (val === "do_not_chase") onDoNotChase();
             }}
           >
-            <SelectTrigger className="w-full rounded-full border-black/30 bg-white font-bold h-11 text-neutral-950">
+            <SelectTrigger className="w-full rounded-full border-black/30 bg-white dark:bg-[#211d17] font-bold h-11 text-neutral-950 dark:text-[#f0e8d5]">
               <SelectValue placeholder="Change status →" />
             </SelectTrigger>
-            <SelectContent className="rounded-2xl border-black/10">
+            <SelectContent className="rounded-2xl border-black/10 dark:border-white/10">
               <SelectItem value="sent">Mark as sent</SelectItem>
               <SelectItem value="promised">Mark promised</SelectItem>
               <SelectItem value="disputed">Mark disputed</SelectItem>
@@ -475,7 +475,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
         {label}
       </p>
-      <p className="mt-1 text-sm font-bold leading-tight text-neutral-950 break-words" title={value}>
+      <p className="mt-1 text-sm font-bold leading-tight text-neutral-950 dark:text-[#f0e8d5] break-words" title={value}>
         {value}
       </p>
     </div>
@@ -495,7 +495,7 @@ function StatusBadge({
       ? "border-red-200 bg-red-50 text-red-700"
       : value === "medium"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-black/10 bg-neutral-100 text-neutral-700";
+        : "border-black/10 dark:border-white/10 bg-neutral-100 dark:bg-[#28231c] text-neutral-700 dark:text-[#d8ccb5]";
 
   return (
     <Badge variant="outline" className={cn("rounded-full font-bold h-6", tone)}>
@@ -545,7 +545,7 @@ function humanAction(action: string) {
 function CustomerBehaviourCard({ profile }: { profile: CustomerBehaviourProfile | null }) {
   if (!profile) return null;
   return (
-    <section className="rounded-2xl border border-black/10 bg-neutral-950 p-4 text-white shadow-xl">
+    <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-neutral-950 p-4 text-white shadow-xl">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
           Customer Behaviour
@@ -568,7 +568,7 @@ function CustomerBehaviourCard({ profile }: { profile: CustomerBehaviourProfile 
 
 function ScenarioFieldCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white/70 p-4">
+    <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
       <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
         {title}
       </p>
@@ -587,7 +587,7 @@ function FieldInput({ label, value, onChange, type = "text" }: { label: string; 
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border-black/10 bg-white shadow-sm"
+        className="rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] shadow-sm"
       />
     </div>
   );
@@ -643,7 +643,7 @@ function ScenarioFields({
           <Textarea
             value={details.disputeNotes}
             onChange={(event) => onChange({ disputeNotes: event.target.value })}
-            className="min-h-20 rounded-xl border-black/10 bg-white"
+            className="min-h-20 rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>
@@ -661,7 +661,7 @@ function ScenarioFields({
           <Textarea
             value={details.statementSummary}
             onChange={(event) => onChange({ statementSummary: event.target.value })}
-            className="min-h-20 rounded-xl border-black/10 bg-white"
+            className="min-h-20 rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>
@@ -688,7 +688,7 @@ function ScenarioFields({
           <Textarea
             value={details.escalationNote}
             onChange={(event) => onChange({ escalationNote: event.target.value })}
-            className="min-h-20 rounded-xl border-black/10 bg-white"
+            className="min-h-20 rounded-xl border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17]"
           />
         </div>
       </ScenarioFieldCard>

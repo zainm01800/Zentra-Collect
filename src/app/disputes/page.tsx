@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { Check, FileText, Mail, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
+import { DisputeActions } from "@/components/dispute-actions";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { getDisputes, type DisputeRow } from "@/lib/api/db";
 import { formatCurrency } from "@/lib/formatters";
@@ -52,7 +53,7 @@ export default async function DisputesPage() {
         <div className="flex flex-col gap-3">
           {disputes.length === 0 ? (
             <div className="zn-card p-10 text-center">
-              <p className="text-[#6b6253]">No active disputes. 🎉</p>
+              <p className="text-[#6b6253] dark:text-[#8a7d69]">No active disputes. 🎉</p>
             </div>
           ) : disputes.map((d) => (
             <div key={d.id} className="zn-card p-[18px]">
@@ -65,10 +66,10 @@ export default async function DisputesPage() {
                     <ShieldAlert className="size-4" />
                   </div>
                   <div>
-                    <div className="text-[14px] font-semibold text-[#1d1813]">
+                    <div className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
                       {d.customerName} · <span className="zn-kind-tag">{d.invoiceNumber}</span>
                     </div>
-                    <div className="text-[12px] text-[#6b6253]">
+                    <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69]">
                       Raised {new Date(d.raised).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · {d.kind}
                     </div>
                   </div>
@@ -91,23 +92,14 @@ export default async function DisputesPage() {
                 {d.note || "No notes recorded."}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
-                  <Mail className="size-3.5" /> Reply to customer
-                </button>
-                <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
-                  <FileText className="size-3.5" /> Add evidence
-                </button>
-                <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
-                  <Check className="size-3.5" /> Resolve & resume chase
-                </button>
-                <div className="flex-1" />
-                {d.owner && (
-                  <button className="zn-pill zn-pill-ghost" style={{ height: 26, fontSize: 12, padding: "0 11px" }}>
-                    Owner · {d.owner}
-                  </button>
-                )}
-              </div>
+              <DisputeActions
+                disputeId={d.id}
+                customerName={d.customerName}
+                invoiceRef={d.invoiceNumber}
+                amount={d.amount}
+                owner={d.owner ?? undefined}
+                isDemo={isDemo}
+              />
             </div>
           ))}
         </div>

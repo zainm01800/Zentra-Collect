@@ -35,7 +35,7 @@ export function LegalPage({
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
           <Link
@@ -51,7 +51,7 @@ export function LegalPage({
       <article className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <div className="zn-label !p-0 mb-2">{kicker}</div>
         <h1
-          className="text-[36px] sm:text-[44px] tracking-[-0.015em] leading-[1.05] text-[#1d1813]"
+          className="text-[36px] sm:text-[44px] tracking-[-0.015em] leading-[1.05] text-[#1d1813] dark:text-[#f0e8d5]"
           style={{
             fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
             fontWeight: 500,
@@ -94,13 +94,13 @@ export function LegalPage({
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-            <span className="text-[13px] font-medium text-[#1d1813]">Zentra Flow</span>
+            <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            <Link href="/terms"   className="hover:text-[#1d1813]">Terms</Link>
-            <Link href="/privacy" className="hover:text-[#1d1813]">Privacy</Link>
-            <Link href="/cookies" className="hover:text-[#1d1813]">Cookies</Link>
-            <Link href="/help"    className="hover:text-[#1d1813]">Help</Link>
+            <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>
+            <Link href="/privacy" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Privacy</Link>
+            <Link href="/cookies" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Cookies</Link>
+            <Link href="/help"    className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Help</Link>
             <span>© {new Date().getFullYear()} Zentra</span>
           </div>
         </div>

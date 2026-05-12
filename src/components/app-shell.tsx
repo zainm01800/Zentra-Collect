@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpFromLine,
   BarChart3,
   Building2,
   CalendarClock,
+  ChevronRight,
   CreditCard,
   FileText,
   Home,
@@ -19,6 +20,7 @@ import {
   Receipt,
   ShieldAlert,
   Settings,
+  TableProperties,
   Users,
   Wallet,
   X,
@@ -31,6 +33,8 @@ import { QueueStatusBar } from "@/components/queue-status-bar";
 import { AutoSendToggle } from "@/components/auto-send-toggle";
 import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
 import { AccountSync } from "@/components/account-sync";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { toAccountState } from "@/lib/account/access";
 import { readLocalAccount } from "@/lib/demo-auth";
@@ -47,22 +51,26 @@ type NavItem = {
 };
 
 const workspaceNav: NavItem[] = [
-  { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/chase-today", label: "Collections", icon: CreditCard },
-  { href: "/import",      label: "Import",      icon: ArrowUpFromLine },
-  { href: "/portfolio",   label: "Portfolio",   icon: Wallet },
-  { href: "/digest",      label: "Digest",      icon: FileText },
+  { href: "/dashboard", label: "Dashboard",        icon: LayoutDashboard },
+  { href: "/import",    label: "Import invoices",  icon: ArrowUpFromLine },
+  { href: "/portfolio", label: "Portfolio",         icon: Wallet },
+  { href: "/digest",    label: "Weekly digest",    icon: FileText },
 ];
 
-const contextNav: NavItem[] = [
-  { href: "/customers", label: "Customers",    icon: Users },
-  { href: "/promises",  label: "Promises",     icon: AlertTriangle },
-  { href: "/disputes",  label: "Disputes",     icon: ShieldAlert },
-  { href: "/banking",   label: "Bank feed",    icon: Building2 },
-  { href: "/expenses",  label: "Expenses",     icon: Receipt },
-  { href: "/tax",       label: "Tax reserve",  icon: PiggyBank },
-  { href: "/mtd",       label: "MTD",          icon: CalendarClock },
-  { href: "/reports",   label: "Reports",      icon: BarChart3 },
+const collectionsNav: NavItem[] = [
+  { href: "/chase-today", label: "Collections", icon: CreditCard },
+  { href: "/customers",   label: "Customers",   icon: Users },
+  { href: "/promises",    label: "Promises",    icon: AlertTriangle },
+  { href: "/disputes",    label: "Disputes",    icon: ShieldAlert },
+];
+
+const financeNav: NavItem[] = [
+  { href: "/banking",    label: "Bank feed",    icon: Building2 },
+  { href: "/expenses",   label: "Expenses",     icon: Receipt },
+  { href: "/tax",        label: "Tax reserve",  icon: PiggyBank },
+  { href: "/mtd",        label: "MTD",          icon: CalendarClock },
+  { href: "/aged-debt",  label: "Aged debt",    icon: TableProperties },
+  { href: "/reports",    label: "Reports",      icon: BarChart3 },
 ];
 
 /**
@@ -77,15 +85,100 @@ const mobileBottomNav: NavItem[] = [
   { href: "/settings",   label: "Settings",  icon: Settings },
 ];
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+// ── Nav collapse helpers ──────────────────────────────────────────────────────
+
+const COLLAPSE_KEY = "zentra.navCollapse.v1";
+
+function readCollapse(): Record<string, boolean> {
+  if (typeof window === "undefined") return { finance: true };
+  try {
+    const s = window.localStorage.getItem(COLLAPSE_KEY);
+    return s ? JSON.parse(s) : { finance: true };
+  } catch { return { finance: true }; }
+}
+
+function writeCollapse(state: Record<string, boolean>) {
+  try { window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state)); } catch {}
+}
+
+// ── NavLink ───────────────────────────────────────────────────────────────────
+
+function NavLink({ item, active, badge }: { item: NavItem; active: boolean; badge?: number }) {
   return (
     <Link
       href={item.href}
       className={cn("zn-nav-item", active && "active")}
     >
       <item.icon className="zn-nav-icon size-4" />
-      <span>{item.label}</span>
+      <span className="flex-1">{item.label}</span>
+      {badge != null && badge > 0 && (
+        <span
+          className="text-[10px] font-bold min-w-[17px] h-[17px] rounded-full flex items-center justify-center px-1 tabular-nums"
+          style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+        >
+          {badge}
+        </span>
+      )}
     </Link>
+  );
+}
+
+// ── CollapsibleSection ────────────────────────────────────────────────────────
+
+function CollapsibleSection({
+  label,
+  sectionKey,
+  items,
+  collapse,
+  onToggle,
+  isActive,
+  badges,
+  className,
+}: {
+  label: string;
+  sectionKey: string;
+  items: NavItem[];
+  collapse: Record<string, boolean>;
+  onToggle: (key: string) => void;
+  isActive: (href: string) => boolean;
+  badges?: Partial<Record<string, number>>;
+  className?: string;
+}) {
+  // Never collapse a section that contains the current page
+  const hasActive = items.some((i) => isActive(i.href));
+  const isCollapsed = !hasActive && (collapse[sectionKey] ?? false);
+
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => onToggle(sectionKey)}
+        className="zn-section-label w-full flex items-center justify-between group cursor-pointer select-none"
+        aria-expanded={!isCollapsed}
+      >
+        <span>{label}</span>
+        <ChevronRight
+          className="size-3 transition-transform duration-200"
+          style={{
+            color: hasActive ? "var(--zn-accent)" : "var(--zn-ink-3)",
+            transform: isCollapsed ? "none" : "rotate(90deg)",
+            opacity: 0.7,
+          }}
+        />
+      </button>
+      {!isCollapsed && (
+        <div className="flex flex-col gap-1 mt-0.5">
+          {items.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActive(item.href)}
+              badge={badges?.[item.href]}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -120,9 +213,25 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
-  const { isOpen: reviewOpen, close: closeReview } = useReview();
+  const { isOpen: reviewOpen, close: closeReview, outcomesLogged } = useReview();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
+
+  // Collapsible section state — Finance collapses by default
+  const [collapse, setCollapse] = useState<Record<string, boolean>>({ finance: true });
+  useEffect(() => { setCollapse(readCollapse()); }, []);
+  function toggleSection(key: string) {
+    setCollapse((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      writeCollapse(next);
+      return next;
+    });
+  }
+
+  // Badge counts per nav href
+  const collectionsBadges: Partial<Record<string, number>> = {
+    "/chase-today": outcomesLogged > 0 ? outcomesLogged : undefined,
+  };
 
   return (
     <div className="grid min-h-screen relative z-[1] md:grid-cols-[232px_1fr]">
@@ -143,48 +252,74 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         >
           <span className="zn-brand-mark">Z</span>
           <span className="flex flex-col leading-[1.1]">
-            <span className="text-[14px] font-semibold tracking-[-0.01em] text-[#1d1813]">Zentra</span>
+            <span className="text-[14px] font-semibold tracking-[-0.01em]" style={{ color: "var(--zn-ink)" }}>Zentra</span>
             <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
           </span>
         </Link>
 
-        {/* Workspace */}
-        <div className="zn-section-label">Workspace</div>
-        <div className="flex flex-col gap-1 mb-[14px]">
-          {workspaceNav.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))}
+        {/* Client / workspace switcher */}
+        <WorkspaceSwitcher />
+
+        {/* Scrollable nav — grows to fill space, scrolls if sections overflow */}
+        <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
+          {/* Workspace */}
+          <CollapsibleSection
+            label="Workspace"
+            sectionKey="workspace"
+            items={workspaceNav}
+            collapse={collapse}
+            onToggle={toggleSection}
+            isActive={isActive}
+            className="mb-[14px]"
+          />
+
+          {/* Collections — badge shows today's logged outcomes */}
+          <CollapsibleSection
+            label="Collections"
+            sectionKey="collections"
+            items={collectionsNav}
+            collapse={collapse}
+            onToggle={toggleSection}
+            isActive={isActive}
+            badges={collectionsBadges}
+            className="mb-[14px]"
+          />
+
+          {/* Finance — starts collapsed */}
+          <CollapsibleSection
+            label="Finance"
+            sectionKey="finance"
+            items={financeNav}
+            collapse={collapse}
+            onToggle={toggleSection}
+            isActive={isActive}
+          />
         </div>
 
-        {/* Context */}
-        <div className="zn-section-label">Context</div>
-        <div className="flex flex-col gap-1">
-          {contextNav.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))}
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Bottom: settings, help, demo badge */}
+        {/* Bottom: settings + help icon, then account badge — always visible */}
         <div
-          className="flex flex-col gap-1 pt-[14px] border-t"
+          className="flex flex-col gap-1.5 pt-[14px] border-t"
           style={{ borderColor: "var(--zn-line-soft)" }}
         >
-          <NavLink
-            item={{ href: "/settings", label: "Settings", icon: Settings }}
-            active={isActive("/settings")}
-          />
-          <NavLink
-            item={{ href: "/help", label: "Help & support", icon: HelpCircle }}
-            active={isActive("/help")}
-          />
-
-          {/* Auto-send toggle */}
-          <AutoSendToggleInSidebar />
-
-          {/* Outcomes counter — small reward loop for working the queue */}
-          <SessionCounter />
+          <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              className={cn("zn-nav-item flex-1", isActive("/settings") && "active")}
+            >
+              <Settings className="zn-nav-icon size-4" />
+              <span>Settings</span>
+            </Link>
+            <ThemeToggle />
+            <Link
+              href="/help"
+              className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#2d2820]"
+              title="Help & support"
+              aria-label="Help & support"
+              style={{ color: isActive("/help") ? "var(--zn-ink)" : "var(--zn-ink-3)" }}
+            >
+              <HelpCircle className="size-4" />
+            </Link>
+          </div>
 
           {/* Account badge — adapts per plan: demo / trial / paid */}
           <SidebarAccountBadge />
@@ -198,13 +333,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <header
           className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b backdrop-blur px-4 py-3"
           style={{
-            background: "rgba(233,223,201,0.95)",
+            background: "color-mix(in srgb, var(--zn-bg-2) 95%, transparent)",
             borderColor: "var(--zn-line)",
           }}
         >
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
-            <span className="text-[13px] font-semibold text-[#1d1813]">Zentra Flow</span>
+            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Flow</span>
           </Link>
           <MobileAccountPill />
         </header>

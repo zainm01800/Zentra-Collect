@@ -52,7 +52,7 @@ function ExportDataButton() {
     >
       <Download className="size-3.5" />
       Export data
-      <span className="ml-1 rounded bg-neutral-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
+      <span className="ml-1 rounded bg-neutral-100 dark:bg-[#28231c] px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
         Coming soon
       </span>
     </Button>
@@ -75,14 +75,14 @@ export function TrialExpiredBanner({
   const formattedDate = formatGraceDate(gracePeriodEndsAt);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] bg-[#ecdcae]/60 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#ecdcae]/60 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
         <Clock className="mt-0.5 size-4 shrink-0 text-[#a07522]" />
         <div>
-          <p className="text-sm font-semibold text-[#1d1813]">
+          <p className="text-sm font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
             Your trial has ended
           </p>
-          <p className="mt-0.5 text-xs leading-5 text-[#6b6253]">
+          <p className="mt-0.5 text-xs leading-5 text-[#6b6253] dark:text-[#8a7d69]">
             Your data will remain available until{" "}
             <span className="font-medium">{formattedDate}</span>
             {daysRemaining > 0 && (
@@ -107,7 +107,7 @@ export function TrialExpiredBanner({
         <ExportDataButton />
         <Link
           href="/pricing"
-          className="text-xs font-medium text-[#a07522] underline underline-offset-2 hover:text-[#1d1813]"
+          className="text-xs font-medium text-[#a07522] underline underline-offset-2 hover:text-[#1d1813] dark:text-[#f0e8d5]"
         >
           View plans
         </Link>
@@ -131,7 +131,7 @@ export function TrialExpiredBanner({
  */
 export function GracePeriodExpiredBanner() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] bg-[#efcdc9]/50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] dark:border-[#2d2820] bg-[#efcdc9]/50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#9a3535]" />
         <div>
@@ -141,7 +141,7 @@ export function GracePeriodExpiredBanner() {
           <p className="mt-0.5 text-xs leading-5 text-[#9a3535]">
             Your 30-day data retention period has ended. Export your invoices
             and history now, or upgrade to keep everything and continue using
-            Zentra Flow.
+            Zentra Collect.
           </p>
         </div>
       </div>

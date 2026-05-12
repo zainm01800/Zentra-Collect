@@ -12,8 +12,8 @@ function MeterBar({ meter }: { meter: UsageMeter }) {
     // Unlimited — informational counter only
     return (
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-600">{meter.label}</span>
-        <span className="font-medium tabular-nums text-neutral-950">{meter.used.toLocaleString("en-GB")}</span>
+        <span className="text-neutral-600 dark:text-[#8a7d69]">{meter.label}</span>
+        <span className="font-medium tabular-nums text-neutral-950 dark:text-[#f0e8d5]">{meter.used.toLocaleString("en-GB")}</span>
       </div>
     );
   }
@@ -26,13 +26,13 @@ function MeterBar({ meter }: { meter: UsageMeter }) {
       ? "bg-amber-400"
       : "bg-emerald-500";
   const textColor =
-    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-500";
+    pct >= 95 ? "text-red-600" : pct >= 80 ? "text-amber-600" : "text-neutral-500 dark:text-[#8a7d69]";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-700">{meter.label}</span>
-        <span className={`font-medium tabular-nums ${pct >= 80 ? textColor : "text-neutral-500"}`}>
+        <span className="text-neutral-700 dark:text-[#d8ccb5]">{meter.label}</span>
+        <span className={`font-medium tabular-nums ${pct >= 80 ? textColor : "text-neutral-500 dark:text-[#8a7d69]"}`}>
           {meter.used.toLocaleString("en-GB")}
           <span className="font-normal text-neutral-400">
             {" / "}
@@ -40,7 +40,7 @@ function MeterBar({ meter }: { meter: UsageMeter }) {
           </span>
         </span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-[#28231c]">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(100, pct)}%` }}
@@ -88,12 +88,12 @@ function TrialBanner({ snapshot }: { snapshot: UsageSnapshot }) {
       className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 ${
         urgency
           ? "border-amber-200 bg-amber-50"
-          : "border-black/8 bg-neutral-50"
+          : "border-black/8 bg-neutral-50 dark:bg-[#211d17]"
       }`}
     >
       <Clock className={`mt-0.5 size-4 shrink-0 ${urgency ? "text-amber-500" : "text-neutral-400"}`} />
       <div>
-        <p className={`text-sm font-semibold ${urgency ? "text-amber-800" : "text-neutral-700"}`}>
+        <p className={`text-sm font-semibold ${urgency ? "text-amber-800" : "text-neutral-700 dark:text-[#d8ccb5]"}`}>
           {days === 0 ? "Trial ends today" : `${days} day${days === 1 ? "" : "s"} left in trial`}
         </p>
         {urgency && (
@@ -122,7 +122,7 @@ function PlanBadge({ snapshot }: { snapshot: UsageSnapshot }) {
   const style =
     snapshot.tier === "paid"
       ? "bg-neutral-950 text-white"
-      : "bg-neutral-100 text-neutral-600";
+      : "bg-neutral-100 dark:bg-[#28231c] text-neutral-600 dark:text-[#8a7d69]";
 
   return (
     <div className="flex items-center justify-between">
@@ -228,7 +228,7 @@ export function UsageMeters() {
       {snapshot.tier !== "paid" && !snapshot.isExpired && (
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-600 transition-colors hover:text-neutral-950"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-600 dark:text-[#8a7d69] transition-colors hover:text-neutral-950 dark:text-[#f0e8d5]"
         >
           View paid plans <ArrowRight className="size-3.5" />
         </Link>
