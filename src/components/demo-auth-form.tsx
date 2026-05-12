@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { writePendingIdentity } from "@/lib/demo-auth";
+import { writePendingIdentity, createLocalAccount, writeLocalAccount } from "@/lib/demo-auth";
+import type { PlanId } from "@/lib/billing/plans";
 import {
   createSupabaseBrowserClient,
   hasSupabaseBrowserConfig,
@@ -97,6 +98,32 @@ export function DemoAuthForm() {
             nextBusinessName = metadata.business_name;
             setBusinessName(metadata.business_name);
           }
+
+          // Returning user check — if they already have an account row, skip
+          // onboarding and go straight to the dashboard.
+          if (data.user) {
+            type MemberRow = { account_id: string; zentra_accounts: { plan_id: string } | null };
+            const { data: member } = await supabase
+              .from("zentra_account_members")
+              .select("account_id, zentra_accounts(plan_id)")
+              .eq("user_id", data.user.id)
+              .limit(1)
+              .maybeSingle<MemberRow>();
+
+            if (member) {
+              const planId = (member.zentra_accounts?.plan_id ?? "TRIAL") as PlanId;
+              const account = createLocalAccount({
+                name: nextName || data.user.email?.split("@")[0] || "User",
+                email: data.user.email ?? email,
+                businessName: nextBusinessName || "My Business",
+                planId,
+              });
+              writeLocalAccount(account);
+              setIsSubmitting(false);
+              router.push("/dashboard");
+              return;
+            }
+          }
         }
       } catch (caught) {
         const raw = caught instanceof Error ? caught.message : "";
@@ -128,7 +155,7 @@ export function DemoAuthForm() {
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
             </span>
           </Link>
           <Link href="/" className="text-[13px] underline-offset-2 hover:underline" style={{ color: "var(--zn-ink-3)" }}>
