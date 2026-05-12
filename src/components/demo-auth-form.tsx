@@ -216,8 +216,8 @@ export function DemoAuthForm() {
             <form onSubmit={submit} className="flex flex-col gap-4">
               {mode === "signup" ? (
                 <>
-                  <Field id="name" label="Your name" value={name} onChange={setName} placeholder="Jane Smith" />
-                  <Field id="business" label="Business name" value={businessName} onChange={setBusinessName} placeholder="Acme Studio Ltd" />
+                  <Field id="name" label="Your name" value={name} onChange={setName} placeholder="Full name" />
+                  <Field id="business" label="Business name" value={businessName} onChange={setBusinessName} placeholder="Your business name" />
                 </>
               ) : null}
               <Field
@@ -226,7 +226,7 @@ export function DemoAuthForm() {
                 type="email"
                 value={email}
                 onChange={setEmail}
-                placeholder="jane@acmestudio.co.uk"
+                placeholder="you@yourbusiness.co.uk"
               />
               <div>
                 <Field

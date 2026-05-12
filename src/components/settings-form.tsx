@@ -85,7 +85,7 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
               <CardContent className="grid gap-3 sm:grid-cols-2">
                 <Field label="Business name"           defaultValue="Zentra Demo Studio" />
                 <Field label="Sender name"             defaultValue="Zain from Zentra Demo Studio" />
-                <Field label="Reply-to email"          defaultValue="accounts@example.co.uk" />
+                <Field label="Reply-to email"          defaultValue="accounts@yourbusiness.co.uk" />
                 <div className="space-y-1.5">
                   <Label>Default tone</Label>
                   <Select defaultValue="Neutral">

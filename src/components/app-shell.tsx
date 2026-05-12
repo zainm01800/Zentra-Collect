@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   Home,
   HelpCircle,
   LayoutDashboard,
+  LogOut,
   Menu,
   PiggyBank,
   Plus,
@@ -40,7 +41,8 @@ import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { toAccountState } from "@/lib/account/access";
 import { readWorkspacePrefs, type WorkspacePrefs } from "@/lib/prefs";
 import { MODULES, type ModuleKey } from "@/lib/modules";
-import { readLocalAccount } from "@/lib/demo-auth";
+import { readLocalAccount, demoUserStorageKey } from "@/lib/demo-auth";
+import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import type { Invoice } from "@/types/cashpilot";
@@ -417,7 +419,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
                     .filter((i) => hiddenHrefs.has(i.href))
                     .map((item) => (
                       <div key={item.href} className="flex items-center gap-2 px-1.5 py-1 rounded-lg">
-                        <item.icon className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-ink-3)" }} />
+                        <span className="size-3.5 flex-shrink-0 flex items-center justify-center" style={{ color: "var(--zn-ink-3)" }}><item.icon className="size-3.5" /></span>
                         <span className="flex-1 text-[12px] truncate" style={{ color: "var(--zn-ink-3)" }}>
                           {item.label}
                         </span>
@@ -647,14 +649,25 @@ function useAccountBadgeState() {
 
 function SidebarAccountBadge() {
   const state = useAccountBadgeState();
+  const router = useRouter();
   if (!state) return null;
   const palette =
     state.tone === "warn" ? { bg: "var(--zn-warn-soft)", fg: "var(--zn-warn)", markBg: "var(--zn-warn)" } :
     state.tone === "risk" ? { bg: "var(--zn-risk-soft)", fg: "var(--zn-risk)", markBg: "var(--zn-risk)" } :
                             { bg: "var(--zn-surface)",   fg: "var(--zn-ink)",  markBg: "var(--zn-ink)"  };
+
+  async function handleSignOut() {
+    if (hasSupabaseBrowserConfig()) {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    }
+    window.localStorage.removeItem(demoUserStorageKey);
+    router.push("/login");
+  }
+
   return (
     <div
-      className="flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
+      className="group flex items-center gap-3 mt-2 rounded-lg px-2.5 py-2"
       style={{
         background: palette.bg,
         border: `1px solid ${state.tone === "ink" ? "var(--zn-line-soft)" : palette.bg}`,
@@ -670,7 +683,7 @@ function SidebarAccountBadge() {
       >
         {state.mark}
       </span>
-      <span className="flex flex-col leading-[1.2] min-w-0">
+      <span className="flex flex-col leading-[1.2] min-w-0 flex-1">
         <span
           className="text-[12px] font-semibold truncate"
           style={{ color: palette.fg }}
@@ -684,6 +697,16 @@ function SidebarAccountBadge() {
           {state.sub}
         </span>
       </span>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        title="Sign out"
+        aria-label="Sign out"
+        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 size-6 rounded flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10"
+        style={{ color: palette.fg }}
+      >
+        <LogOut className="size-3.5" />
+      </button>
     </div>
   );
 }

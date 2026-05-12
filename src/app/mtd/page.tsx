@@ -26,7 +26,7 @@ import { CalendarCheck, CheckCircle2, Circle, Clock, Info } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Zentra Flow — MTD tracker",
+  title: "MTD tracker",
   description: "Track your Making Tax Digital quarterly submission deadlines.",
 };
 

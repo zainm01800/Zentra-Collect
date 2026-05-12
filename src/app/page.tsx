@@ -501,7 +501,7 @@ export default function Home() {
             <Link href="/terms"   className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Terms</Link>
             <Link href="/privacy" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Privacy</Link>
             <Link href="/cookies" className="hover:text-[#1d1813] dark:text-[#f0e8d5]">Cookies</Link>
-            <span>© {new Date().getFullYear()} Zentra</span>
+            <span>© {new Date().getFullYear()} Zentra Ltd</span>
           </div>
         </div>
       </footer>

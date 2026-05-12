@@ -167,11 +167,6 @@ export function LockedFeatureCard({
     <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6">
       <p className="text-lg font-semibold text-neutral-950 dark:text-[#f0e8d5]">{title}</p>
       <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-[#8a7d69]">{description}</p>
-      {feature ? (
-        <p className="mt-4 text-xs uppercase tracking-[0.16em] text-neutral-400">
-          Locked feature: {feature.replaceAll("_", " ")}
-        </p>
-      ) : null}
       <Button asChild className="mt-5 rounded-full bg-neutral-950 text-white hover:bg-neutral-800">
         <Link href="/#pricing">Compare plans</Link>
       </Button>
