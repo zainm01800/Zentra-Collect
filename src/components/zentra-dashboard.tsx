@@ -286,9 +286,13 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     title: string;
     description: string;
   } | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>(() =>
-    initialInvoices?.length ? initialInvoices : readImportedInvoices(),
-  );
+  const [invoices, setInvoices] = useState<Invoice[]>(() => {
+    // Demo accounts always use localStorage (demoInvoices fallback) so a
+    // signed-in user who clicks "Try demo" sees sample data, not their real DB.
+    const acct = readLocalAccount();
+    if (acct?.planId === "demo") return readImportedInvoices();
+    return initialInvoices?.length ? initialInvoices : readImportedInvoices();
+  });
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [planViewFilter, setPlanViewFilter] =
     useState<PlanViewFilter>("focus");

@@ -13,7 +13,6 @@ import {
   importDiffStorageKey,
   importSummaryStorageKey,
 } from "@/lib/import/zentra-import";
-import { demoCashpilotInvoices } from "@/lib/demo-data/zentra-demo-data";
 
 const previousAccountStorageKey = "zentra.previousAccountBeforeDemo.v1";
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -30,8 +29,9 @@ export function DemoEntry() {
     window.localStorage.removeItem(importedInvoicesStorageKey);
     window.localStorage.removeItem(importSummaryStorageKey);
     window.localStorage.removeItem(importDiffStorageKey);
-    // Pre-seed demo invoices so all pages (chase plan, customers, aged debt) get data immediately
-    window.localStorage.setItem(demoInvoiceStateStorageKey, JSON.stringify(demoCashpilotInvoices));
+    // Clear any previously customised demo state — readImportedInvoices() falls
+    // back to the built-in demoInvoices when this key is absent.
+    window.localStorage.removeItem(demoInvoiceStateStorageKey);
     resetDemoUsage();
 
     writeLocalAccount(
