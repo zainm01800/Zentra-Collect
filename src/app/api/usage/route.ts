@@ -22,6 +22,10 @@ import {
   recordImport,
   incrementUsage,
 } from "@/lib/usage/store";
+import {
+  createSupabaseServerClient,
+  hasSupabaseServerConfig,
+} from "@/lib/supabase/server";
 import type { AIActionType } from "@/lib/usage/tracker";
 
 // Force dynamic — snapshot reflects live counter state
@@ -30,8 +34,41 @@ export const dynamic = "force-dynamic";
 // ── GET — return current snapshot ─────────────────────────────────────────────
 
 export async function GET() {
-  // TODO: const accountId = await getAccountIdFromSession(request);
   const snapshot = getUsageSnapshot(DEMO_ACCOUNT_ID);
+
+  // If Supabase is configured and the user is signed in, overlay their real
+  // plan ID from the database so the settings page shows the correct plan.
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: member } = await supabase
+          .from("zentra_account_members")
+          .select("account_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle<{ account_id: string }>();
+
+        if (member?.account_id) {
+          const { data: accountRow } = await supabase
+            .from("zentra_accounts")
+            .select("plan_id")
+            .eq("id", member.account_id)
+            .maybeSingle<{ plan_id: string }>();
+
+          if (accountRow?.plan_id) {
+            // DB stores uppercase IDs (e.g. "BOOKKEEPER_STARTER");
+            // the usage store uses lowercase billing plan IDs.
+            snapshot.planId = accountRow.plan_id.toLowerCase();
+          }
+        }
+      }
+    } catch {
+      // Non-fatal — fall back to demo snapshot plan
+    }
+  }
+
   return NextResponse.json(snapshot);
 }
 
