@@ -84,10 +84,10 @@ const financeNav: NavItem[] = [
  * or via Settings on mobile.
  */
 const mobileBottomNav: NavItem[] = [
-  { href: "/dashboard",  label: "Home",      icon: Home     },
-  { href: "/chase-today",label: "Invoices",  icon: FileText },
-  { href: "/customers",  label: "Customers", icon: Users    },
-  { href: "/settings",   label: "Settings",  icon: Settings },
+  { href: "/dashboard",  label: "Home",       icon: Home        },
+  { href: "/chase-today",label: "Chase plan", icon: CreditCard  },
+  { href: "/customers",  label: "Customers",  icon: Users       },
+  { href: "/settings",   label: "Settings",   icon: Settings    },
 ];
 
 // ── Nav hidden-items helpers ──────────────────────────────────────────────────

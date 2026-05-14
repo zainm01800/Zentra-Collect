@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Edit2, ExternalLink, Users, FileText } from "lucide-react";
+import { ArrowLeft, Edit2, ExternalLink, Users, FileText } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
@@ -439,13 +439,21 @@ export function CustomersView() {
     );
   }
 
+  const [mobileDetail, setMobileDetail] = useState(false);
+
+  function selectCustomer(id: string) {
+    setSelectedId(id);
+    setMobileDetail(true);
+  }
+
   return (
-    <div className="flex gap-5 min-h-0">
-      {/* Left: customer list */}
+    <div className="flex gap-5 min-h-0 relative">
+      {/* Left: customer list — hidden on mobile when detail is open */}
       <div
-        className="flex flex-col flex-shrink-0 rounded-xl overflow-hidden"
+        className={`flex-col flex-shrink-0 rounded-xl overflow-hidden ${mobileDetail ? "hidden md:flex" : "flex w-full"}`}
         style={{
-          width: 296,
+          width: "100%",
+          maxWidth: 296,
           background: "var(--zn-surface)",
           border: "1px solid var(--zn-line-soft)",
         }}
@@ -483,7 +491,7 @@ export function CustomersView() {
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setSelectedId(c.id)}
+                onClick={() => selectCustomer(c.id)}
                 className="w-full text-left px-3 py-3 transition-colors"
                 style={{
                   borderBottom: "1px solid var(--zn-line-soft)",
@@ -536,10 +544,22 @@ export function CustomersView() {
         </div>
       </div>
 
-      {/* Right: detail */}
-      <div className="flex-1 min-w-0">
+      {/* Right: detail — full-screen on mobile, side panel on desktop */}
+      <div className={`flex-1 min-w-0 ${mobileDetail ? "flex flex-col" : "hidden md:block"}`}>
         {selectedId ? (
-          <CustomerDetail customerId={selectedId} />
+          <>
+            {/* Mobile back button */}
+            <button
+              type="button"
+              onClick={() => setMobileDetail(false)}
+              className="md:hidden flex items-center gap-1.5 mb-3 text-[13px] font-medium transition-colors"
+              style={{ color: "var(--zn-ink-3)" }}
+            >
+              <ArrowLeft className="size-4" />
+              All customers
+            </button>
+            <CustomerDetail customerId={selectedId} />
+          </>
         ) : (
           <div className="zn-card p-10 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
             Select a customer to see their profile.

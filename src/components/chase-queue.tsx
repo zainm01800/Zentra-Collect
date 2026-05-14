@@ -289,8 +289,91 @@ export function ChaseQueue({
           })}
         </div>
 
-        {/* Table — scrolls horizontally on narrow viewports so columns never overlap */}
-        <div className="overflow-x-auto">
+        {/* ── Mobile card list (< sm) ── */}
+        <div className="sm:hidden divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
+          {filter === "waiting" ? (
+            <div className="px-4 py-3 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+              Waiting invoices are shown on desktop.
+            </div>
+          ) : queue.length === 0 ? (
+            <div className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+              No invoices match this view.
+            </div>
+          ) : queue.map((inv, idx) => {
+            const urgency = getInvoiceUrgency(inv);
+            const action = getSuggestedAction(inv);
+            const overdueColor =
+              inv.daysOverdue > 60 ? "var(--zn-risk)" :
+              inv.daysOverdue > 30 ? "var(--zn-warn)" :
+                                     "var(--zn-ink-2)";
+            return (
+              <button
+                key={inv.id}
+                type="button"
+                onClick={() => openInvoice(inv)}
+                className="w-full text-left px-4 py-3.5 transition-colors hover:bg-[var(--zn-surface-2)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  {/* Left: rank + customer */}
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span
+                      className="mt-0.5 text-[12px] italic w-4 text-right shrink-0"
+                      style={{
+                        color: "var(--zn-ink-3)",
+                        fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[13.5px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">
+                        {inv.customerName}
+                      </p>
+                      <p className="text-[11.5px] mt-0.5 font-mono" style={{ color: "var(--zn-ink-3)" }}>
+                        {inv.invoiceNumber}
+                        {inv.daysOverdue > 0 && (
+                          <span className="ml-2 font-sans font-semibold" style={{ color: overdueColor }}>
+                            {inv.daysOverdue}d overdue
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[12px] mt-1 truncate" style={{ color: "var(--zn-ink-2)" }}>
+                        {action}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Right: amount + risk + review */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className="text-[13.5px] font-semibold tabular-nums text-[#1d1813] dark:text-[#f0e8d5]">
+                      {formatCurrency(inv.amount)}
+                    </span>
+                    <span
+                      className={`zn-risk-chip ${
+                        urgency === "Critical" || urgency === "Blocked"
+                          ? "zn-risk-high"
+                          : urgency === "High" || urgency === "Medium"
+                          ? "zn-risk-med"
+                          : "zn-risk-low"
+                      }`}
+                    >
+                      <span className="zn-risk-dot" />
+                      {urgency}
+                    </span>
+                    <span
+                      className="text-[11px] font-medium underline underline-offset-2"
+                      style={{ color: "var(--zn-ink-3)" }}
+                    >
+                      Review →
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Desktop table (≥ sm) ── */}
+        <div className="hidden sm:block overflow-x-auto">
         {filter === "waiting" ? (
           <WaitingTable invoices={filteredWaiting} />
         ) : (
@@ -336,7 +419,6 @@ export function ChaseQueue({
                 const urgency = getInvoiceUrgency(inv);
                 const action = getSuggestedAction(inv);
                 const risks = getRiskLabels(inv);
-                const riskLevel = RISK_FOR_DAYS(inv.daysOverdue);
                 const overdueColor =
                   inv.daysOverdue > 60 ? "var(--zn-risk)" :
                   inv.daysOverdue > 30 ? "var(--zn-warn)" :
@@ -356,7 +438,6 @@ export function ChaseQueue({
                         : undefined,
                     }}
                   >
-                    {/* # (serif italic) */}
                     <td
                       className="text-[14px] italic"
                       style={{
@@ -367,8 +448,6 @@ export function ChaseQueue({
                     >
                       {idx + 1}
                     </td>
-
-                    {/* Customer + ref */}
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex flex-col">
                         <button
@@ -385,24 +464,18 @@ export function ChaseQueue({
                         <span className="zn-kind-tag mt-0.5">{inv.invoiceNumber}</span>
                       </div>
                     </td>
-
-                    {/* Amount */}
                     <td
                       className="text-[13px] font-medium tabular-nums"
                       style={{ padding: "14px 10px", color: "var(--zn-ink)" }}
                     >
                       {formatCurrency(inv.amount)}
                     </td>
-
-                    {/* Due date */}
                     <td
                       className="text-[12.5px] truncate"
                       style={{ padding: "14px 10px", color: "var(--zn-ink-3)" }}
                     >
                       {formatDate(inv.dueDate)}
                     </td>
-
-                    {/* Overdue */}
                     <td style={{ padding: "14px 10px" }}>
                       {inv.daysOverdue > 0 ? (
                         <span
@@ -417,8 +490,6 @@ export function ChaseQueue({
                         </span>
                       )}
                     </td>
-
-                    {/* Action */}
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex items-center gap-2">
                         <span
@@ -438,8 +509,6 @@ export function ChaseQueue({
                         </div>
                       ) : null}
                     </td>
-
-                    {/* Risk chip */}
                     <td style={{ padding: "14px 10px" }}>
                       <span
                         className={`zn-risk-chip ${
@@ -456,8 +525,6 @@ export function ChaseQueue({
                         {urgency}
                       </span>
                     </td>
-
-                    {/* Review button */}
                     <td style={{ padding: "14px 22px" }}>
                       <button
                         type="button"
