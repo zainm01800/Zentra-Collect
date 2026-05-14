@@ -398,6 +398,7 @@ export function CustomersView() {
   const isDemo = account?.planId === "demo";
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>(demoCustomers[0]?.id ?? "");
+  const [mobileDetail, setMobileDetail] = useState(false);
 
   const customerStats = useMemo(() => {
     if (!isDemo) return [];
@@ -438,8 +439,6 @@ export function CustomersView() {
       </div>
     );
   }
-
-  const [mobileDetail, setMobileDetail] = useState(false);
 
   function selectCustomer(id: string) {
     setSelectedId(id);
