@@ -10,6 +10,12 @@ import {
 } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency } from "@/lib/formatters";
 import { importedInvoicesStorageKey, importSummaryStorageKey } from "@/lib/import/zentra-import";
+import {
+  readBookkeeperClients,
+  readClientInvoices,
+  readClientSummary,
+  type BookkeeperClient,
+} from "@/lib/bookkeeper-clients";
 import type { Invoice } from "@/types/zentra";
 import type { ImportSummary } from "@/lib/import/zentra-import";
 
@@ -19,6 +25,11 @@ export function PortfolioGate() {
 
   if (!account || account.planId === "demo") {
     return <DemoPortfolio />;
+  }
+
+  const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+  if (bookkeeperPlanIds.includes(account.planId)) {
+    return <LiveBookkeeperPortfolio />;
   }
 
   return <LivePortfolio />;
@@ -145,8 +156,9 @@ function LivePortfolio() {
     { label: "90d+",      amount: stats.ageBuckets.days90p,   color: "#991B1B" },
   ];
 
-  const planId = account?.planId ?? "trial";
-  const isBookkeeper = planId === "bookkeeper" || planId === "bookkeeper_annual";
+  const planId = account?.planId ?? "TRIAL";
+  const bookkeeperPlans = ["FOUNDING_BOOKKEEPER", "BOOKKEEPER_STARTER", "BOOKKEEPER_PRO"] as const;
+  const isBookkeeper = (bookkeeperPlans as readonly string[]).includes(planId);
 
   return (
     <div className="flex flex-col gap-5">
@@ -337,6 +349,214 @@ function LivePortfolio() {
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Live bookkeeper portfolio — multi-client grid from localStorage ───────────
+function LiveBookkeeperPortfolio() {
+  const [clients, setClients]   = useState<BookkeeperClient[]>([]);
+  const [loaded, setLoaded]     = useState(false);
+
+  // Each client entry augmented with computed stats
+  type ClientWithStats = BookkeeperClient & {
+    invoiceCount: number;
+    openCount: number;
+    overdueAmount: number;
+    exceptions: number;
+    risk: "high" | "med" | "low";
+  };
+
+  const [clientStats, setClientStats] = useState<ClientWithStats[]>([]);
+
+  useEffect(() => {
+    const stored = readBookkeeperClients();
+    setClients(stored);
+
+    const withStats: ClientWithStats[] = stored.map((c) => {
+      const invoices = readClientInvoices(c.id);
+      const open     = invoices.filter((i) => i.status !== "paid");
+      const overdue  = open.filter((i) => i.daysOverdue > 0);
+      const disputed = invoices.filter((i) => i.status === "disputed").length;
+      const missed   = invoices.filter((i) => i.status === "missed_promise").length;
+      const exceptions = disputed + missed;
+      const overdueAmount = overdue.reduce((s, i) => s + i.amountOutstanding, 0);
+      const risk: "high" | "med" | "low" =
+        exceptions >= 3 ? "high" : exceptions >= 1 ? "med" : "low";
+      return {
+        ...c,
+        invoiceCount: invoices.length,
+        openCount:    open.length,
+        overdueAmount,
+        exceptions,
+        risk,
+      };
+    });
+    setClientStats(withStats);
+    setLoaded(true);
+  }, []);
+
+  const totals = useMemo(() => ({
+    totalClients:    clientStats.length,
+    totalOverdue:    clientStats.reduce((s, c) => s + c.overdueAmount, 0),
+    totalOpen:       clientStats.reduce((s, c) => s + c.openCount, 0),
+    totalExceptions: clientStats.reduce((s, c) => s + c.exceptions, 0),
+  }), [clientStats]);
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>Loading portfolio…</div>
+      </div>
+    );
+  }
+
+  if (clients.length === 0) {
+    return (
+      <div className="flex flex-col gap-5">
+        <section>
+          <div className="zn-label mb-1.5">Bookkeeper mode</div>
+          <h1 className="zn-page-h1">Client portfolio</h1>
+          <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
+            Add your first client in the sidebar, then import their invoice export to get started.
+          </p>
+        </section>
+        <div
+          className="flex flex-col items-center justify-center gap-4 rounded-2xl p-14 text-center"
+          style={{ border: "1px solid var(--zn-line-soft)", background: "var(--zn-surface)" }}
+        >
+          <div
+            className="size-12 rounded-2xl flex items-center justify-center"
+            style={{ background: "var(--zn-bg-2)" }}
+          >
+            <BarChart3 className="size-5" style={{ color: "var(--zn-ink-3)" }} />
+          </div>
+          <div>
+            <p className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">No clients yet</p>
+            <p className="mt-1 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+              Use the workspace switcher in the sidebar to add your first client, then import their AR export.
+            </p>
+          </div>
+          <Link
+            href="/import"
+            className="flex items-center gap-2 zn-pill"
+            style={{ height: 36, padding: "0 18px", fontSize: 13 }}
+          >
+            <Upload className="size-3.5" />
+            Import first client
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <div className="zn-label mb-1.5">Bookkeeper mode</div>
+          <h1 className="zn-page-h1">Client portfolio</h1>
+          <p className="mt-1.5 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+            {clients.length} client{clients.length !== 1 ? "s" : ""} · one pane across every ledger
+          </p>
+        </div>
+      </section>
+
+      {/* Summary stats */}
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Clients",     value: String(totals.totalClients),                      color: "var(--zn-ink)" },
+          { label: "Total overdue", value: formatCurrency(totals.totalOverdue),            color: "var(--zn-accent)" },
+          { label: "Open invoices", value: String(totals.totalOpen),                       color: "var(--zn-ink)" },
+          { label: "Exceptions",  value: String(totals.totalExceptions),                   color: totals.totalExceptions > 0 ? "var(--zn-risk)" : "var(--zn-ink)" },
+        ].map((kpi) => (
+          <div key={kpi.label} className="zn-stat">
+            <div className="zn-label">{kpi.label}</div>
+            <div className="zn-stat-num mt-2" style={{ color: kpi.color }}>{kpi.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Client cards grid */}
+      <section className="grid gap-3.5 lg:grid-cols-2">
+        {clientStats.map((client) => {
+          const initials = client.name
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((p) => p[0])
+            .join("")
+            .toUpperCase();
+          const summary = readClientSummary(client.id);
+          const riskLabel =
+            client.risk === "high" ? "High risk" :
+            client.risk === "med"  ? "Medium risk" : "Low risk";
+          const riskClass =
+            client.risk === "high" ? "zn-risk-high" :
+            client.risk === "med"  ? "zn-risk-med"  : "zn-risk-low";
+
+          return (
+            <div key={client.id} className="zn-card p-[18px]">
+              <div className="flex items-start justify-between gap-3 mb-3.5">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span
+                    className="size-9 rounded-lg inline-flex items-center justify-center text-[12px] font-semibold flex-shrink-0"
+                    style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)" }}
+                  >
+                    {initials}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate">
+                      {client.name}
+                    </div>
+                    <div className="text-[12px] text-[#6b6253] dark:text-[#8a7d69] truncate">
+                      {client.label}
+                      {summary && (
+                        <> · Last import: {new Date(summary.importedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <span className={`zn-risk-chip ${riskClass} flex-shrink-0`}>
+                  <span className="zn-risk-dot" />
+                  {riskLabel}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+                {[
+                  { label: "Overdue",    value: formatCurrency(client.overdueAmount), tone: "var(--zn-accent)" },
+                  { label: "Open",       value: String(client.openCount),             tone: "var(--zn-ink)" },
+                  { label: "Exceptions", value: String(client.exceptions),            tone: client.exceptions > 0 ? "var(--zn-risk)" : "var(--zn-ink)" },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-[10px] p-2.5"
+                    style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+                  >
+                    <div className="zn-label !p-0" style={{ fontSize: 9.5 }}>{s.label}</div>
+                    <div className="text-[16px] font-semibold tabular-nums mt-1" style={{ color: s.tone }}>
+                      {s.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {client.invoiceCount === 0 ? (
+                <Link
+                  href="/import"
+                  className="zn-pill zn-pill-ghost w-full justify-center"
+                >
+                  <Upload className="size-3.5" /> Import data
+                </Link>
+              ) : (
+                <Link href="/chase-plan" className="zn-pill zn-pill-ghost w-full justify-center">
+                  Open chase plan <ArrowRight className="size-3.5" />
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </section>
     </div>
   );
 }

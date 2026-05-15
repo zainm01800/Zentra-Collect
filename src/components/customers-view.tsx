@@ -7,7 +7,13 @@ import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import {
+  readActiveClientId,
+  clientInvoicesKey,
+} from "@/lib/bookkeeper-clients";
 import type { Invoice } from "@/types/zentra";
+
+const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
 
 // ── Customer contact overrides storage ────────────────────────────────────────
 const CONTACT_OVERRIDES_KEY = "zentra.customerOverrides.v1";
@@ -554,12 +560,20 @@ export function CustomersView() {
   useEffect(() => {
     if (isDemo) return;
     try {
-      const raw = localStorage.getItem(importedInvoicesStorageKey);
+      // Bookkeeper plan users with an active client: load from that client's key
+      let storageKey = importedInvoicesStorageKey;
+      if (account && BOOKKEEPER_PLAN_IDS.includes(account.planId)) {
+        const activeClientId = readActiveClientId();
+        if (activeClientId && activeClientId !== "all") {
+          storageKey = clientInvoicesKey(activeClientId);
+        }
+      }
+      const raw = localStorage.getItem(storageKey);
       if (raw) setImportedInvoices(JSON.parse(raw) as Invoice[]);
     } catch {
       // ignore parse errors
     }
-  }, [isDemo]);
+  }, [isDemo, account]);
 
   // ── Build virtual customers from imported invoices ────────────────────────
   const virtualCustomers = useMemo(

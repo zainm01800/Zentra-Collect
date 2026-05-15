@@ -15,12 +15,13 @@
  * Plan data: src/lib/billing/plans.ts (never hardcoded here)
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Download,
   Loader2,
@@ -35,9 +36,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { UsageMeter, UsageSnapshot } from "@/lib/usage/tracker";
-import { getPlan, type Plan } from "@/lib/billing/plans";
+import { getPlan, PLANS, type Plan, type PlanId } from "@/lib/billing/plans";
+import { useLocalAccount } from "@/lib/billing/use-local-account";
+import {
+  addDays,
+  writeLocalAccount,
+  type DemoUser,
+} from "@/lib/demo-auth";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import type { Invoice } from "@/types/zentra";
+
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL ?? "";
 
 // ── Upgrade recommendation logic ──────────────────────────────────────────────
 
@@ -265,6 +274,128 @@ const SAFETY_CONTROLS = [
   },
 ] as const;
 
+// ── Dev plan switcher (owner only) ───────────────────────────────────────────
+
+/**
+ * Lets the admin account instantly switch to any plan for testing.
+ * Only visible when `user.email === NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL`.
+ * Updates localStorage only — no server state is changed.
+ */
+function DevPlanSwitcher({ user }: { user: DemoUser }) {
+  const [open, setOpen] = useState(false);
+  const [applied, setApplied] = useState<string | null>(null);
+
+  function switchToPlan(planId: PlanId) {
+    const plan = getPlan(planId);
+    const now = new Date();
+
+    const isTrial = plan.tier === "trial";
+    const isDemo  = plan.tier === "free";
+
+    const trialEndsAt = isTrial
+      ? addDays(now, 14).toISOString()
+      : undefined;
+    const graceEndsAt = trialEndsAt
+      ? addDays(new Date(trialEndsAt), 30).toISOString()
+      : undefined;
+    const expiresAt = isDemo
+      ? addDays(now, 3650).toISOString()
+      : trialEndsAt ?? addDays(now, 3650).toISOString();
+
+    const subscriptionStatus: DemoUser["subscriptionStatus"] = isDemo
+      ? "demo"
+      : isTrial
+        ? "trialing"
+        : "active";
+
+    const next: DemoUser = {
+      ...user,
+      planId,
+      accountType: plan.accountType as DemoUser["accountType"],
+      subscriptionStatus,
+      expiresAt,
+      trialEndsAt,
+      graceEndsAt,
+    };
+
+    writeLocalAccount(next);
+    setApplied(plan.name);
+    // Brief delay so the user sees the confirmation, then reload
+    setTimeout(() => window.location.reload(), 600);
+  }
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ border: "1px solid #d4a853" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        style={{ background: "#fdf3dc" }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#a07522" }}>
+            Dev
+          </span>
+          <span className="text-[13px] font-semibold text-[#1d1813]">Plan switcher</span>
+        </div>
+        <ChevronDown
+          className="size-3.5 transition-transform"
+          style={{ color: "#a07522", transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-2" style={{ background: "#fffdf7" }}>
+          <p className="text-[11.5px] mb-3" style={{ color: "#a07522" }}>
+            Switches your local account — no server changes. Page reloads on apply.
+          </p>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {PLANS.map((plan) => {
+              const isActive = user.planId === plan.id;
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => switchToPlan(plan.id)}
+                  disabled={isActive || !!applied}
+                  className="flex flex-col items-start gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors"
+                  style={{
+                    border: isActive ? "1px solid #1d1813" : "1px solid #e8ddc8",
+                    background: isActive ? "#1d1813" : "#fff",
+                    opacity: !!applied && !isActive ? 0.5 : 1,
+                    cursor: isActive ? "default" : "pointer",
+                  }}
+                >
+                  <span
+                    className="text-[12px] font-semibold leading-tight"
+                    style={{ color: isActive ? "#faf5e8" : "#1d1813" }}
+                  >
+                    {plan.name}
+                  </span>
+                  <span
+                    className="text-[10.5px] capitalize"
+                    style={{ color: isActive ? "#c8b99a" : "#8a7d69" }}
+                  >
+                    {plan.tier} {plan.price > 0 ? `· ${plan.priceDisplay}` : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {applied && (
+            <p className="mt-2.5 text-[12px] font-medium" style={{ color: "#2d6a2d" }}>
+              ✓ Switched to {applied} — reloading…
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 // ── CSV export helper ─────────────────────────────────────────────────────────
@@ -332,7 +463,8 @@ function exportInvoicesCsv() {
 }
 
 export function AccountBilling() {
-  const [snapshot, setSnapshot] = useState<UsageSnapshot | null>(null);
+  const { user } = useLocalAccount();
+  const [rawSnapshot, setRawSnapshot] = useState<UsageSnapshot | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -341,9 +473,60 @@ export function AccountBilling() {
         if (!res.ok) throw new Error("Failed");
         return res.json() as Promise<UsageSnapshot>;
       })
-      .then(setSnapshot)
+      .then(setRawSnapshot)
       .catch(() => setError(true));
   }, []);
+
+  /**
+   * Merge the local account (localStorage) into the API snapshot.
+   * Local account is the source of truth for WHICH PLAN the user is on and
+   * their subscription status. The API snapshot provides usage meter numbers.
+   */
+  const snapshot = useMemo<UsageSnapshot | null>(() => {
+    if (!rawSnapshot) return null;
+    if (!user) return rawSnapshot;
+
+    const localPlanId = user.planId as PlanId;
+    const localPlan = getPlan(localPlanId);
+    const isTrial = localPlan.tier === "trial";
+
+    // Compute trial days remaining from localStorage trialEndsAt
+    const trialEndsAt = user.trialEndsAt ?? null;
+    const trialDaysRemaining =
+      isTrial && trialEndsAt
+        ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+        : null;
+    const isExpired =
+      isTrial && trialEndsAt ? new Date(trialEndsAt).getTime() <= Date.now() : false;
+    const gracePeriodEndsAt =
+      trialEndsAt
+        ? (() => {
+            const d = new Date(trialEndsAt);
+            d.setDate(d.getDate() + 30);
+            return d.toISOString().slice(0, 10);
+          })()
+        : null;
+    const isInGracePeriod =
+      isExpired && gracePeriodEndsAt
+        ? new Date(gracePeriodEndsAt).getTime() > Date.now()
+        : false;
+
+    return {
+      ...rawSnapshot,
+      planId: localPlanId,
+      planName: localPlan.name,
+      tier: localPlan.tier,
+      isTrial,
+      trialDaysRemaining,
+      trialEndsAt,
+      isExpired,
+      gracePeriodEndsAt,
+      isInGracePeriod,
+      gracePeriodDaysRemaining: isInGracePeriod && gracePeriodEndsAt
+        ? Math.max(0, Math.ceil((new Date(gracePeriodEndsAt).getTime() - Date.now()) / 86_400_000))
+        : null,
+    };
+  }, [rawSnapshot, user]);
 
   if (error) {
     return (
@@ -771,6 +954,13 @@ export function AccountBilling() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Dev plan switcher — admin only ───────────────────────────────────── */}
+      {user && ADMIN_EMAIL && user.email === ADMIN_EMAIL && (
+        <div className="lg:col-span-2">
+          <DevPlanSwitcher user={user} />
+        </div>
+      )}
     </div>
   );
 }

@@ -69,6 +69,13 @@ import {
   setUsage,
   toBillingAccount,
 } from "@/lib/demo-auth";
+import {
+  readActiveClientId,
+  readBookkeeperClients,
+  clientInvoicesKey,
+  clientSummaryKey,
+  upsertBookkeeperClient,
+} from "@/lib/bookkeeper-clients";
 import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { ImportValidationIssue, ImportPreviewInvoice } from "@/lib/import/zentra-import";
@@ -312,6 +319,27 @@ export function ZentraImportFlow() {
         mappings,
       }),
     );
+
+    // If in bookkeeper mode with an active client, also save to that client's
+    // dedicated storage keys so the portfolio view can show per-client data.
+    const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+    if (account && bookkeeperPlanIds.includes(account.planId)) {
+      const activeClientId = readActiveClientId();
+      if (activeClientId && activeClientId !== "all") {
+        localStorage.setItem(clientInvoicesKey(activeClientId), JSON.stringify(invoices));
+        localStorage.setItem(clientSummaryKey(activeClientId), JSON.stringify(summary));
+        // Update the client's metadata
+        const clients = readBookkeeperClients();
+        const client  = clients.find((c) => c.id === activeClientId);
+        if (client) {
+          upsertBookkeeperClient({
+            ...client,
+            importedAt: summary.importedAt,
+            fileName:   summary.fileName,
+          });
+        }
+      }
+    }
 
     incrementUsage("importBatches");
     incrementUsage("importsThisMonth");
