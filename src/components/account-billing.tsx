@@ -26,6 +26,7 @@ import {
   Download,
   Loader2,
   Lock,
+  Mail,
   Shield,
   ShieldCheck,
   TrendingUp,
@@ -831,6 +832,22 @@ export function AccountBilling() {
           </Card>
         )}
 
+        {/* Trial secondary path — always show bookkeeper option when solo is the primary recommendation */}
+        {recommendation && snapshot.planId === "trial" && recommendation.plan.id === "single_business" && (
+          <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-neutral-50 dark:bg-[#211d17] px-4 py-3">
+            <p className="text-sm text-neutral-600 dark:text-[#8a7d69]">
+              Managing invoices for multiple clients?{" "}
+              <Link
+                href="/request-access"
+                className="font-medium text-neutral-950 dark:text-[#f0e8d5] underline underline-offset-2 hover:text-neutral-700"
+              >
+                Bookkeeper Starter — £99/mo
+              </Link>{" "}
+              gives you up to 5 client ledgers.
+            </p>
+          </div>
+        )}
+
         {/* Within limits — no upgrade nudge */}
         {!recommendation && snapshot.tier === "paid" && (
           <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-neutral-50 dark:bg-[#211d17] px-4 py-3">
@@ -972,6 +989,65 @@ export function AccountBilling() {
             ))}
           </CardContent>
         </Card>
+
+        {/* 5b ── Email add-on upsell (Starter & Single Business only) ─────────── */}
+        {(snapshot.planId === "starter_solo" || snapshot.planId === "single_business") && (
+          <Card className="rounded-xl border-black/8">
+            <CardHeader className="pb-2">
+              <SectionLabel>Add-ons</SectionLabel>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {user?.emailAddon ? (
+                /* Active state */
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-800 dark:text-[#f0e8d5]">
+                      Email auto-send active
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-[#8a7d69]">
+                      £5/mo · Approved emails are sent automatically.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Upsell state */
+                <>
+                  <div className="flex items-start gap-2.5">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 dark:bg-[#28231c]">
+                      <Mail className="size-3.5 text-neutral-600 dark:text-[#8a7d69]" />
+                    </div>
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-sm font-semibold text-neutral-950 dark:text-[#f0e8d5]">
+                          Email auto-send
+                        </p>
+                        <span className="text-sm text-neutral-400">£5/mo</span>
+                      </div>
+                      <p className="mt-0.5 text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
+                        One-click email approval — no copy-paste. Emails send automatically
+                        once you confirm each one.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
+                  >
+                    <Link href="/request-access">
+                      Add email auto-send
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* 6 ── Billing ────────────────────────────────────────────────────────── */}
         <Card className="rounded-xl border-black/8">
