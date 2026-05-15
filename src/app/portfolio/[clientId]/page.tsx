@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { ZentraDashboard } from "@/components/zentra-dashboard";
 import { Button } from "@/components/ui/button";
 import { UpgradeScreen } from "@/components/access/upgrade-screen";
@@ -56,12 +56,18 @@ export default async function PortfolioClientPage({
 
   return (
     <>
-      {/* Breadcrumb */}
-      <div className="mb-4 flex items-center gap-2">
+      {/* Breadcrumb + Generate report */}
+      <div className="mb-4 flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/portfolio">
             <ArrowLeft className="size-3" />
             Back to portfolio
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" className="rounded-full">
+          <Link href={`/portfolio/${clientId}/report`}>
+            <FileText className="size-3.5" />
+            Generate AR report
           </Link>
         </Button>
       </div>
