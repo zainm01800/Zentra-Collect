@@ -134,7 +134,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   STARTER_SOLO: {
     id: "STARTER_SOLO",
     name: "Starter",
-    priceMonthlyGbp: 13.99,
+    priceMonthlyGbp: 24,
     description: "For sole traders and micro businesses with a small invoice book.",
     limits: {
       ...defaultLimits,
@@ -230,7 +230,7 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   SINGLE_BUSINESS: {
     id: "SINGLE_BUSINESS",
     name: "Single Business",
-    priceMonthlyGbp: 39,
+    priceMonthlyGbp: 49,
     description: "Standard plan for one business collections workspace.",
     limits: {
       ...defaultLimits,
