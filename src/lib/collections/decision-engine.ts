@@ -422,7 +422,7 @@ function makeSafety(
 }
 
 function hasMissingPoSignal(invoice: Invoice) {
-  return [invoice.customerNotes, invoice.disputeReason, ...invoice.activityHistory.map((event) => event.description)]
+  return [invoice.customerNotes, invoice.disputeReason, ...(invoice.activityHistory ?? []).map((event) => event.description)]
     .filter(Boolean)
     .some((text) => /po\b|purchase order|reference/i.test(String(text)));
 }
