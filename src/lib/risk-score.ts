@@ -17,7 +17,24 @@
  *   - Invoice volume (only fires for repeat patterns)
  */
 
-import type { Invoice } from "@/types/cashpilot";
+/**
+ * Minimal invoice shape required by the risk scorer. Compatible with both:
+ *   - cashpilot.Invoice (client UI type — uses "Paid"/"Disputed")
+ *   - zentra.Invoice (server type — uses "paid"/"disputed", "previousChaseCount")
+ *
+ * Status comparisons are case-insensitive. Both `chaseCount` and
+ * `previousChaseCount` fields are recognised.
+ */
+export interface InvoiceForRisk {
+  customerName: string;
+  amount: number;
+  daysOverdue: number;
+  status: string;
+  chaseCount?: number;
+  previousChaseCount?: number;
+  promisedPaymentDate?: string | null;
+  relationshipType?: string;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,6 +71,16 @@ const LABELS: Record<RiskLevel, RiskLabel> = {
 
 // ── Core scorer ───────────────────────────────────────────────────────────────
 
+/** Case-insensitive status check (handles both "Paid"/"paid" formats). */
+function statusEquals(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Read the chase count from either field name. */
+function chaseCountOf(inv: InvoiceForRisk): number {
+  return inv.chaseCount ?? inv.previousChaseCount ?? 0;
+}
+
 /**
  * Compute the risk score for one customer from their invoices.
  * Uses the most severe signal that fires — never averages signals,
@@ -61,9 +88,9 @@ const LABELS: Record<RiskLevel, RiskLabel> = {
  */
 export function computeCustomerRisk(
   customerName: string,
-  customerInvoices: Invoice[],
+  customerInvoices: InvoiceForRisk[],
 ): CustomerRisk {
-  const open = customerInvoices.filter((inv) => inv.status !== "Paid");
+  const open = customerInvoices.filter((inv) => !statusEquals(inv.status, "Paid"));
 
   const openInvoiceCount = open.length;
   const totalOutstanding = open.reduce((sum, inv) => sum + inv.amount, 0);
@@ -74,7 +101,7 @@ export function computeCustomerRisk(
       )
     : 0;
   const maxDaysOverdue  = open.reduce((max, inv) => Math.max(max, inv.daysOverdue), 0);
-  const totalChaseCount = open.reduce((sum, inv) => sum + inv.chaseCount, 0);
+  const totalChaseCount = open.reduce((sum, inv) => sum + chaseCountOf(inv), 0);
 
   // Broken promise: promise date is in the past AND invoice is still overdue.
   const brokenPromises = open.filter((inv) => {
@@ -85,7 +112,7 @@ export function computeCustomerRisk(
     );
   }).length;
 
-  const disputedInvoices = open.filter((inv) => inv.status === "Disputed").length;
+  const disputedInvoices = open.filter((inv) => statusEquals(inv.status, "Disputed")).length;
   const isProblemPayer   = customerInvoices.some(
     (inv) => inv.relationshipType === "problematic payer",
   );
@@ -151,8 +178,10 @@ export function computeCustomerRisk(
  * Build a risk profile for every unique customer in an invoice list.
  * Returns a Map keyed by customer name for O(1) lookup in render code.
  */
-export function computeCustomerRiskMap(invoices: Invoice[]): Map<string, CustomerRisk> {
-  const byCustomer = new Map<string, Invoice[]>();
+export function computeCustomerRiskMap(
+  invoices: InvoiceForRisk[],
+): Map<string, CustomerRisk> {
+  const byCustomer = new Map<string, InvoiceForRisk[]>();
   for (const inv of invoices) {
     const existing = byCustomer.get(inv.customerName) ?? [];
     existing.push(inv);

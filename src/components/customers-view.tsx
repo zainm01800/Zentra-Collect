@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Edit2, ExternalLink, Users, FileText, Upload, Mail } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { CustomerRiskProfile } from "@/components/customer-risk-profile";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import {
@@ -423,6 +424,12 @@ export function CustomerDetail({
           <CreditLimitBar outstanding={stats.outstanding} creditLimit={customer.creditLimit} />
         )}
       </div>
+
+      {/* Risk profile — payment behaviour + statutory interest + Companies House */}
+      <CustomerRiskProfile
+        customerName={customer.name}
+        invoices={invoices.filter((inv) => inv.customerId === customerId)}
+      />
 
       {/* Behaviour note */}
       <div
