@@ -9,10 +9,18 @@ import type { DemoUser } from "@/lib/demo-auth";
 // useLocalAccount() and the whole UI reflect the authenticated user's real plan.
 // Usage counters from localStorage are preserved — only identity/plan fields are overwritten.
 
+const DEV_PLAN_OVERRIDE_KEY = "zentra.devPlanOverride.v1";
+
 export function AccountSync() {
   useEffect(() => {
     async function sync() {
       try {
+        // If a dev plan override is active, skip server sync so the local
+        // plan switch isn't immediately overwritten by Supabase data.
+        if (typeof window !== "undefined" && localStorage.getItem(DEV_PLAN_OVERRIDE_KEY)) {
+          return;
+        }
+
         const res = await fetch("/api/account/me");
         if (!res.ok) return;
         const data = await res.json();

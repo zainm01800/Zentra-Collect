@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import type { UsageMeter, UsageSnapshot } from "@/lib/usage/tracker";
+import { buildMeter, type UsageMeter, type UsageSnapshot } from "@/lib/usage/tracker";
 import { getPlan, PLANS, type Plan, type PlanId } from "@/lib/billing/plans";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import {
@@ -50,6 +50,9 @@ const ADMIN_EMAILS = [
   process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL,
   "zainmanda01@gmail.com",
 ].filter(Boolean) as string[];
+
+/** Set this key in localStorage to pause AccountSync and keep a local plan override. */
+const DEV_PLAN_OVERRIDE_KEY = "zentra.devPlanOverride.v1";
 
 // ── Upgrade recommendation logic ──────────────────────────────────────────────
 
@@ -321,6 +324,8 @@ function DevPlanSwitcher({ user }: { user: DemoUser }) {
       graceEndsAt,
     };
 
+    // Set override flag so AccountSync doesn't overwrite this with Supabase data
+    localStorage.setItem(DEV_PLAN_OVERRIDE_KEY, "1");
     writeLocalAccount(next);
     setApplied(plan.name);
     // Brief delay so the user sees the confirmation, then reload
@@ -392,6 +397,19 @@ function DevPlanSwitcher({ user }: { user: DemoUser }) {
             <p className="mt-2.5 text-[12px] font-medium" style={{ color: "#2d6a2d" }}>
               ✓ Switched to {applied} — reloading…
             </p>
+          )}
+          {!applied && (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem(DEV_PLAN_OVERRIDE_KEY);
+                window.location.reload();
+              }}
+              className="mt-2 text-[11px] underline underline-offset-2"
+              style={{ color: "#a07522" }}
+            >
+              Reset to server plan
+            </button>
           )}
         </div>
       )}
@@ -514,6 +532,48 @@ export function AccountBilling() {
         ? new Date(gracePeriodEndsAt).getTime() > Date.now()
         : false;
 
+    // Rebuild meters using local plan's limits but API's usage numbers
+    const limits = localPlan.limits;
+    const apiMeters = rawSnapshot.meters;
+    const rebuiltMeters: UsageSnapshot["meters"] = {
+      aiActions: buildMeter(
+        "AI actions",
+        apiMeters.aiActions.used,
+        limits.aiActionsPerMonth,
+        !isTrial,
+      ),
+      imports: buildMeter(
+        "Imports",
+        apiMeters.imports.used,
+        limits.importsPerMonth,
+        !isTrial && limits.importsPerMonth !== null,
+      ),
+      activeInvoices: buildMeter(
+        "Active invoices",
+        apiMeters.activeInvoices.used,
+        limits.activeInvoices,
+        false,
+      ),
+      clientLedgers: buildMeter(
+        "Client ledgers",
+        apiMeters.clientLedgers.used,
+        limits.ledgers === 0 ? null : limits.ledgers,
+        false,
+      ),
+      savedImportMappings: buildMeter(
+        "Saved import templates",
+        apiMeters.savedImportMappings.used,
+        limits.savedImportMappings === 0 ? null : limits.savedImportMappings,
+        false,
+      ),
+      weeklyDigests: buildMeter(
+        "Weekly digests",
+        apiMeters.weeklyDigests.used,
+        null,
+        false,
+      ),
+    };
+
     return {
       ...rawSnapshot,
       planId: localPlanId,
@@ -528,6 +588,7 @@ export function AccountBilling() {
       gracePeriodDaysRemaining: isInGracePeriod && gracePeriodEndsAt
         ? Math.max(0, Math.ceil((new Date(gracePeriodEndsAt).getTime() - Date.now()) / 86_400_000))
         : null,
+      meters: rebuiltMeters,
     };
   }, [rawSnapshot, user]);
 
