@@ -29,6 +29,11 @@ import {
   getRiskLabels,
   getSuggestedAction,
 } from "@/lib/invoice-logic";
+import {
+  calculateStatutoryInterest,
+  interestPhraseForChase,
+  isInterestMaterial,
+} from "@/lib/statutory-interest";
 import type { Invoice, ReminderTone } from "@/types/cashpilot";
 
 type Scenario =
@@ -496,6 +501,11 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               </div>
             </div>
 
+            {/* Statutory interest — only when material (≥ £5 accrued) */}
+            {current && isInterestMaterial(current.amount, current.daysOverdue) && (
+              <StatutoryInterestPanel invoice={current} />
+            )}
+
             {/* Action scenario picker */}
             <div>
               <div className="zn-label !p-0 mb-2">Action scenario</div>
@@ -765,5 +775,93 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
         </>
       )}
     </aside>
+  );
+}
+
+// ── Statutory interest panel ──────────────────────────────────────────────────
+
+/**
+ * Surfaces UK statutory late-payment interest accrued on this invoice
+ * (Late Payment of Commercial Debts (Interest) Act 1998). Includes a copy
+ * button so users can paste the phrasing straight into their chase message.
+ *
+ * Only rendered when ≥ £5 of interest has accrued — below that it's noise.
+ */
+function StatutoryInterestPanel({ invoice }: { invoice: Invoice }) {
+  const [copied, setCopied] = useState(false);
+  const result = useMemo(
+    () => calculateStatutoryInterest(invoice.amount, invoice.daysOverdue),
+    [invoice.amount, invoice.daysOverdue],
+  );
+  const phrase = useMemo(
+    () => interestPhraseForChase(invoice.amount, invoice.daysOverdue),
+    [invoice.amount, invoice.daysOverdue],
+  );
+
+  function copyPhrase() {
+    if (!phrase) return;
+    navigator.clipboard?.writeText(phrase).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
+  return (
+    <div>
+      <div className="zn-label !p-0 mb-2">Statutory interest accrued</div>
+      <div
+        className="rounded-[10px] p-3"
+        style={{
+          background: "var(--zn-warn-soft)",
+          border: "1px solid var(--zn-warn)",
+        }}
+      >
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.08em] font-semibold" style={{ color: "var(--zn-ink-3)" }}>
+              Interest
+            </div>
+            <div className="text-[14.5px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>
+              {formatCurrency(result.interest)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.08em] font-semibold" style={{ color: "var(--zn-ink-3)" }}>
+              Compensation
+            </div>
+            <div className="text-[14.5px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>
+              {formatCurrency(result.compensation)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.08em] font-semibold" style={{ color: "var(--zn-ink-3)" }}>
+              Total recoverable
+            </div>
+            <div className="text-[14.5px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>
+              {formatCurrency(result.totalRecoverable)}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: "1px solid rgba(160, 117, 34, 0.2)" }}>
+          <p className="text-[11px] leading-4 flex-1" style={{ color: "var(--zn-ink-2)" }}>
+            B2B only · Rate {result.annualRate}% (BoE base + 8%) · This is a calculator, not legal advice.
+          </p>
+          {phrase && (
+            <button
+              type="button"
+              onClick={copyPhrase}
+              className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md whitespace-nowrap"
+              style={{
+                background: "var(--zn-surface)",
+                border: "1px solid var(--zn-line)",
+                color: copied ? "var(--zn-safe)" : "var(--zn-ink-2)",
+              }}
+            >
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+              {copied ? "Copied" : "Copy phrase"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
