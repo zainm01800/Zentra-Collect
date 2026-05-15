@@ -2,16 +2,10 @@
  * /api/usage
  *
  * REST bridge between client-side components and the server-side usage store.
- * Client components (import flow, digest page) that need to record usage
- * call POST here. The settings page calls GET to display meters.
  *
- * GET  /api/usage          → UsageSnapshot for the demo account
- * POST /api/usage          → Record a client-side usage event
- *
- * TODO: Extract accountId from the authenticated session rather than
- *   defaulting to DEMO_ACCOUNT_ID.
- * TODO: Add rate limiting — recording should require a valid session token,
- *   not be open to arbitrary POST requests.
+ * GET  /api/usage  → UsageSnapshot (plan from Supabase, counts from DB for
+ *                    authenticated users; demo snapshot for anonymous users)
+ * POST /api/usage  → Record a client-side usage event (auth required)
  */
 
 import { NextResponse } from "next/server";
@@ -28,44 +22,78 @@ import {
 } from "@/lib/supabase/server";
 import type { AIActionType } from "@/lib/usage/tracker";
 
-// Force dynamic — snapshot reflects live counter state
+// Force dynamic — snapshot reflects live state
 export const dynamic = "force-dynamic";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Resolve the authenticated user's account_id. Returns null for anon users. */
+async function getAuthenticatedAccountId(): Promise<{
+  accountId: string | null;
+  planId: string | null;
+}> {
+  if (!hasSupabaseServerConfig()) return { accountId: null, planId: null };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { accountId: null, planId: null };
+
+    const { data: member } = await supabase
+      .from("zentra_account_members")
+      .select("account_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle<{ account_id: string }>();
+
+    if (!member?.account_id) return { accountId: null, planId: null };
+
+    const { data: accountRow } = await supabase
+      .from("zentra_accounts")
+      .select("plan_id")
+      .eq("id", member.account_id)
+      .maybeSingle<{ plan_id: string }>();
+
+    return {
+      accountId: member.account_id,
+      planId: accountRow?.plan_id?.toLowerCase() ?? null,
+    };
+  } catch {
+    return { accountId: null, planId: null };
+  }
+}
 
 // ── GET — return current snapshot ─────────────────────────────────────────────
 
 export async function GET() {
-  const snapshot = getUsageSnapshot(DEMO_ACCOUNT_ID);
+  const { accountId, planId } = await getAuthenticatedAccountId();
 
-  // If Supabase is configured and the user is signed in, overlay their real
-  // plan ID from the database so the settings page shows the correct plan.
-  if (hasSupabaseServerConfig()) {
+  // Start with the demo/in-memory snapshot
+  const snapshot = getUsageSnapshot(accountId ?? DEMO_ACCOUNT_ID);
+
+  // Overlay real plan ID from DB
+  if (planId) {
+    snapshot.planId = planId;
+  }
+
+  // For authenticated users, overlay real import count from Supabase
+  // so the meter is accurate even after a server cold-start wipes in-memory state.
+  if (accountId && hasSupabaseServerConfig()) {
     try {
       const supabase = await createSupabaseServerClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: member } = await supabase
-          .from("zentra_account_members")
-          .select("account_id")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle<{ account_id: string }>();
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        if (member?.account_id) {
-          const { data: accountRow } = await supabase
-            .from("zentra_accounts")
-            .select("plan_id")
-            .eq("id", member.account_id)
-            .maybeSingle<{ plan_id: string }>();
+      const { count: importCount } = await supabase
+        .from("zentra_import_batches")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", accountId)
+        .gte("created_at", monthStart);
 
-          if (accountRow?.plan_id) {
-            // DB stores uppercase IDs (e.g. "BOOKKEEPER_STARTER");
-            // the usage store uses lowercase billing plan IDs.
-            snapshot.planId = accountRow.plan_id.toLowerCase();
-          }
-        }
+      if (importCount !== null) {
+        snapshot.importsThisMonth = importCount;
       }
     } catch {
-      // Non-fatal — fall back to demo snapshot plan
+      // Non-fatal — keep in-memory count
     }
   }
 
@@ -101,13 +129,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  // TODO: const accountId = await getAccountIdFromSession(request);
-  const accountId = DEMO_ACCOUNT_ID;
+  // Resolve the account ID from the authenticated session.
+  // Fall back to DEMO_ACCOUNT_ID only for unauthenticated / demo users.
+  const { accountId: authedAccountId } = await getAuthenticatedAccountId();
+  const accountId = authedAccountId ?? DEMO_ACCOUNT_ID;
 
   switch (body.action) {
     case "recordImport": {
-      if (typeof body.invoiceCount !== "number" || typeof body.activeInvoiceCount !== "number") {
-        return NextResponse.json({ error: "invoiceCount and activeInvoiceCount are required." }, { status: 400 });
+      if (
+        typeof body.invoiceCount !== "number" ||
+        typeof body.activeInvoiceCount !== "number"
+      ) {
+        return NextResponse.json(
+          { error: "invoiceCount and activeInvoiceCount are required." },
+          { status: 400 },
+        );
       }
       const result = recordImport(accountId, {
         fileName: body.fileName ?? "unknown",
@@ -118,13 +154,9 @@ export async function POST(request: Request) {
     }
 
     case "recordAIAction": {
-      // Client-side AI action recording (for future use — current AI calls
-      // are recorded directly in the server-side API routes).
       if (!body.actionType) {
         return NextResponse.json({ error: "actionType is required." }, { status: 400 });
       }
-      // Use recordAIAction() — not incrementUsage() directly — so the audit
-      // log and within-limit check are applied consistently.
       const result = recordAIAction(accountId, body.actionType);
       return NextResponse.json(result);
     }

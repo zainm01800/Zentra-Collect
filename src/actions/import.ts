@@ -82,24 +82,41 @@ export async function saveImportBatchAction(
     const batchId = batchData.id;
 
     // 3. Map and upsert customers
+    // We fetch existing rows first, then insert only new names to avoid
+    // relying on a composite unique constraint that may not exist in all envs.
     const uniqueCustomerNames = Array.from(new Set(invoices.map(i => i.customerName)));
-    const customersUpsert = uniqueCustomerNames.map(name => {
-      const inv = invoices.find(i => i.customerName === name)!;
-      return {
-        account_id: accountId,
-        business_id: businessId,
-        name: name,
-        email: inv.customerEmail,
-        relationship_type: inv.relationshipType || 'regular customer'
-      };
-    });
 
-    const { data: customerData, error: customerError } = await supabase
+    const { data: existingCustomers } = await supabase
       .from('zentra_customers')
-      .upsert(customersUpsert, { onConflict: 'account_id, business_id, name' })
-      .select('id, name');
+      .select('id, name')
+      .eq('account_id', accountId)
+      .eq('business_id', businessId)
+      .in('name', uniqueCustomerNames);
 
-    if (customerError) throw customerError;
+    const existingNames = new Set((existingCustomers ?? []).map(c => c.name));
+    const newCustomers = uniqueCustomerNames
+      .filter(name => !existingNames.has(name))
+      .map(name => {
+        const inv = invoices.find(i => i.customerName === name)!;
+        return {
+          account_id: accountId,
+          business_id: businessId,
+          name,
+          email: inv.customerEmail ?? null,
+          relationship_type: inv.relationshipType || 'regular customer',
+        };
+      });
+
+    let customerData: Array<{ id: string; name: string }> = existingCustomers ?? [];
+
+    if (newCustomers.length > 0) {
+      const { data: inserted, error: customerError } = await supabase
+        .from('zentra_customers')
+        .insert(newCustomers)
+        .select('id, name');
+      if (customerError) throw customerError;
+      customerData = [...customerData, ...(inserted ?? [])];
+    }
 
     // 4. Insert Invoices
     const invoicesToInsert = invoices.map(inv => {

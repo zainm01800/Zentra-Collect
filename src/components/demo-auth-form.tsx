@@ -18,14 +18,23 @@ export function DemoAuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam = searchParams?.get("mode");
+  const errorParam = searchParams?.get("error");
   const initialMode: AuthMode = modeParam === "signup" ? "signup" : "signin";
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const urlErrorMessage =
+    errorParam === "link_expired"
+      ? "That link has expired. Please request a new one."
+      : errorParam === "session_missing"
+      ? "Your session could not be restored. Please sign in again."
+      : null;
+
+  const [error, setError] = useState(urlErrorMessage ?? "");
   const supabaseConfigured = hasSupabaseBrowserConfig();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
