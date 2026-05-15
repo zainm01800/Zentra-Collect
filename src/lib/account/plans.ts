@@ -138,9 +138,9 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
     description: "For sole traders and micro businesses with a small invoice book.",
     limits: {
       ...defaultLimits,
-      importsUsedThisMonth: 2,
+      importsUsedThisMonth: 5,
       trialImportsUsed: "unlimited",
-      aiActionsUsedThisMonth: 10,
+      aiActionsUsedThisMonth: 75,
       trialAiActionsUsed: "unlimited",
       activeInvoiceCount: 50,
       clientLedgerCount: 1,
