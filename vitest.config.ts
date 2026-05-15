@@ -5,8 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/__tests__/**/*.test.ts"],
-    exclude: ["e2e/**"],
+    include: ["src/**/__tests__/**/*.test.ts", "src/**/*.test.ts"],
+    exclude: ["e2e/**", "**/node_modules/**", "**/.next/**"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

@@ -611,10 +611,11 @@ function DemoPortfolio() {
   return (
     <div className="flex flex-col gap-5">
       <section>
-        <div className="zn-label mb-1.5">Bookkeeper mode</div>
+        <div className="zn-label mb-1.5">Sample portfolio</div>
         <h1 className="zn-page-h1">Client portfolio</h1>
         <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
-          One pane across every client ledger. Spot the ones that need you today.
+          A preview of how bookkeepers manage multiple businesses in one pane.
+          Available on Bookkeeper plans — your data stays in its own workspace.
         </p>
       </section>
 
