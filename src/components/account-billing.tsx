@@ -46,7 +46,10 @@ import {
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import type { Invoice } from "@/types/zentra";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL ?? "";
+const ADMIN_EMAILS = [
+  process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL,
+  "zainmanda01@gmail.com",
+].filter(Boolean) as string[];
 
 // ── Upgrade recommendation logic ──────────────────────────────────────────────
 
@@ -956,7 +959,7 @@ export function AccountBilling() {
       </div>
 
       {/* ── Dev plan switcher — admin only ───────────────────────────────────── */}
-      {user && ADMIN_EMAIL && user.email === ADMIN_EMAIL && (
+      {user && ADMIN_EMAILS.includes(user.email) && (
         <div className="lg:col-span-2">
           <DevPlanSwitcher user={user} />
         </div>
