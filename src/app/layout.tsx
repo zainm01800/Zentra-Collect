@@ -71,9 +71,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
     ],
-    apple: "/apple-touch-icon.png",
+    // apple-icon.tsx in this directory auto-generates /apple-icon.png at 180×180
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.json",
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
@@ -96,6 +96,13 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
+      {/* Apple PWA meta tags — must be in <head> but Next.js puts these in <head> automatically */}
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Zentra Flow" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className="flex min-h-full flex-col">
         {/* Theme init — runs before hydration to prevent flash of wrong mode */}
         <Script
@@ -103,6 +110,26 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('zentra.theme.v1');if(t==='dark')document.documentElement.classList.add('dark');}catch{}})();`,
+          }}
+        />
+        {/* Service worker registration — enables PWA install + offline + push */}
+        <Script
+          id="sw-register"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                      console.log('[SW] Registered, scope:', reg.scope);
+                    })
+                    .catch(function(err) {
+                      console.warn('[SW] Registration failed:', err);
+                    });
+                });
+              }
+            `,
           }}
         />
         {plausibleDomain ? (

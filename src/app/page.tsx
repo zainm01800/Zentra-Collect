@@ -10,8 +10,8 @@ import {
   UserCheck,
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing-nav";
-import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
-import { CheckoutButton } from "@/components/billing/checkout-button";
+import type { PlanId } from "@/lib/account/plans";
+import { PricingSection } from "@/components/pricing-section";
 
 // Base plan price IDs — set in env vars, passed to Stripe checkout
 const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
@@ -316,88 +316,12 @@ export default function Home() {
         eyebrow="Pricing"
         title="Clear plans for small teams and bookkeepers."
       >
-        <p className="-mt-2 mb-6 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          Start with the demo. Move to a 14-day trial when you&apos;re ready to
-          import your own data. Upgrade to a paid plan to keep going.
-        </p>
-        <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-4">
-          {pricingPlanIds.map((planId) => {
-            const plan = getPlanConfig(planId);
-            const isFeatured = planId === "SINGLE_BUSINESS";
-            return (
-              <div
-                key={plan.id}
-                className="zn-card p-5"
-                style={
-                  isFeatured
-                    ? { borderColor: "var(--zn-ink)", boxShadow: "0 1px 0 rgba(29,24,19,0.04), 0 4px 18px -8px rgba(29,24,19,0.18)" }
-                    : undefined
-                }
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[13.5px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{plan.name}</span>
-                  {isFeatured ? (
-                    <span
-                      className="zn-chip"
-                      style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", borderColor: "transparent" }}
-                    >
-                      Recommended
-                    </span>
-                  ) : null}
-                </div>
-                <div
-                  className="mt-1 text-[34px] tracking-[-0.02em] tabular-nums"
-                  style={{
-                    fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
-                    fontWeight: 500,
-                  }}
-                >
-                  {formatPrice(plan.id)}
-                  <span className="text-[14px] ml-1" style={{ color: "var(--zn-ink-3)", fontFamily: "var(--font-geist-sans)" }}>
-                    {plan.priceMonthlyGbp === 0 ? "" : "/mo"}
-                  </span>
-                </div>
-                <p className="mt-3 text-[13px] leading-[1.5] min-h-[42px]" style={{ color: "var(--zn-ink-3)" }}>
-                  {pricingDescriptions[plan.id]}
-                </p>
-                <div className="mt-4 flex flex-col gap-2">
-                  {getPricingBullets(plan.id).map((feature) => (
-                    <div key={feature} className="flex items-start gap-2 text-[12.5px] text-[#3d3428] dark:text-[#d8ccb5]">
-                      <CheckCircle2 className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-safe)" }} />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                {planId === "TRIAL" ? (
-                  <Link
-                    href="/login?mode=signup"
-                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
-                  >
-                    Start free trial
-                  </Link>
-                ) : PLAN_PRICE_IDS[planId] ? (
-                  <CheckoutButton
-                    priceId={PLAN_PRICE_IDS[planId]!}
-                    planId={planId}
-                    cta="Get started"
-                    variant={isFeatured ? "primary" : "secondary"}
-                    className="mt-5"
-                  />
-                ) : (
-                  <Link
-                    href="/request-access"
-                    className="zn-pill zn-pill-ghost mt-5 w-full justify-center"
-                  >
-                    Request access
-                  </Link>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <p className="mt-6 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          All plans include a 14-day free trial. No card required to start. <Link href="/request-access" className="underline underline-offset-2">Contact us</Link> if you need a custom plan.
-        </p>
+        <PricingSection
+          plans={pricingPlanIds.map((planId) => ({
+            planId,
+            priceId: PLAN_PRICE_IDS[planId] || undefined,
+          }))}
+        />
       </Section>
 
       {/* ─── FAQ ─── */}
@@ -529,46 +453,3 @@ function Section({
   );
 }
 
-function formatPrice(planId: PlanId) {
-  const plan = getPlanConfig(planId);
-  if (plan.priceMonthlyGbp === 0) return "£0";
-  return `£${plan.priceMonthlyGbp}`;
-}
-
-function formatLimit(value: number | "unlimited") {
-  return value === "unlimited" ? "unlimited" : value.toLocaleString("en-GB");
-}
-
-function getPricingBullets(planId: PlanId) {
-  const plan = getPlanConfig(planId);
-  const activeInvoices = formatLimit(getPlanLimit(planId, "activeInvoiceCount") as number | "unlimited");
-  const clientLedgers = getPlanLimit(planId, "clientLedgerCount");
-  const aiActions =
-    planId === "TRIAL"
-      ? getPlanLimit(planId, "trialAiActionsUsed")
-      : getPlanLimit(planId, "aiActionsUsedThisMonth");
-  const imports =
-    planId === "TRIAL"
-      ? getPlanLimit(planId, "trialImportsUsed")
-      : getPlanLimit(planId, "importsUsedThisMonth");
-
-  if (planId === "TRIAL") {
-    return [
-      "No card required",
-      `${activeInvoices} active invoices`,
-      `${formatLimit(imports as number | "unlimited")} imports total`,
-      `${formatLimit(aiActions as number | "unlimited")} AI actions`,
-      "Export everything anytime",
-    ];
-  }
-
-  return [
-    plan.features.bookkeeperMode
-      ? `Up to ${formatLimit(clientLedgers as number | "unlimited")} client ledgers`
-      : `1 business`,
-    `${activeInvoices} active invoices`,
-    `${formatLimit(imports as number | "unlimited")} imports / month`,
-    `${formatLimit(aiActions as number | "unlimited")} AI actions / month`,
-    "Weekly digest preview",
-  ];
-}

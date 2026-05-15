@@ -69,6 +69,13 @@ import {
   setUsage,
   toBillingAccount,
 } from "@/lib/demo-auth";
+import {
+  readActiveClientId,
+  readBookkeeperClients,
+  clientInvoicesKey,
+  clientSummaryKey,
+  upsertBookkeeperClient,
+} from "@/lib/bookkeeper-clients";
 import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { ImportValidationIssue, ImportPreviewInvoice } from "@/lib/import/zentra-import";
@@ -93,6 +100,12 @@ export function ZentraImportFlow() {
   >({});
   const [message, setMessage] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [savedTemplate, setSavedTemplate] = useState<{
+    savedAt: string;
+    fileName: string;
+    mappings: Partial<Record<ImportTargetField, string>>;
+  } | null>(null);
+  const [templateApplied, setTemplateApplied] = useState(false);
 
   const validation = useMemo(
     () => validateImport(rows, headers, mappings),
@@ -122,30 +135,103 @@ export function ZentraImportFlow() {
     setMessage(null);
     setFileName(file.name);
 
-    if (file.name.toLowerCase().endsWith(".xlsx")) {
-      setMessage(
-        "XLSX support is planned next. For this MVP, please export or save the sheet as CSV.",
-      );
+    const nameLower = file.name.toLowerCase();
+    let parsed: { headers: string[]; rows: string[][] };
+
+    if (nameLower.endsWith(".xlsx") || nameLower.endsWith(".xls")) {
+      try {
+        // Dynamic import keeps SheetJS out of the initial bundle
+        const XLSX = await import("xlsx");
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!firstSheet) {
+          setMessage("This Excel file appears to be empty. Please check and try again.");
+          return;
+        }
+        // sheet_to_json with header:1 returns rows as arrays; first row = headers
+        const raw = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1, defval: "" });
+        if (raw.length < 2) {
+          setMessage("No data rows found in the Excel file. Please check the sheet has header and data rows.");
+          return;
+        }
+        const [headerRow, ...dataRows] = raw;
+        parsed = {
+          headers: headerRow.map((h, i) => (String(h).trim() || `Column ${i + 1}`)),
+          rows: dataRows
+            .filter((r) => r.some((cell) => String(cell).trim()))
+            .map((r) => r.map((cell) => String(cell ?? "").trim())),
+        };
+      } catch (err) {
+        console.error("[import] XLSX parse error:", err);
+        setMessage("Could not read this Excel file. Try exporting as CSV from your accounting tool.");
+        return;
+      }
+    } else if (nameLower.endsWith(".csv")) {
+      const text = await file.text();
+      parsed = parseCsv(text);
+    } else {
+      setMessage("Please upload a CSV or Excel (.xlsx) file. If your accounting tool exports a different format, try exporting as CSV.");
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setMessage("Please upload a CSV file. XLSX is marked as a TODO for now.");
-      return;
-    }
-
-    const text = await file.text();
-    const parsed = parseCsv(text);
     const suggestions = suggestColumnMappings(parsed.headers);
+
+    // Load saved template if available — try to auto-apply if columns match
+    let template: typeof savedTemplate = null;
+    let applied = false;
+    try {
+      const raw = localStorage.getItem(importMappingTemplateStorageKey);
+      if (raw) {
+        const t = JSON.parse(raw) as { savedAt: string; fileName: string; mappings: Partial<Record<ImportTargetField, string>> };
+        template = t;
+        // Check how many template columns still exist in the new file
+        const headerSet = new Set(parsed.headers);
+        const matchCount = Object.values(t.mappings).filter((col) => col && headerSet.has(col)).length;
+        const totalMapped = Object.values(t.mappings).filter(Boolean).length;
+        // Auto-apply if ≥50% of template columns match (same export structure)
+        if (totalMapped > 0 && matchCount / totalMapped >= 0.5) {
+          // Filter to only valid columns
+          const filteredMappings = Object.fromEntries(
+            Object.entries(t.mappings).map(([field, col]) => [
+              field,
+              col && headerSet.has(col) ? col : (suggestions[field as ImportTargetField]?.sourceColumn ?? ""),
+            ]),
+          );
+          setMappings(filteredMappings);
+          applied = true;
+        }
+      }
+    } catch { /* ignore */ }
+
+    setSavedTemplate(template);
+    setTemplateApplied(applied);
+
+    if (!applied) {
+      setMappings(
+        Object.fromEntries(
+          importFields.map((field) => [field, suggestions[field]?.sourceColumn ?? ""]),
+        ),
+      );
+    }
 
     setHeaders(parsed.headers);
     setRows(parsed.rows);
-    setMappings(
-      Object.fromEntries(
-        importFields.map((field) => [field, suggestions[field]?.sourceColumn ?? ""]),
-      ),
-    );
     setStep("mapping");
+  }
+
+  function applyTemplate() {
+    if (!savedTemplate) return;
+    const headerSet = new Set(headers);
+    const filteredMappings = Object.fromEntries(
+      Object.entries(savedTemplate.mappings).map(([field, col]) => [
+        field,
+        col && headerSet.has(col) ? col : "",
+      ]),
+    );
+    setMappings((current) => ({ ...current, ...filteredMappings }));
+    setTemplateApplied(true);
+    setMessage("Saved mapping template applied.");
   }
 
   function updateMapping(field: ImportTargetField, value: string) {
@@ -234,6 +320,27 @@ export function ZentraImportFlow() {
       }),
     );
 
+    // If in bookkeeper mode with an active client, also save to that client's
+    // dedicated storage keys so the portfolio view can show per-client data.
+    const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+    if (account && bookkeeperPlanIds.includes(account.planId)) {
+      const activeClientId = readActiveClientId();
+      if (activeClientId && activeClientId !== "all") {
+        localStorage.setItem(clientInvoicesKey(activeClientId), JSON.stringify(invoices));
+        localStorage.setItem(clientSummaryKey(activeClientId), JSON.stringify(summary));
+        // Update the client's metadata
+        const clients = readBookkeeperClients();
+        const client  = clients.find((c) => c.id === activeClientId);
+        if (client) {
+          upsertBookkeeperClient({
+            ...client,
+            importedAt: summary.importedAt,
+            fileName:   summary.fileName,
+          });
+        }
+      }
+    }
+
     incrementUsage("importBatches");
     incrementUsage("importsThisMonth");
     incrementImportUsage(accountState);
@@ -309,6 +416,42 @@ export function ZentraImportFlow() {
 
           {step === "mapping" ? (
             <>
+              {/* Saved template banner */}
+              {savedTemplate && !templateApplied && (
+                <div
+                  className="rounded-xl px-4 py-3 flex flex-wrap items-center gap-3"
+                  style={{
+                    background: "var(--zn-safe-soft, #edfbf1)",
+                    border: "1px solid var(--zn-safe, #22c55e)",
+                  }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[12.5px] font-semibold" style={{ color: "var(--zn-safe)" }}>
+                      Saved mapping template available
+                    </span>
+                    <span className="text-[12px] ml-2" style={{ color: "var(--zn-ink-3)" }}>
+                      Last used with: {savedTemplate.fileName}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyTemplate}
+                    className="zn-pill"
+                    style={{ height: 28, fontSize: 12, padding: "0 14px" }}
+                  >
+                    Apply template
+                  </button>
+                </div>
+              )}
+              {savedTemplate && templateApplied && (
+                <div
+                  className="rounded-xl px-4 py-2.5 flex items-center gap-2 text-[12.5px]"
+                  style={{ background: "var(--zn-safe-soft, #edfbf1)", border: "1px solid var(--zn-safe, #22c55e)", color: "var(--zn-safe)" }}
+                >
+                  <span className="font-semibold">✓</span>
+                  Saved mapping template applied — review the columns below.
+                </div>
+              )}
               <MappingPanel
                 fileName={fileName}
                 headers={headers}
