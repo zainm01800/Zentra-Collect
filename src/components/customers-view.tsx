@@ -1,11 +1,36 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Edit2, ExternalLink, Users, FileText } from "lucide-react";
+import { ArrowLeft, Edit2, ExternalLink, Users, FileText, Upload, Mail } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
+import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import type { Invoice } from "@/types/zentra";
+
+// ── Customer contact overrides storage ────────────────────────────────────────
+const CONTACT_OVERRIDES_KEY = "zentra.customerOverrides.v1";
+
+type ContactOverrides = Record<string, { name?: string; email?: string }>;
+
+function readContactOverrides(): ContactOverrides {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CONTACT_OVERRIDES_KEY);
+    return raw ? (JSON.parse(raw) as ContactOverrides) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveContactOverride(customerId: string, patch: { name?: string; email?: string }) {
+  const overrides = readContactOverrides();
+  overrides[customerId] = { ...overrides[customerId], ...patch };
+  try {
+    localStorage.setItem(CONTACT_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch { /* quota */ }
+}
 
 // ── Industry labels ────────────────────────────────────────────────────────────
 const INDUSTRY: Record<string, string> = {
@@ -55,8 +80,8 @@ function initials(name: string) {
 }
 
 // ── Per-customer stats derived from invoices ──────────────────────────────────
-function buildStats(customerId: string) {
-  const all = demoInvoices.filter((i) => i.customerId === customerId);
+function buildStats(customerId: string, invoices: Invoice[]) {
+  const all = invoices.filter((i) => i.customerId === customerId);
   const open = all.filter((i) => i.status !== "paid");
   const overdue = all.filter((i) => i.daysOverdue > 0 && i.status !== "paid");
 
@@ -75,6 +100,33 @@ function buildStats(customerId: string) {
   const sparkData = [base, base + 3, base + 6, base + 10, base + 15, avgDaysLate || base + 18];
 
   return { outstanding, avgDaysLate, remindersTypical, missedPromises, disputes, open, sparkData };
+}
+
+// ── Synthetic customer object built from imported invoices ────────────────────
+type VirtualCustomer = {
+  id: string;
+  name: string;
+  email?: string;
+  contactName?: string;
+  relationshipType: string;
+  customerNotes?: string;
+  creditLimit?: number;
+};
+
+function buildVirtualCustomers(invoices: Invoice[]): VirtualCustomer[] {
+  const map = new Map<string, VirtualCustomer>();
+  for (const inv of invoices) {
+    if (!map.has(inv.customerId)) {
+      map.set(inv.customerId, {
+        id: inv.customerId,
+        name: inv.customerName,
+        email: inv.customerEmail,
+        relationshipType: inv.relationshipType ?? "client",
+        customerNotes: inv.customerNotes,
+      });
+    }
+  }
+  return Array.from(map.values());
 }
 
 // ── Risk derived from outstanding / daysOverdue ───────────────────────────────
@@ -163,58 +215,140 @@ function CreditLimitBar({ outstanding, creditLimit }: { outstanding: number; cre
 }
 
 // ── Customer detail panel ─────────────────────────────────────────────────────
-export function CustomerDetail({ customerId }: { customerId: string }) {
-  const customer = demoCustomers.find((c) => c.id === customerId);
+export function CustomerDetail({
+  customerId,
+  customer: propCustomer,
+  invoices: propInvoices,
+  isImported = false,
+}: {
+  customerId: string;
+  customer?: VirtualCustomer;
+  invoices?: Invoice[];
+  /** True for real users — enables contact editing */
+  isImported?: boolean;
+}) {
+  const rawCustomer = propCustomer ?? demoCustomers.find((c) => c.id === customerId);
+  const invoices = propInvoices ?? demoInvoices;
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  if (!customer) return null;
+  const [editingContact, setEditingContact] = useState(false);
+  const [contactOverride, setContactOverride] = useState<{ name?: string; email?: string }>({});
 
-  const stats = buildStats(customerId);
+  // Load contact overrides from localStorage on mount
+  useEffect(() => {
+    const overrides = readContactOverrides();
+    setContactOverride(overrides[customerId] ?? {});
+  }, [customerId]);
+
+  if (!rawCustomer) return null;
+
+  // Merge overrides: show edited values, fall back to raw customer data
+  const customer = {
+    ...rawCustomer,
+    name:  contactOverride.name  ?? rawCustomer.name,
+    email: contactOverride.email ?? rawCustomer.email,
+  };
+
+  const stats = buildStats(customerId, invoices);
   const oldest = stats.open.length
     ? Math.max(...stats.open.map((i) => i.daysOverdue))
     : 0;
   const risk = riskLevel(oldest);
   const color = avatarColor(customer.name);
-  const industry = INDUSTRY[customer.name] ?? customer.relationshipType;
-  const behaviourNote = note ?? customer.customerNotes;
+  const industry = INDUSTRY[rawCustomer.name] ?? rawCustomer.relationshipType;
+  const behaviourNote = note ?? rawCustomer.customerNotes ?? "";
 
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
       <div className="zn-card p-5 lg:p-6">
         <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
             <div
               className="size-12 rounded-xl flex items-center justify-center text-[15px] font-semibold flex-shrink-0"
               style={{ background: color.bg, color: color.text }}
             >
               {initials(customer.name)}
             </div>
-            <div>
-              <h2 className="text-[20px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] leading-tight">
-                {customer.name}
-              </h2>
-              <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-                <span>{industry}</span>
-                {customer.contactName && (
-                  <>
-                    <span>·</span>
-                    <span>{customer.contactName}</span>
-                  </>
-                )}
-                {customer.email && (
-                  <>
-                    <span>·</span>
-                    <a
-                      href={`mailto:${customer.email}`}
-                      className="hover:underline"
-                      style={{ color: "var(--zn-ink-3)" }}
+            <div className="min-w-0 flex-1">
+              {editingContact ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>
+                      Display name
+                    </label>
+                    <input
+                      type="text"
+                      value={contactOverride.name ?? customer.name}
+                      onChange={(e) => setContactOverride((o) => ({ ...o, name: e.target.value }))}
+                      className="w-full rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
+                      style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)", color: "var(--zn-ink)" }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={contactOverride.email ?? customer.email ?? ""}
+                      onChange={(e) => setContactOverride((o) => ({ ...o, email: e.target.value }))}
+                      className="w-full rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
+                      style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)", color: "var(--zn-ink)" }}
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      className="zn-pill"
+                      style={{ height: 26, fontSize: 11.5, padding: "0 12px" }}
+                      onClick={() => {
+                        saveContactOverride(customerId, contactOverride);
+                        setEditingContact(false);
+                      }}
                     >
-                      {customer.email}
-                    </a>
-                  </>
-                )}
-              </div>
+                      Save
+                    </button>
+                    <button
+                      className="zn-pill zn-pill-ghost"
+                      style={{ height: 26, fontSize: 11.5, padding: "0 12px" }}
+                      onClick={() => {
+                        const overrides = readContactOverrides();
+                        setContactOverride(overrides[customerId] ?? {});
+                        setEditingContact(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-[20px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] leading-tight">
+                    {customer.name}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+                    <span>{industry}</span>
+                    {customer.contactName && (
+                      <>
+                        <span>·</span>
+                        <span>{customer.contactName}</span>
+                      </>
+                    )}
+                    {customer.email && (
+                      <>
+                        <span>·</span>
+                        <a
+                          href={`mailto:${customer.email}`}
+                          className="hover:underline"
+                          style={{ color: "var(--zn-ink-3)" }}
+                        >
+                          {customer.email}
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -228,6 +362,17 @@ export function CustomerDetail({ customerId }: { customerId: string }) {
               />
               {RISK_LABEL[risk]}
             </span>
+            {isImported && !editingContact && (
+              <button
+                type="button"
+                onClick={() => setEditingContact(true)}
+                className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+                title="Edit contact"
+                aria-label="Edit contact name and email"
+              >
+                <Mail className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+              </button>
+            )}
             <Link
               href={`/customers/${customerId}/statement`}
               onClick={(e) => e.stopPropagation()}
@@ -320,9 +465,13 @@ export function CustomerDetail({ customerId }: { customerId: string }) {
               </button>
             </div>
           </div>
-        ) : (
+        ) : behaviourNote ? (
           <p className="text-[13.5px] italic leading-relaxed" style={{ color: "var(--zn-ink-2)" }}>
             &ldquo;{behaviourNote}&rdquo;
+          </p>
+        ) : (
+          <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+            No note yet. Click Edit to add one.
           </p>
         )}
       </div>
@@ -396,20 +545,50 @@ export function CustomerDetail({ customerId }: { customerId: string }) {
 export function CustomersView() {
   const { account } = useLocalAccount();
   const isDemo = account?.planId === "demo";
+
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string>(demoCustomers[0]?.id ?? "");
   const [mobileDetail, setMobileDetail] = useState(false);
 
+  // ── Load imported invoices from localStorage for real users ────────────────
+  const [importedInvoices, setImportedInvoices] = useState<Invoice[]>([]);
+  useEffect(() => {
+    if (isDemo) return;
+    try {
+      const raw = localStorage.getItem(importedInvoicesStorageKey);
+      if (raw) setImportedInvoices(JSON.parse(raw) as Invoice[]);
+    } catch {
+      // ignore parse errors
+    }
+  }, [isDemo]);
+
+  // ── Build virtual customers from imported invoices ────────────────────────
+  const virtualCustomers = useMemo(
+    () => (isDemo ? [] : buildVirtualCustomers(importedInvoices)),
+    [isDemo, importedInvoices],
+  );
+
+  // ── Combine source-of-truth depending on mode ─────────────────────────────
+  const sourceCustomers = isDemo ? demoCustomers : virtualCustomers;
+  const sourceInvoices  = isDemo ? demoInvoices  : importedInvoices;
+
   const customerStats = useMemo(() => {
-    if (!isDemo) return [];
-    return demoCustomers.map((c) => {
-      const all = demoInvoices.filter((i) => i.customerId === c.id);
+    return sourceCustomers.map((c) => {
+      const all = sourceInvoices.filter((i) => i.customerId === c.id);
       const open = all.filter((i) => i.status !== "paid");
       const oldest = open.length ? Math.max(...open.map((i) => i.daysOverdue)) : 0;
       const outstanding = open.reduce((s, i) => s + i.amountOutstanding, 0);
       return { ...c, outstanding, oldest, risk: riskLevel(oldest) };
     }).sort((a, b) => b.outstanding - a.outstanding);
-  }, [isDemo]);
+  }, [sourceCustomers, sourceInvoices]);
+
+  const [selectedId, setSelectedId] = useState<string>("");
+
+  // Auto-select first customer once data loads
+  useEffect(() => {
+    if (customerStats.length > 0 && !selectedId) {
+      setSelectedId(customerStats[0].id);
+    }
+  }, [customerStats, selectedId]);
 
   const filtered = useMemo(() =>
     customerStats.filter((c) =>
@@ -418,7 +597,8 @@ export function CustomersView() {
     ),
   [customerStats, query]);
 
-  if (!isDemo && customerStats.length === 0) {
+  // ── Empty state for authenticated users with no imports ───────────────────
+  if (!isDemo && importedInvoices.length === 0) {
     return (
       <div
         className="flex flex-col items-center justify-center gap-4 rounded-2xl p-14 text-center"
@@ -436,6 +616,14 @@ export function CustomersView() {
             Import an invoice export to see your customers here.
           </p>
         </div>
+        <Link
+          href="/import"
+          className="flex items-center gap-2 zn-pill"
+          style={{ height: 36, padding: "0 18px", fontSize: 13 }}
+        >
+          <Upload className="size-3.5" />
+          Import invoices
+        </Link>
       </div>
     );
   }
@@ -444,6 +632,10 @@ export function CustomersView() {
     setSelectedId(id);
     setMobileDetail(true);
   }
+
+  const selectedCustomer = isDemo
+    ? undefined
+    : virtualCustomers.find((c) => c.id === selectedId);
 
   return (
     <div className="flex gap-5 min-h-0 relative">
@@ -557,7 +749,12 @@ export function CustomersView() {
               <ArrowLeft className="size-4" />
               All customers
             </button>
-            <CustomerDetail customerId={selectedId} />
+            <CustomerDetail
+              customerId={selectedId}
+              customer={selectedCustomer}
+              invoices={isDemo ? undefined : sourceInvoices}
+              isImported={!isDemo}
+            />
           </>
         ) : (
           <div className="zn-card p-10 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>

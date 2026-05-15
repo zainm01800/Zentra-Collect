@@ -9,6 +9,7 @@ import {
   BarChart3,
   Building2,
   CalendarClock,
+  Calculator,
   ChevronRight,
   CreditCard,
   FileText,
@@ -68,6 +69,7 @@ const collectionsNav: NavItem[] = [
   { href: "/customers",   label: "Customers",       icon: Users },
   { href: "/promises",    label: "Promises",        icon: AlertTriangle },
   { href: "/disputes",    label: "Disputes",        icon: ShieldAlert },
+  { href: "/tools",       label: "Tools",           icon: Calculator },
 ];
 
 const financeNav: NavItem[] = [

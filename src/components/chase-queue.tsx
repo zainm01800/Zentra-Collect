@@ -26,9 +26,12 @@ const RISK_FOR_DAYS = (d: number): "low" | "med" | "high" =>
 export function ChaseQueue({
   initialInvoices,
   onlyToday = true,
+  onInvoiceStatusChange,
 }: {
   initialInvoices: Invoice[];
   onlyToday?: boolean;
+  /** Called after every outcome is recorded so callers can persist the change. */
+  onInvoiceStatusChange?: (invoiceId: string, nextStatus: string | null) => void;
 }) {
   const [invoices, setInvoices] = useState(initialInvoices);
   const [query, setQuery] = useState("");
@@ -115,6 +118,9 @@ export function ChaseQueue({
           };
         }),
       );
+
+      // Persist status change to localStorage so the data survives a page reload
+      onInvoiceStatusChange?.(invoiceId, nextStatus);
 
       // Free a slot in the waiting queue when an invoice is resolved.
       // "paid" and "snooze" (dismiss) both release a slot for the next waiting invoice.

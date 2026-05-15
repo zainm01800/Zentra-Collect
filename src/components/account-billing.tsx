@@ -36,6 +36,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { UsageMeter, UsageSnapshot } from "@/lib/usage/tracker";
 import { getPlan, type Plan } from "@/lib/billing/plans";
+import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import type { Invoice } from "@/types/zentra";
 
 // ── Upgrade recommendation logic ──────────────────────────────────────────────
 
@@ -264,6 +266,70 @@ const SAFETY_CONTROLS = [
 ] as const;
 
 // ── Main component ────────────────────────────────────────────────────────────
+
+// ── CSV export helper ─────────────────────────────────────────────────────────
+
+function exportInvoicesCsv() {
+  try {
+    const raw = localStorage.getItem(importedInvoicesStorageKey);
+    const invoices: Invoice[] = raw ? JSON.parse(raw) : [];
+    if (!invoices.length) {
+      alert("No invoice data found. Import an invoice file first.");
+      return;
+    }
+
+    const escape = (v: string | number | undefined | null) => {
+      const s = String(v ?? "");
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const headers = [
+      "Invoice number",
+      "Customer name",
+      "Customer email",
+      "Invoice date",
+      "Due date",
+      "Days overdue",
+      "Amount",
+      "Amount outstanding",
+      "Currency",
+      "Status",
+      "Chase count",
+      "Last chased",
+    ];
+
+    const rows = invoices.map((inv) => [
+      escape(inv.invoiceNumber),
+      escape(inv.customerName),
+      escape(inv.customerEmail ?? ""),
+      escape(inv.invoiceDate),
+      escape(inv.dueDate ?? ""),
+      escape(inv.daysOverdue),
+      escape(inv.amount),
+      escape(inv.amountOutstanding),
+      escape(inv.currency),
+      escape(inv.status),
+      escape(inv.previousChaseCount),
+      escape(inv.lastChasedDate ?? ""),
+    ]);
+
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `zentra-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("[export] CSV export failed:", err);
+    alert("Export failed. Please try again.");
+  }
+}
 
 export function AccountBilling() {
   const [snapshot, setSnapshot] = useState<UsageSnapshot | null>(null);
@@ -618,14 +684,11 @@ export function AccountBilling() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled
-                className="w-full justify-start gap-2 rounded-lg text-neutral-400 disabled:opacity-60"
+                onClick={exportInvoicesCsv}
+                className="w-full justify-start gap-2 rounded-lg"
               >
                 <Download className="size-3.5" />
                 Export all data (CSV)
-                <span className="ml-auto rounded bg-neutral-100 dark:bg-[#28231c] px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
-                  Coming soon
-                </span>
               </Button>
               <Button
                 variant="outline"
