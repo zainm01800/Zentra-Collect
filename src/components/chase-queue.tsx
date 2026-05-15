@@ -17,6 +17,8 @@ import {
 } from "@/lib/invoice-logic";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { freeSlot, readWaitingInvoices } from "@/lib/collections/queue-engine";
+import { computeCustomerRiskMap } from "@/lib/risk-score";
+import { RiskBadge } from "@/components/risk-badge";
 import type { Invoice } from "@/types/cashpilot";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
@@ -193,6 +195,16 @@ export function ChaseQueue({
     );
   }, [filter, invoices, onlyToday, query]);
 
+  /**
+   * Customer-level risk scores computed once across ALL invoices (not just the
+   * filtered queue). This way a customer's risk reflects their full payment
+   * history even when only one of their invoices is currently in view.
+   */
+  const customerRiskMap = useMemo(
+    () => computeCustomerRiskMap(invoices),
+    [invoices],
+  );
+
   const filteredWaiting = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return waitingInvoices;
@@ -332,9 +344,14 @@ export function ChaseQueue({
                       {idx + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[13.5px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">
-                        {inv.customerName}
-                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-[13.5px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">
+                          {inv.customerName}
+                        </p>
+                        {customerRiskMap.get(inv.customerName) && (
+                          <RiskBadge risk={customerRiskMap.get(inv.customerName)!} size="sm" />
+                        )}
+                      </div>
                       <p className="text-[11.5px] mt-0.5 font-mono" style={{ color: "var(--zn-ink-3)" }}>
                         {inv.invoiceNumber}
                         {inv.daysOverdue > 0 && (
@@ -456,17 +473,22 @@ export function ChaseQueue({
                     </td>
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex flex-col">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openCustomer(inv.customerName);
-                          }}
-                          className="text-[13.5px] font-semibold text-left text-[#1d1813] dark:text-[#f0e8d5] hover:underline truncate"
-                          style={{ background: "transparent", border: 0, padding: 0 }}
-                        >
-                          {inv.customerName}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCustomer(inv.customerName);
+                            }}
+                            className="text-[13.5px] font-semibold text-left text-[#1d1813] dark:text-[#f0e8d5] hover:underline truncate"
+                            style={{ background: "transparent", border: 0, padding: 0 }}
+                          >
+                            {inv.customerName}
+                          </button>
+                          {customerRiskMap.get(inv.customerName) && (
+                            <RiskBadge risk={customerRiskMap.get(inv.customerName)!} size="sm" />
+                          )}
+                        </div>
                         <span className="zn-kind-tag mt-0.5">{inv.invoiceNumber}</span>
                       </div>
                     </td>
