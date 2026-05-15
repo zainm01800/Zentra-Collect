@@ -2,6 +2,7 @@ import { ZentraDashboard }       from "@/components/zentra-dashboard";
 import { CheckoutSuccessBanner } from "@/components/checkout-success-banner";
 import { FinancialHeader }       from "@/components/financial-header";
 import { OutcomeSummaryBar }     from "@/components/outcome-summary-bar";
+import { CashForecastCard }      from "@/components/cash-forecast-card";
 
 import { getInvoices }                                    from "@/lib/api/db";
 import { getFinancialSettings, getMonthlyIncomeSummary }  from "@/actions/financial-settings";
@@ -61,6 +62,9 @@ export default async function DashboardPage({
 
       {/* Recovery stats — visible once outcomes have been logged */}
       <OutcomeSummaryBar />
+
+      {/* Cash forecast — probability-weighted projection from invoice data */}
+      <CashForecastCard />
 
       {/* ── Collections — primary purpose of the app ── */}
       <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
