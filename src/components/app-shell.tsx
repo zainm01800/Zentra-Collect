@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
+import { PushPermission } from "@/components/push-permission";
 import { TrialStatusBanner } from "@/components/trial-banners";
 import { QueueStatusBar } from "@/components/queue-status-bar";
 import { AutoSendToggle } from "@/components/auto-send-toggle";
@@ -572,6 +573,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* Review drawer (fixed-position, overlays page) */}
       <ReviewDrawer allInvoices={allInvoices} />
+
+      {/* Push notification permission banner — appears after 8 s, dismissed on click */}
+      <PushPermission delayMs={8000} />
     </div>
   );
 }

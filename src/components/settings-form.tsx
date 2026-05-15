@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail, Save, CheckCircle2, AlertTriangle, Zap, Eye, EyeOff } from "lucide-react";
+import { NotificationToggle } from "@/components/push-permission";
 import { useEffect, useState } from "react";
 import { WorkspaceSetupCard } from "@/components/workspace-setup-card";
 import { UpgradePromptModal } from "@/components/billing-gates";
@@ -222,6 +223,17 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
                 <p className="text-sm text-muted-foreground">
                   Billing is managed securely via Stripe. To update your plan or payment details, contact support.
                 </p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-lg">
+              <CardHeader className="pb-3">
+                <CardTitle>Push notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Get a morning digest and escalation alerts on this device — without opening the app.
+                </p>
+                <NotificationToggle />
               </CardContent>
             </Card>
           </div>
