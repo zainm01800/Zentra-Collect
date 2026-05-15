@@ -55,6 +55,8 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** If true: renders as a dimmed non-clickable "coming soon" item instead of a Link. */
+  comingSoon?: boolean;
 };
 
 const overviewNav: NavItem[] = [
@@ -70,15 +72,15 @@ const collectionsNav: NavItem[] = [
   { href: "/promises",    label: "Promises",        icon: AlertTriangle },
   { href: "/disputes",    label: "Disputes",        icon: ShieldAlert },
   { href: "/tools",       label: "Tools",           icon: Calculator },
+  { href: "/reports",     label: "Reports",         icon: BarChart3 },
 ];
 
 const financeNav: NavItem[] = [
-  { href: "/banking",    label: "Bank feed",    icon: Building2 },
+  { href: "/banking",    label: "Bank feed",    icon: Building2,       comingSoon: true },
   { href: "/expenses",   label: "Expenses",     icon: Receipt },
   { href: "/tax",        label: "Tax reserve",  icon: PiggyBank },
   { href: "/mtd",        label: "MTD",          icon: CalendarClock },
-  { href: "/aged-debt",  label: "Aged debt",    icon: TableProperties },
-  { href: "/reports",    label: "Reports",      icon: BarChart3 },
+  { href: "/aged-debt",  label: "Aged debt",    icon: TableProperties, comingSoon: true },
 ];
 
 /**
@@ -131,6 +133,25 @@ function writeCollapse(state: Record<string, boolean>) {
 // ── NavLink ───────────────────────────────────────────────────────────────────
 
 function NavLink({ item, active, badge, onHide }: { item: NavItem; active: boolean; badge?: number; onHide?: () => void }) {
+  if (item.comingSoon) {
+    return (
+      <div
+        className="flex items-center gap-2 px-1.5 py-1.5 rounded-lg select-none"
+        style={{ opacity: 0.45, cursor: "default" }}
+        title={`${item.label} — coming soon`}
+      >
+        <item.icon className="zn-nav-icon size-4 flex-shrink-0" />
+        <span className="flex-1 truncate text-[13px]" style={{ color: "var(--zn-ink-2)" }}>{item.label}</span>
+        <span
+          className="text-[9px] font-semibold tracking-[0.06em] px-1.5 py-0.5 rounded-full"
+          style={{ background: "var(--zn-line)", color: "var(--zn-ink-3)" }}
+        >
+          SOON
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="group/navitem flex items-center gap-0.5">
       <Link

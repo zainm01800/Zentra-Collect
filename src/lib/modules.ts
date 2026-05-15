@@ -70,7 +70,7 @@ export const MODULES: Record<ModuleKey, ModuleConfig> = {
     key: "reports",
     label: "Reports",
     description: "Monthly snapshots and year-end summaries.",
-    navHrefs: ["/reports"],
+    navHrefs: [], // /reports is now part of the core collections nav
     requiredPlan: "bookkeeper_starter",
     alwaysOn: false,
   },
@@ -168,10 +168,10 @@ export function planUnlocksModule(planId: PlanId | undefined, key: ModuleKey): b
 export function defaultModulesForPlan(planId: PlanId | undefined): Record<ModuleKey, boolean> {
   if (!planId) return moduleSet("collections");
   if (planId.startsWith("bookkeeper") || planId === "founding_bookkeeper") {
-    return PERSONAS[2].modules; // Bookkeeper
+    return PERSONAS[4].modules; // Everything (collections + cashflow + expenses + tax + reports)
   }
   if (planId === "single_business" || planId === "founding_single_business") {
-    return PERSONAS[1].modules; // Solo
+    return PERSONAS[3].modules; // Solo (collections + cashflow + tax)
   }
-  return PERSONAS[1].modules;     // Solo as a safe middle default
+  return moduleSet("collections"); // Collections only for demo/trial/starter
 }

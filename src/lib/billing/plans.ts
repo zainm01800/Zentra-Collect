@@ -149,7 +149,7 @@ export function getPlan(planId: PlanId): Plan {
   const featuresMap: Record<PlanId, string[]> = {
     demo: ["Sample invoices only", "3 AI drafts included", "Ranked chase plan"],
     trial: ["Real invoice exports", "25 AI actions", "Full decision engine"],
-    starter_solo: ["50 active invoices", "10 AI actions/mo", "2 imports/month"],
+    starter_solo: ["50 active invoices", "75 AI actions/mo", "5 imports/month"],
     founding_single_business: ["500 active invoices", "150 AI actions/mo", "Price locked for 12mo"],
     founding_bookkeeper: ["1,500 active invoices", "300 AI actions/mo", "Up to 5 client ledgers"],
     single_business: ["500 active invoices", "200 AI actions/mo", "Saved import templates"],
@@ -218,7 +218,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 3,
       trial: 25,
-      starter_solo: 10,
+      starter_solo: 75,
       founding_single_business: 150,
       founding_bookkeeper: 300,
       single_business: 200,
