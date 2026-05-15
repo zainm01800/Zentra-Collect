@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DSOCard } from "@/components/dso-card";
 import {
   LockedFeatureCard,
   UpgradePromptModal,
@@ -877,8 +878,8 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         />
       ) : null}
 
-      {/* 5-stat row */}
-      <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+      {/* 6-stat row — 5 collections stats + DSO */}
+      <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-6">
         {summary.map((item, index) => (
           <div key={item.label} className="zn-stat">
             <div className="flex items-center justify-between mb-2.5">
@@ -896,6 +897,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
             </p>
           </div>
         ))}
+        <DSOCard />
       </section>
 
       {/* Body: reflows to single column when right column is empty */}

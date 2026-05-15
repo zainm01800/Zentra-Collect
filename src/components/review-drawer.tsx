@@ -44,6 +44,7 @@ type Scenario =
   | "statement"
   | "dispute"
   | "ap_contact"
+  | "pre_action"
   | "escalate"
   | "hold";
 
@@ -55,6 +56,7 @@ const SCENARIOS: { key: Scenario; label: string }[] = [
   { key: "statement",  label: "Send statement of account" },
   { key: "dispute",    label: "Respond to dispute" },
   { key: "ap_contact", label: "Ask for AP contact" },
+  { key: "pre_action", label: "Pre-action notice" },
   { key: "escalate",   label: "Internal escalation" },
   { key: "hold",       label: "Do not chase" },
 ];
@@ -203,6 +205,35 @@ function templateFor(
         reason:  `Contact unresponsive · routing to AP improves the reply rate`,
       };
     }
+    case "pre_action": {
+      // Formal pre-action notice — used after multiple chases when the user
+      // wants the customer to engage before any further steps.
+      //
+      // Wording aligns with the UK Pre-Action Protocol for Debt Claims (2017):
+      //   - References the invoice and amount clearly
+      //   - States a 14-day response window
+      //   - Invites the customer to engage / pay / dispute via a clear route
+      //   - Avoids "we will sue you" language — uses "further steps" instead
+      //
+      // Always firm in tone regardless of the tone toggle. The disclaimer
+      // reminds the user this is a template, not legal advice.
+      const interestNote = days >= 14
+        ? `\n\nStatutory interest and reasonable recovery costs may continue to accrue on the outstanding balance under the Late Payment of Commercial Debts (Interest) Act 1998 while it remains unpaid.`
+        : "";
+      const body =
+        `${greet}\n\n` +
+        `This is a formal pre-action notice regarding invoice ${ref} for ${amount}, originally due on ${due} and now ${days} day${days === 1 ? "" : "s"} overdue. The amount remains outstanding despite previous reminders.${interestNote}\n\n` +
+        `Please arrange payment in full within 14 days of receipt of this notice. ` +
+        `If you wish to dispute any element of the invoice, please reply with the specific items in dispute and any supporting evidence so we can resolve it. ` +
+        `If you would like to propose a payment plan, please reply with proposed dates and amounts.\n\n` +
+        `If we do not receive payment, a substantive response, or a reasonable payment proposal within 14 days, we will consider what further steps are available to recover the debt.\n\n` +
+        `We would much prefer to resolve this directly with you. Please do reply.\n\n${signoff}`;
+      return {
+        subject: `Pre-action notice — invoice ${ref}`,
+        body,
+        reason: `Multiple chases without resolution · formal pre-action notice with 14-day response window (UK Pre-Action Protocol for Debt Claims)`,
+      };
+    }
     case "escalate":
       // Internal note — tone affects the urgency framing
       return {
@@ -230,6 +261,7 @@ const TONE_DEFAULT: Record<Scenario, ReminderTone> = {
   statement: "Neutral",
   dispute: "Firm",
   ap_contact: "Neutral",
+  pre_action: "Firm",
   escalate: "Firm",
   hold: "Neutral",
 };

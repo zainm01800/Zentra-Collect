@@ -8,11 +8,42 @@
  * Designed for screen + @media print (browser PDF save).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Printer } from "lucide-react";
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { demoSingleBusiness } from "@/lib/demo-data/zentra-demo-data";
 import { readLocalAccount } from "@/lib/demo-auth";
+import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import {
+  readActiveClientId,
+  clientInvoicesKey,
+} from "@/lib/bookkeeper-clients";
+import type { Invoice as ZentraInvoice } from "@/types/zentra";
+
+const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+
+function resolveInvoiceKey(planId: string): string {
+  if (BOOKKEEPER_PLAN_IDS.includes(planId)) {
+    const activeClientId = readActiveClientId();
+    if (activeClientId && activeClientId !== "all") {
+      return clientInvoicesKey(activeClientId);
+    }
+  }
+  return importedInvoicesStorageKey;
+}
+
+function readRealInvoices(planId: string): ZentraInvoice[] {
+  if (typeof window === "undefined") return [];
+  const key = resolveInvoiceKey(planId);
+  const stored = window.localStorage.getItem(key);
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored) as ZentraInvoice[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function fmtGBP(n: number) {
   return new Intl.NumberFormat("en-GB", {
@@ -48,40 +79,105 @@ interface StatementInvoice {
 }
 
 export function CustomerStatement({ customerId }: { customerId: string }) {
-  const [isDemo, setIsDemo] = useState(false);
+  // Account state, loaded on mount.
+  const [localAccount, setLocalAccount] = useState<ReturnType<typeof readLocalAccount>>(null);
 
   useEffect(() => {
-    const local = readLocalAccount();
-    setIsDemo(local?.planId === "demo");
+    setLocalAccount(readLocalAccount());
   }, []);
 
-  const customer = demoCustomers.find((c) => c.id === customerId);
-  if (!customer) {
+  const isDemo = localAccount?.planId === "demo";
+
+  // ── Resolve customer + invoices for both demo and real-user paths ─────────
+  const data = useMemo(() => {
+    if (!localAccount) return null;
+
+    if (isDemo) {
+      const customer = demoCustomers.find((c) => c.id === customerId);
+      if (!customer) return { notFound: true } as const;
+      const all = demoInvoices.filter((i) => i.customerId === customerId);
+      return {
+        customer: {
+          name: customer.name,
+          contactName: customer.contactName,
+          contactRole: customer.contactRole,
+          apEmail: customer.apEmail,
+        },
+        invoices: all,
+        business: {
+          name: demoSingleBusiness.name,
+          tradingName: demoSingleBusiness.tradingName,
+          replyToEmail: demoSingleBusiness.replyToEmail,
+        },
+      };
+    }
+
+    // ── Real-user path ──────────────────────────────────────────────────────
+    const realInvoices = readRealInvoices(localAccount.planId);
+    const matchingInvoices = realInvoices.filter((i) => i.customerId === customerId);
+    if (matchingInvoices.length === 0) return { notFound: true } as const;
+
+    // Derive customer info from the imported invoices (real users don't have
+    // a separate customer record — just the rows from their CSV).
+    const customerName = matchingInvoices[0].customerName;
+    const customerEmail = matchingInvoices[0].customerEmail;
+    const contactRole = matchingInvoices[0].customerContactRole;
+
+    return {
+      customer: {
+        name: customerName,
+        contactName: undefined,
+        contactRole,
+        apEmail: customerEmail,
+      },
+      invoices: matchingInvoices,
+      business: {
+        name: localAccount.businessName || localAccount.name || "Your business",
+        tradingName: undefined,
+        replyToEmail: localAccount.email,
+      },
+    };
+  }, [localAccount, isDemo, customerId]);
+
+  if (!localAccount) {
     return (
       <div className="py-16 text-center text-[14px]" style={{ color: "var(--zn-ink-3)" }}>
-        Customer not found.
+        Loading statement…
       </div>
     );
   }
 
-  if (!isDemo) {
+  if (!data || ("notFound" in data && data.notFound)) {
     return (
       <div className="py-16 text-center text-[14px]" style={{ color: "var(--zn-ink-3)" }}>
-        Import your invoices to generate a statement.
+        {isDemo
+          ? "Customer not found."
+          : "No imported invoices for this customer. Import an AR export to generate a statement."}
       </div>
     );
   }
 
-  const all = demoInvoices.filter((i) => i.customerId === customerId);
+  const customer = data.customer;
+  const all = data.invoices;
+  const business = data.business;
+
   const open: StatementInvoice[] = all
-    .filter((i) => i.status?.toLowerCase() !== "paid" && i.amountOutstanding > 0)
+    .filter((i) => (i.status as string).toLowerCase() !== "paid" && (i.amountOutstanding ?? 0) > 0)
+    .map((i) => ({
+      id: i.id,
+      invoiceNumber: i.invoiceNumber,
+      invoiceDate: i.invoiceDate,
+      dueDate: i.dueDate ?? undefined,
+      amount: i.amount,
+      amountOutstanding: i.amountOutstanding ?? i.amount,
+      daysOverdue: i.daysOverdue,
+      status: i.status as string,
+    }))
     .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
 
   const totalOutstanding = open.reduce((s, i) => s + i.amountOutstanding, 0);
   const overdueInvoices = open.filter((i) => i.daysOverdue > 0);
   const totalOverdue = overdueInvoices.reduce((s, i) => s + i.amountOutstanding, 0);
-
-  const business = demoSingleBusiness;
 
   return (
     <div>
