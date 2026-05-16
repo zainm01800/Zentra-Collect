@@ -37,6 +37,7 @@ import { generateWeeklyDigestBrief } from "@/lib/collections/weekly-digest";
 import { buildCustomerBehaviourProfile } from "@/lib/collections/customer-behaviour";
 import { canUseFeature } from "@/lib/billing/plans";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
+import { AiDigestNarration } from "@/components/ai-digest-narration";
 import type { Customer, Invoice } from "@/types/zentra";
 
 export function ZentraWeeklyDigest() {
@@ -78,8 +79,8 @@ export function ZentraWeeklyDigest() {
           <div className="zn-label mb-1.5">Weekly digest</div>
           <h1 className="zn-page-h1">This week&apos;s collections brief</h1>
           <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
-            A Monday-ready summary for owners and bookkeepers. Preview only, no
-            emails are sent.
+            A Monday-ready summary for owners and bookkeepers — plus an
+            AI-narrated Sunday brief you can email to yourself.
           </p>
         </div>
         <Link href="/chase-today" className="zn-pill">
@@ -87,6 +88,9 @@ export function ZentraWeeklyDigest() {
           <ArrowRight className="size-3.5" />
         </Link>
       </section>
+
+      {/* AI Sunday brief — generate + email yourself the narrated version */}
+      <AiDigestNarration brief={digest} recipientName={account?.businessName ?? "there"} />
 
       <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <DigestStat
