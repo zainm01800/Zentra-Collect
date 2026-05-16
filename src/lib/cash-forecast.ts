@@ -116,6 +116,50 @@ function expectedWindow(
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+// ── Per-invoice prediction (used by the chase queue confidence badge) ────────
+
+export interface InvoicePrediction {
+  /** "30" | "60" | "90" | "out" — when payment is most likely to land. */
+  window: ForecastWindow | "out";
+  /** 0–1 probability of payment landing in the predicted window. */
+  probability: number;
+  /** Human-readable confidence label. */
+  confidence: "high" | "medium" | "low";
+  /** Short summary suitable for a tooltip — e.g. "Likely paid by Fri 23 May (78%)". */
+  summary: string;
+}
+
+/**
+ * Predict the payment outcome for a single invoice. Uses the same probability
+ * + window model as computeCashForecast — pulled out as a public helper so
+ * the chase queue can surface per-row confidence without recomputing the
+ * whole forecast.
+ */
+export function predictInvoiceOutcome(
+  inv: Invoice,
+  allInvoices: Invoice[],
+): InvoicePrediction {
+  const riskMap = computeCustomerRiskMap(allInvoices);
+  const riskLevel = (riskMap.get(inv.customerName)?.level ?? 3) as RiskLevel;
+  const window = expectedWindow(inv, riskLevel);
+  const probability = paymentProbability(inv, riskLevel);
+
+  const confidence: InvoicePrediction["confidence"] =
+    probability >= 0.7 ? "high" : probability >= 0.4 ? "medium" : "low";
+
+  const pct = Math.round(probability * 100);
+  const summary =
+    window === "out"
+      ? `Unlikely to pay within 90 days (${pct}%)`
+      : window === "30"
+        ? `Likely paid in next 30 days (${pct}%)`
+        : window === "60"
+          ? `Likely paid in 31-60 days (${pct}%)`
+          : `Likely paid in 61-90 days (${pct}%)`;
+
+  return { window, probability, confidence, summary };
+}
+
 /**
  * Compute the full cash forecast from an invoice list.
  * Safe to call on every render — O(n) over invoices.

@@ -18,6 +18,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { freeSlot, readWaitingInvoices } from "@/lib/collections/queue-engine";
 import { computeCustomerRiskMap } from "@/lib/risk-score";
+import { predictInvoiceOutcome } from "@/lib/cash-forecast";
 import { RiskBadge } from "@/components/risk-badge";
 import type { Invoice } from "@/types/cashpilot";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
@@ -443,6 +444,7 @@ export function ChaseQueue({
                 const urgency = getInvoiceUrgency(inv);
                 const action = getSuggestedAction(inv);
                 const risks = getRiskLabels(inv);
+                const prediction = predictInvoiceOutcome(inv, invoices);
                 const overdueColor =
                   inv.daysOverdue > 60 ? "var(--zn-risk)" :
                   inv.daysOverdue > 30 ? "var(--zn-warn)" :
@@ -528,15 +530,29 @@ export function ChaseQueue({
                           {action}
                         </span>
                       </div>
-                      {risks.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {risks.slice(0, 2).map((r) => (
-                            <span key={r} className="zn-kind-tag" style={{ fontSize: 9.5 }}>
-                              {r}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
+                      <div className="flex flex-wrap gap-1 mt-1 items-center">
+                        {risks.slice(0, 2).map((r) => (
+                          <span key={r} className="zn-kind-tag" style={{ fontSize: 9.5 }}>
+                            {r}
+                          </span>
+                        ))}
+                        <span
+                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-semibold tabular-nums"
+                          style={{
+                            background:
+                              prediction.confidence === "high" ? "var(--zn-safe-soft)" :
+                              prediction.confidence === "low"  ? "var(--zn-risk-soft)" :
+                                                                  "var(--zn-surface-2)",
+                            color:
+                              prediction.confidence === "high" ? "var(--zn-safe)" :
+                              prediction.confidence === "low"  ? "var(--zn-risk)" :
+                                                                  "var(--zn-ink-3)",
+                          }}
+                          title={prediction.summary}
+                        >
+                          {Math.round(prediction.probability * 100)}% likely
+                        </span>
+                      </div>
                     </td>
                     <td style={{ padding: "14px 10px" }}>
                       <span
