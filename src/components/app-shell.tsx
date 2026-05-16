@@ -74,10 +74,9 @@ const overviewNav: NavItem[] = [
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/chase-today",    label: "Chase plan",      icon: CreditCard },
-  { href: "/customers",      label: "Customers",       icon: Users },
-  { href: "/invoices/new",   label: "New invoice",     icon: Receipt },
-  { href: "/import",         label: "Import invoices", icon: ArrowUpFromLine },
+  { href: "/chase-today", label: "Chase plan", icon: CreditCard },
+  { href: "/invoices",    label: "Invoices",   icon: Receipt },
+  { href: "/customers",   label: "Customers",  icon: Users },
 ];
 
 // "Books" replaces "Finance" — the audit found "Finance" was too broad

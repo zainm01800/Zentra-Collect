@@ -1,22 +1,8 @@
-import { NewInvoiceForm } from "./form";
-import { PageHeader } from "@/components/page-header";
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "New invoice",
-  description:
-    "Create an invoice with the customer payment portal embedded — customers pay, promise, or explain the delay in one tap.",
-};
-
-export default function NewInvoicePage() {
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        kicker="Invoicing"
-        title="New invoice"
-        sub="Create an invoice — the customer payment portal link is generated automatically and embedded in the share email."
-      />
-      <NewInvoiceForm />
-    </div>
-  );
+// Stage 2 — /invoices/new is now opened in-place as a sheet inside the
+// /invoices hub. Keep the old route alive as a redirect so bookmarks,
+// email links, and the existing nav still work.
+export default function NewInvoiceRedirect() {
+  redirect("/invoices?create=1");
 }
