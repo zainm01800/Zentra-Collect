@@ -460,6 +460,13 @@ function LiveBookkeeperPortfolio() {
             {clients.length} client{clients.length !== 1 ? "s" : ""} · one pane across every ledger
           </p>
         </div>
+        <a
+          href="/portfolio/counterparties"
+          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium border whitespace-nowrap"
+          style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+        >
+          Counterparty exposure →
+        </a>
       </section>
 
       {/* Summary stats */}
