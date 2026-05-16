@@ -133,9 +133,9 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   },
   STARTER_SOLO: {
     id: "STARTER_SOLO",
-    name: "Starter",
-    priceMonthlyGbp: 24,
-    description: "For sole traders and micro businesses with a small invoice book.",
+    name: "Solo",
+    priceMonthlyGbp: 29,
+    description: "For sole traders, freelancers, and micro businesses chasing a small invoice book.",
     limits: {
       ...defaultLimits,
       importsUsedThisMonth: 5,
@@ -229,9 +229,9 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   },
   SINGLE_BUSINESS: {
     id: "SINGLE_BUSINESS",
-    name: "Single Business",
-    priceMonthlyGbp: 49,
-    description: "Standard plan for one business collections workspace.",
+    name: "Business",
+    priceMonthlyGbp: 59,
+    description: "For one small business running a practical chase process.",
     limits: {
       ...defaultLimits,
       importsUsedThisMonth: 10,
@@ -252,9 +252,9 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   },
   BOOKKEEPER_STARTER: {
     id: "BOOKKEEPER_STARTER",
-    name: "Bookkeeper Starter",
-    priceMonthlyGbp: 99,
-    description: "Bookkeeper plan for up to five client ledgers.",
+    name: "Practice",
+    priceMonthlyGbp: 119,
+    description: "For bookkeeping practices managing up to 5 client ledgers.",
     limits: {
       ...defaultLimits,
       importsUsedThisMonth: "unlimited",
@@ -276,9 +276,9 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
   },
   BOOKKEEPER_PRO: {
     id: "BOOKKEEPER_PRO",
-    name: "Bookkeeper Pro",
-    priceMonthlyGbp: 199,
-    description: "Advanced bookkeeper plan for larger client portfolios.",
+    name: "Practice Pro",
+    priceMonthlyGbp: 249,
+    description: "For larger bookkeeping firms with up to 20 client portfolios.",
     limits: {
       ...defaultLimits,
       importsUsedThisMonth: "unlimited",

@@ -128,7 +128,7 @@ export function requireFeature(
           ...base,
           allowed: false,
           upgradeTarget: "single_business",
-          reason: "The weekly digest is included in Single Business and above.",
+          reason: "The weekly digest is included in Business and above.",
         };
       }
       return { ...base, allowed: true, upgradeTarget: null };
@@ -144,8 +144,8 @@ export function requireFeature(
         upgradeTarget: "bookkeeper_starter",
         reason:
           planId === "single_business"
-            ? "The portfolio view is a Bookkeeper feature. You're on Single Business."
-            : "The portfolio view is included in Bookkeeper Starter and above.",
+            ? "The portfolio view is a Bookkeeper feature. You're on Business."
+            : "The portfolio view is included in Practice and above.",
       };
 
     default: {
@@ -283,7 +283,7 @@ export function getRedirectOrUpgradePrompt(
       return {
         heading: "Weekly collections digest",
         description:
-          "The weekly digest is included in Single Business and above. It gives you a structured Monday-ready summary: what changed, who to chase first, and what cash is expected.",
+          "The weekly digest is included in Business and above. It gives you a structured Monday-ready summary: what changed, who to chase first, and what cash is expected.",
         bullets: [
           "Overdue movements week-on-week",
           "Top chase priorities with reasons",
@@ -296,12 +296,12 @@ export function getRedirectOrUpgradePrompt(
       };
 
     case "bookkeeper_portfolio": {
-      // Single Business — they can see the most relevant upgrade context
+      // Business — they can see the most relevant upgrade context
       if (planId === "single_business") {
         return {
           heading: "Multi-client portfolio",
           description:
-            "You're on Single Business, which covers one client ledger. Bookkeeper Starter gives you up to 5 client ledgers with a unified portfolio view showing risk, overdue balances, and actions across all clients.",
+            "You're on Business, which covers one client ledger. Practice gives you up to 5 client ledgers with a unified portfolio view showing risk, overdue balances, and actions across all clients.",
           bullets: [
             "Portfolio overview across all client ledgers",
             "Client-by-client ranked chase plans",
@@ -352,7 +352,7 @@ export function getRedirectOrUpgradePrompt(
 
 /**
  * Returns a short display string for the plan that unlocks a feature.
- * e.g. "Single Business · £39/month"
+ * e.g. "Business · £39/month"
  */
 export function upgradeTargetLabel(planId: PlanId): string {
   const plan = getPlan(planId);

@@ -330,13 +330,13 @@ function getUpgradeDescription(
     return "Start a 14-day trial to upload live invoice exports and test Zentra with your own data.";
   }
   if (account.planId === "TRIAL") {
-    return "Move to Single Business when you are ready to keep importing live data and using AI actions.";
+    return "Move to Business when you are ready to keep importing live data and using AI actions.";
   }
   if (account.planId === "SINGLE_BUSINESS" && usage.clientLedgerCount > 1) {
     return "Bookkeeper plans unlock multiple client ledgers and portfolio mode.";
   }
   if (account.planId === "BOOKKEEPER_STARTER") {
-    return "Bookkeeper Pro is best when client ledger or invoice limits start to feel tight.";
+    return "Practice Pro is best when client ledger or invoice limits start to feel tight.";
   }
   return "Your current plan covers the main MVP workflow. Compare plans if your usage grows.";
 }

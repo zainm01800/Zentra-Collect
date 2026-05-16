@@ -244,7 +244,7 @@ export function PricingSection({
                 <tr style={{ borderBottom: "1px solid var(--zn-line-soft)", background: "var(--zn-surface-2)" }}>
                   <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--zn-ink-2)", width: "40%" }}>Feature</th>
                   <th className="text-center px-4 py-3 font-semibold" style={{ color: "var(--zn-ink-2)" }}>Starter</th>
-                  <th className="text-center px-4 py-3 font-semibold" style={{ color: "var(--zn-ink)" }}>Single Business</th>
+                  <th className="text-center px-4 py-3 font-semibold" style={{ color: "var(--zn-ink)" }}>Business</th>
                   <th className="text-center px-4 py-3 font-semibold" style={{ color: "var(--zn-ink-2)" }}>Bookkeeper</th>
                 </tr>
               </thead>

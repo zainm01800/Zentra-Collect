@@ -88,8 +88,8 @@ function computeUpgradeRecommendation(
       reason: isExpired
         ? "Your trial has expired. Upgrade to resume imports and AI actions."
         : hasMultipleClients
-          ? "You're managing more than one client — Bookkeeper Starter is built for that."
-          : "Keep your data and lift the trial limits with Single Business.",
+          ? "You're managing more than one client — Practice is built for that."
+          : "Keep your data and lift the trial limits with Business.",
       urgency: isExpired ? "high" : "normal",
     };
   }
@@ -104,14 +104,14 @@ function computeUpgradeRecommendation(
       return {
         plan: getPlan("bookkeeper_starter"),
         reason:
-          "You're managing more than one business. Bookkeeper Starter is designed for that.",
+          "You're managing more than one business. Practice is designed for that.",
         urgency: "high",
       };
     }
     if (aiPct >= 75) {
       return {
         plan: getPlan("bookkeeper_starter"),
-        reason: `You've used ${aiPct}% of your AI actions this month. Bookkeeper Starter has 2.5× more.`,
+        reason: `You've used ${aiPct}% of your AI actions this month. Practice has 2.5× more.`,
         urgency: aiPct >= 90 ? "high" : "normal",
       };
     }
@@ -125,7 +125,7 @@ function computeUpgradeRecommendation(
     return null;
   }
 
-  // Bookkeeper Starter → suggest Pro if at ledger limit or high AI usage
+  // Practice → suggest Pro if at ledger limit or high AI usage
   if (planId === "bookkeeper_starter") {
     const atLedgerLimit = meters.clientLedgers.isAtLimit;
     const aiPct = meters.aiActions.percentUsed ?? 0;
@@ -134,14 +134,14 @@ function computeUpgradeRecommendation(
       return {
         plan: getPlan("bookkeeper_pro"),
         reason:
-          "You've reached your ledger limit. Bookkeeper Pro supports up to 20 clients.",
+          "You've reached your ledger limit. Practice Pro supports up to 20 clients.",
         urgency: "high",
       };
     }
     if (aiPct >= 75) {
       return {
         plan: getPlan("bookkeeper_pro"),
-        reason: `You've used ${aiPct}% of your AI actions this month. Bookkeeper Pro has 3× more.`,
+        reason: `You've used ${aiPct}% of your AI actions this month. Practice Pro has 3× more.`,
         urgency: aiPct >= 90 ? "high" : "normal",
       };
     }
@@ -841,7 +841,7 @@ export function AccountBilling() {
                 href="/request-access"
                 className="font-medium text-neutral-950 dark:text-[#f0e8d5] underline underline-offset-2 hover:text-neutral-700"
               >
-                Bookkeeper Starter — £99/mo
+                Practice — £119/mo
               </Link>{" "}
               gives you up to 5 client ledgers.
             </p>
@@ -990,7 +990,7 @@ export function AccountBilling() {
           </CardContent>
         </Card>
 
-        {/* 5b ── Email add-on upsell (Starter & Single Business only) ─────────── */}
+        {/* 5b ── Email add-on upsell (Starter & Business only) ─────────── */}
         {(snapshot.planId === "starter_solo" || snapshot.planId === "single_business") && (
           <Card className="rounded-xl border-black/8">
             <CardHeader className="pb-2">

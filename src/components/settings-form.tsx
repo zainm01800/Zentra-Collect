@@ -318,7 +318,7 @@ function EmailSettingsCard() {
           {accessTier === "none" && (
             <p className="text-sm text-muted-foreground">
               Auto-send email is included on all Bookkeeper plans and available as an add-on on
-              Starter and Single Business.{" "}
+              Starter and Business.{" "}
               <a href="mailto:hello@zentracollect.co.uk" className="underline">
                 Contact us
               </a>{" "}

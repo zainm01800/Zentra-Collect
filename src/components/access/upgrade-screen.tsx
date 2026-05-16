@@ -120,7 +120,7 @@ export function UpgradeScreen({ feature, config }: UpgradeScreenProps) {
  */
 interface PortfolioPreviewBannerProps {
   config: UpgradePromptConfig;
-  /** true when the account is on Single Business (personalised copy) */
+  /** true when the account is on Business (personalised copy) */
   isSinglePlan: boolean;
 }
 
@@ -142,7 +142,7 @@ export function PortfolioPreviewBanner({
           </p>
           <p className="mt-0.5 text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
             {isSinglePlan
-              ? "You're on Single Business. Upgrade to Bookkeeper Starter to manage up to 5 real client ledgers."
+              ? "You're on Business. Upgrade to Practice to manage up to 5 real client ledgers."
               : "You're viewing demo portfolio data. Upgrade to manage your own client ledgers."}
           </p>
         </div>

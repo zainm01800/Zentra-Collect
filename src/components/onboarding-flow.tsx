@@ -106,7 +106,7 @@ export function OnboardingFlow() {
         planId: "founding_single_business",
         title: "Paid plans",
         eyebrow: "From \u00A324/mo",
-        description: "Starter Solo, Single Business, and Bookkeeper plans \u2014 pick what fits.",
+        description: "Starter Solo, Business, and Bookkeeper plans \u2014 pick what fits.",
         cta: "See pricing",
         icon: <Building2 className="size-5" />,
         points: [
