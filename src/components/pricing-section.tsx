@@ -6,10 +6,12 @@ import { CheckCircle2 } from "lucide-react";
 import { getPlanConfig, getPlanLimit, type PlanId } from "@/lib/account/plans";
 import { CheckoutButton } from "@/components/billing/checkout-button";
 
-// Base plan price IDs — passed in from the server page
+// Plan price IDs — passed in from the server page.
+// `priceIdAnnual` is optional — toggle hides itself when none configured.
 export type PricingPlanDef = {
-  planId: PlanId;
-  priceId?: string;
+  planId:         PlanId;
+  priceId?:       string;
+  priceIdAnnual?: string;
 };
 
 const ANNUAL_DISCOUNT = 0.17; // ~2 months free
@@ -90,6 +92,10 @@ export function PricingSection({
   const [annual, setAnnual] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
 
+  // Only show the annual toggle if at least one plan has an annual price ID
+  // configured. Avoids promising a discount the user can't actually redeem.
+  const annualAvailable = plans.some((p) => Boolean(p.priceIdAnnual));
+
   return (
     <div>
       <p className="-mt-2 mb-5 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
@@ -97,48 +103,54 @@ export function PricingSection({
         import your own data. Upgrade to a paid plan to keep going.
       </p>
 
-      {/* Billing toggle */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => setAnnual(false)}
-          className="text-[13px] font-medium transition-colors"
-          style={{ color: annual ? "var(--zn-ink-3)" : "var(--zn-ink)" }}
-        >
-          Monthly
-        </button>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={annual}
-          onClick={() => setAnnual((a) => !a)}
-          className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-          style={{ background: annual ? "var(--zn-ink)" : "var(--zn-line)" }}
-        >
-          <span
-            className="inline-block size-3.5 rounded-full bg-white transition-transform"
-            style={{ transform: annual ? "translateX(18px)" : "translateX(2px)" }}
-          />
-        </button>
-        <button
-          type="button"
-          onClick={() => setAnnual(true)}
-          className="flex items-center gap-1.5 text-[13px] font-medium transition-colors"
-          style={{ color: annual ? "var(--zn-ink)" : "var(--zn-ink-3)" }}
-        >
-          Annual
-          <span
-            className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full"
-            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+      {/* Billing toggle — hidden when no annual price IDs are configured */}
+      {annualAvailable && (
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setAnnual(false)}
+            className="text-[13px] font-medium transition-colors"
+            style={{ color: annual ? "var(--zn-ink-3)" : "var(--zn-ink)" }}
           >
-            Save ~17%
-          </span>
-        </button>
-      </div>
+            Monthly
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={annual}
+            onClick={() => setAnnual((a) => !a)}
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+            style={{ background: annual ? "var(--zn-ink)" : "var(--zn-line)" }}
+          >
+            <span
+              className="inline-block size-3.5 rounded-full bg-white transition-transform"
+              style={{ transform: annual ? "translateX(18px)" : "translateX(2px)" }}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnnual(true)}
+            className="flex items-center gap-1.5 text-[13px] font-medium transition-colors"
+            style={{ color: annual ? "var(--zn-ink)" : "var(--zn-ink-3)" }}
+          >
+            Annual
+            <span
+              className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+            >
+              Save ~17%
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Plan cards */}
       <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-5">
-        {plans.map(({ planId, priceId }) => {
+        {plans.map(({ planId, priceId, priceIdAnnual }) => {
+          // If user selected annual AND this plan has an annual price ID
+          // configured, swap it in. Otherwise fall back to monthly.
+          const effectivePriceId =
+            annual && priceIdAnnual ? priceIdAnnual : priceId;
           const plan = getPlanConfig(planId);
           const isFeatured = planId === "SINGLE_BUSINESS";
           const isFree = plan.priceMonthlyGbp === 0;
@@ -202,9 +214,9 @@ export function PricingSection({
                   <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost w-full justify-center">
                     Start free trial
                   </Link>
-                ) : priceId ? (
+                ) : effectivePriceId ? (
                   <CheckoutButton
-                    priceId={priceId}
+                    priceId={effectivePriceId}
                     planId={planId}
                     cta={annual ? "Get started (annual)" : "Get started"}
                     variant={isFeatured ? "primary" : "secondary"}

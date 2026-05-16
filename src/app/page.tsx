@@ -13,12 +13,22 @@ import { MarketingNav } from "@/components/marketing-nav";
 import type { PlanId } from "@/lib/account/plans";
 import { PricingSection } from "@/components/pricing-section";
 
-// Base plan price IDs — set in env vars, passed to Stripe checkout
+// Monthly plan price IDs — set in env vars, passed to Stripe checkout
 const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
   STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO ?? "",
   SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE ?? "",
   BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER ?? "",
   BOOKKEEPER_PRO:      process.env.STRIPE_PRICE_ID_BOOKKEEPER_PRO ?? "",
+};
+
+// Annual plan price IDs (~17% discount). Optional — the toggle hides itself
+// when none of these are configured, so users don't see a discount that
+// can't actually be redeemed.
+const PLAN_PRICE_IDS_ANNUAL: Partial<Record<PlanId, string>> = {
+  STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO_ANNUAL ?? "",
+  SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE_ANNUAL ?? "",
+  BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER_ANNUAL ?? "",
+  BOOKKEEPER_PRO:      process.env.STRIPE_PRICE_ID_BOOKKEEPER_PRO_ANNUAL ?? "",
 };
 
 const answers = [
@@ -320,7 +330,8 @@ export default function Home() {
         <PricingSection
           plans={pricingPlanIds.map((planId) => ({
             planId,
-            priceId: PLAN_PRICE_IDS[planId] || undefined,
+            priceId:        PLAN_PRICE_IDS[planId] || undefined,
+            priceIdAnnual:  PLAN_PRICE_IDS_ANNUAL[planId] || undefined,
           }))}
         />
       </Section>
