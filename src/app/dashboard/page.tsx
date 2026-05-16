@@ -6,14 +6,13 @@ import { CashForecastCard }      from "@/components/cash-forecast-card";
 
 import { getInvoices }                                    from "@/lib/api/db";
 import { getFinancialSettings, getMonthlyIncomeSummary }  from "@/actions/financial-settings";
-import { calculateSafeToSpend }                           from "@/lib/finance/safe-to-spend";
 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Dashboard",
   description:
-    "Your collections position at a glance — what's changed, what needs you today, and what cash is likely this week.",
+    "Your financial position and collections plan in one view — bank balance, safe to spend, and who to chase today.",
 };
 
 export default async function DashboardPage({
@@ -27,6 +26,10 @@ export default async function DashboardPage({
   const autoOpenNewInvoice = params.new_invoice === "1";
 
   // ── Server-side data fetching (all in parallel) ───────────────────────────
+  //
+  // Note: bank balance is no longer fetched from financialSettings — it's
+  // derived client-side from the uploaded bank statement (localStorage).
+  // Safe-to-spend is computed in FinancialHeader once it has the balance.
 
   const [dbInvoices, financialSettings, monthlyIncome] = await Promise.all([
     getInvoices(),
@@ -34,24 +37,10 @@ export default async function DashboardPage({
     getMonthlyIncomeSummary(),
   ]);
 
-  // ── Safe-to-spend calculation ─────────────────────────────────────────────
-  //
-  // Only compute when a bank balance has been explicitly set
-  // (bank_balance_updated_at populated).  When null, SafeToSpendCard renders
-  // nothing — BankBalanceInput shows the "Add balance to unlock" prompt instead.
-
-  const hasBankBalance = Boolean(financialSettings?.bankBalanceUpdatedAt);
-
-  const safeToSpendResult = hasBankBalance
-    ? calculateSafeToSpend({
-        bankBalance:    financialSettings!.bankBalance,
-        invoices:       dbInvoices,
-        taxRatePercent: financialSettings!.taxRatePercent ?? 20,
-        manualBills:    [], // will be fetched in a later iteration
-      })
-    : undefined;
-
   // ── Render ────────────────────────────────────────────────────────────────
+  //
+  // Order: financial position at the top (bank balance, safe to spend, cash
+  // flow forecast, monthly snapshot), then collections (chase queue + KPIs).
 
   return (
     <>
@@ -63,17 +52,8 @@ export default async function DashboardPage({
       {/* Recovery stats — visible once outcomes have been logged */}
       <OutcomeSummaryBar />
 
-      {/* Cash forecast — probability-weighted projection from invoice data */}
-      <CashForecastCard />
-
-      {/* ── Collections — primary purpose of the app ── */}
-      <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
-
-      {/* ── Financial position — secondary section ── */}
-      <div
-        className="mt-12 mb-6 flex items-center gap-4"
-      >
-        <div className="flex-1 h-px" style={{ background: "var(--zn-line-soft)" }} />
+      {/* ── Financial position — now at the top ── */}
+      <div className="mb-6 flex items-center gap-4">
         <span
           className="text-[10.5px] font-semibold uppercase tracking-[0.12em] flex-shrink-0"
           style={{ color: "var(--zn-ink-3)" }}
@@ -85,11 +65,26 @@ export default async function DashboardPage({
 
       <FinancialHeader
         financialSettings={financialSettings}
-        safeToSpendResult={safeToSpendResult}
         invoices={dbInvoices}
         monthlyIncome={monthlyIncome}
         autoOpenInvoiceForm={autoOpenNewInvoice}
       />
+
+      {/* ── Collections divider ── */}
+      <div className="mt-12 mb-6 flex items-center gap-4">
+        <span
+          className="text-[10.5px] font-semibold uppercase tracking-[0.12em] flex-shrink-0"
+          style={{ color: "var(--zn-ink-3)" }}
+        >
+          Collections
+        </span>
+        <div className="flex-1 h-px" style={{ background: "var(--zn-line-soft)" }} />
+      </div>
+
+      {/* Cash forecast — probability-weighted projection from invoice data */}
+      <CashForecastCard />
+
+      <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
     </>
   );
 }
