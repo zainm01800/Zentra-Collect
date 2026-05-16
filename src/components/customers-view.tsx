@@ -6,6 +6,8 @@ import { ArrowLeft, Edit2, ExternalLink, Users, FileText, Upload, Mail } from "l
 import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CustomerRiskProfile } from "@/components/customer-risk-profile";
+import { CustomerAiDiagnosis } from "@/components/customer-ai-diagnosis";
+import { computeCustomerRisk } from "@/lib/risk-score";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import {
@@ -430,6 +432,26 @@ export function CustomerDetail({
         customerName={customer.name}
         invoices={invoices.filter((inv) => inv.customerId === customerId)}
       />
+
+      {/* AI diagnosis — generates a 2-sentence summary + concrete next action */}
+      {(() => {
+        const customerInvoices = invoices.filter((inv) => inv.customerId === customerId);
+        const risk = computeCustomerRisk(customer.name, customerInvoices);
+        return (
+          <CustomerAiDiagnosis
+            input={{
+              customerName:       customer.name,
+              openInvoiceCount:   risk.stats.openInvoiceCount,
+              totalOutstanding:   risk.stats.totalOutstanding,
+              averageDaysOverdue: risk.stats.averageDaysOverdue,
+              maxDaysOverdue:     risk.stats.maxDaysOverdue,
+              totalChaseCount:    risk.stats.totalChaseCount,
+              brokenPromises:     risk.stats.brokenPromises,
+              disputedInvoices:   risk.stats.disputedInvoices,
+            }}
+          />
+        );
+      })()}
 
       {/* Behaviour note */}
       <div
