@@ -19,7 +19,7 @@ import {
   hasSupabaseServerConfig,
 } from "@/lib/supabase/server";
 
-export type IntegrationProvider = "xero" | "quickbooks" | "freeagent" | "sage";
+export type IntegrationProvider = "xero" | "quickbooks" | "freeagent" | "sage" | "gocardless";
 
 export interface StoredConnection {
   id:               string;

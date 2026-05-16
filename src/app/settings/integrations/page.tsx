@@ -6,11 +6,15 @@ import {
   syncFromXeroAction,
   syncFromQuickBooksAction,
   syncFromSageAction,
+  syncFromFreeAgentAction,
+  syncFromGoCardlessAction,
   getIntegrationStatusAction,
 } from "@/actions/integrations/sync";
 import { isXeroConfigured } from "@/lib/integrations/xero/client";
 import { isQuickBooksConfigured } from "@/lib/integrations/quickbooks/client";
 import { isSageConfigured } from "@/lib/integrations/sage/client";
+import { isFreeAgentConfigured } from "@/lib/integrations/freeagent/client";
+import { isGoCardlessConfigured } from "@/lib/integrations/gocardless/client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -29,6 +33,8 @@ export default async function IntegrationsPage({
   const xeroConfigured = isXeroConfigured();
   const qbConfigured   = isQuickBooksConfigured();
   const sageConfigured = isSageConfigured();
+  const faConfigured   = isFreeAgentConfigured();
+  const gcConfigured   = isGoCardlessConfigured();
 
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
@@ -78,6 +84,16 @@ export default async function IntegrationsPage({
           Sage connected. Click <strong>Sync invoices now</strong> to pull your AR.
         </Banner>
       )}
+      {params.connected === "freeagent" && (
+        <Banner kind="ok">
+          FreeAgent connected. Click <strong>Sync invoices now</strong> to pull your AR.
+        </Banner>
+      )}
+      {params.connected === "gocardless" && (
+        <Banner kind="ok">
+          GoCardless connected. Click <strong>Sync invoices now</strong> to load your active Direct Debit mandates.
+        </Banner>
+      )}
       {params.error && <Banner kind="err">{decodeURIComponent(params.error)}</Banner>}
 
       {/* Cards */}
@@ -115,6 +131,28 @@ export default async function IntegrationsPage({
             connected={status.sage.connected}
             tenantName={status.sage.tenantName}
             notConfigured={!sageConfigured}
+          />
+          <IntegrationCard
+            name="FreeAgent"
+            brandColor="#28B473"
+            tagline="Sync your AR from FreeAgent — built for UK freelancers and small practices."
+            connectPath="/api/integrations/freeagent/connect"
+            disconnectPath="/api/integrations/freeagent/disconnect"
+            syncAction={syncFromFreeAgentAction}
+            connected={status.freeagent.connected}
+            tenantName={status.freeagent.tenantName}
+            notConfigured={!faConfigured}
+          />
+          <IntegrationCard
+            name="GoCardless"
+            brandColor="#04284C"
+            tagline="Pull active Direct Debit mandates so the chase plan skips customers on autopay."
+            connectPath="/api/integrations/gocardless/connect"
+            disconnectPath="/api/integrations/gocardless/disconnect"
+            syncAction={syncFromGoCardlessAction}
+            connected={status.gocardless.connected}
+            tenantName={status.gocardless.tenantName}
+            notConfigured={!gcConfigured}
           />
         </div>
       </Suspense>

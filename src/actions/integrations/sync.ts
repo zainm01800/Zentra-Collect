@@ -28,6 +28,11 @@ import {
   fetchInvoices as fetchSageInvoices,
 } from "@/lib/integrations/sage/client";
 import { mapSageInvoices } from "@/lib/integrations/sage/mapper";
+import {
+  fetchInvoices as fetchFreeAgentInvoices,
+} from "@/lib/integrations/freeagent/client";
+import { mapFreeAgentInvoices } from "@/lib/integrations/freeagent/mapper";
+import { getEmailsOnActiveDD } from "@/lib/integrations/gocardless/client";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
 export interface SyncResult {
@@ -152,12 +157,68 @@ export async function syncFromSageAction(): Promise<SyncResult> {
   }
 }
 
+// ── FreeAgent ─────────────────────────────────────────────────────────────────
+
+export async function syncFromFreeAgentAction(): Promise<SyncResult> {
+  const accountId = await getActiveAccountId();
+  if (!accountId) return { ok: false, error: "Not signed in." };
+
+  const connection = await readConnection(accountId, "freeagent");
+  if (!connection) {
+    return { ok: false, notConnected: true, error: "FreeAgent is not connected." };
+  }
+
+  try {
+    const faInvoices = await fetchFreeAgentInvoices(accountId);
+    const invoices = await mapFreeAgentInvoices(faInvoices, accountId, accountId);
+    return {
+      ok: true,
+      invoices,
+      summary: `Imported ${invoices.length} invoice${invoices.length === 1 ? "" : "s"} from ${connection.tenantName ?? "FreeAgent"}.`,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[syncFromFreeAgentAction]", err);
+    return { ok: false, error: message };
+  }
+}
+
+// ── GoCardless ────────────────────────────────────────────────────────────────
+// Mandate-based (not invoice-based). Returns a summary of how many
+// customers are on active DD — the chase plan will consult this set to
+// suppress chases for already-paying customers.
+
+export async function syncFromGoCardlessAction(): Promise<SyncResult> {
+  const accountId = await getActiveAccountId();
+  if (!accountId) return { ok: false, error: "Not signed in." };
+
+  const connection = await readConnection(accountId, "gocardless");
+  if (!connection) {
+    return { ok: false, notConnected: true, error: "GoCardless is not connected." };
+  }
+
+  try {
+    const emails = await getEmailsOnActiveDD(accountId);
+    return {
+      ok: true,
+      // No invoices — this provider produces mandate metadata.
+      summary: `${emails.size} customer${emails.size === 1 ? "" : "s"} on active Direct Debit.`,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[syncFromGoCardlessAction]", err);
+    return { ok: false, error: message };
+  }
+}
+
 // ── Status check ──────────────────────────────────────────────────────────────
 
 export interface IntegrationStatus {
   xero:       { connected: boolean; tenantName?: string };
   quickbooks: { connected: boolean; tenantName?: string };
   sage:       { connected: boolean; tenantName?: string };
+  freeagent:  { connected: boolean; tenantName?: string };
+  gocardless: { connected: boolean; tenantName?: string };
 }
 
 export async function getIntegrationStatusAction(): Promise<IntegrationStatus> {
@@ -167,27 +228,24 @@ export async function getIntegrationStatusAction(): Promise<IntegrationStatus> {
       xero:       { connected: false },
       quickbooks: { connected: false },
       sage:       { connected: false },
+      freeagent:  { connected: false },
+      gocardless: { connected: false },
     };
   }
 
-  const [xeroConn, qbConn, sageConn] = await Promise.all([
+  const [xeroConn, qbConn, sageConn, faConn, gcConn] = await Promise.all([
     readConnection(accountId, "xero"),
     readConnection(accountId, "quickbooks"),
     readConnection(accountId, "sage"),
+    readConnection(accountId, "freeagent"),
+    readConnection(accountId, "gocardless"),
   ]);
 
   return {
-    xero: {
-      connected:  Boolean(xeroConn),
-      tenantName: xeroConn?.tenantName,
-    },
-    quickbooks: {
-      connected:  Boolean(qbConn),
-      tenantName: qbConn?.tenantName,
-    },
-    sage: {
-      connected:  Boolean(sageConn),
-      tenantName: sageConn?.tenantName,
-    },
+    xero:       { connected: Boolean(xeroConn), tenantName: xeroConn?.tenantName },
+    quickbooks: { connected: Boolean(qbConn),   tenantName: qbConn?.tenantName },
+    sage:       { connected: Boolean(sageConn), tenantName: sageConn?.tenantName },
+    freeagent:  { connected: Boolean(faConn),   tenantName: faConn?.tenantName },
+    gocardless: { connected: Boolean(gcConn),   tenantName: gcConn?.tenantName },
   };
 }

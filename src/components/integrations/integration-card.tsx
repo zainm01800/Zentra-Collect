@@ -55,6 +55,16 @@ interface IntegrationCardProps {
   notConfigured: boolean;
 }
 
+function envPrefixFor(name: string): string {
+  const lc = name.toLowerCase();
+  if (lc.startsWith("xero")) return "XERO";
+  if (lc.startsWith("quickbooks")) return "QUICKBOOKS";
+  if (lc.startsWith("sage")) return "SAGE";
+  if (lc.startsWith("gocardless")) return "GC";
+  if (lc.startsWith("freeagent")) return "FREEAGENT";
+  return name.toUpperCase().replace(/\s+/g, "_");
+}
+
 export function IntegrationCard({
   name,
   brandColor,
@@ -78,19 +88,22 @@ export function IntegrationCard({
 
     try {
       const result = await syncAction();
-      if (result.ok && result.invoices) {
-        // Write to localStorage in the right key (per-client for bookkeepers)
-        const account = readLocalAccount();
-        const key = resolveInvoiceKey(account?.planId ?? "");
-        try {
-          window.localStorage.setItem(key, JSON.stringify(result.invoices));
-        } catch (storageErr) {
-          console.error("[IntegrationCard] localStorage write failed:", storageErr);
-          setLastResult({ kind: "err", message: "Saved server-side but couldn't cache locally." });
-          return;
+      if (result.ok) {
+        // Some integrations (e.g. GoCardless) sync mandates, not invoices —
+        // they return ok with summary but no invoices array. Skip the
+        // localStorage write in that case.
+        if (result.invoices) {
+          const account = readLocalAccount();
+          const key = resolveInvoiceKey(account?.planId ?? "");
+          try {
+            window.localStorage.setItem(key, JSON.stringify(result.invoices));
+          } catch (storageErr) {
+            console.error("[IntegrationCard] localStorage write failed:", storageErr);
+            setLastResult({ kind: "err", message: "Saved server-side but couldn't cache locally." });
+            return;
+          }
         }
         setLastResult({ kind: "ok", message: result.summary ?? "Sync complete." });
-        // Refresh other pages that read from localStorage on mount
         startTransition(() => router.refresh());
       } else {
         setLastResult({ kind: "err", message: result.error ?? "Sync failed." });
@@ -166,7 +179,7 @@ export function IntegrationCard({
           className="rounded-lg px-3 py-2 mb-3 text-[12px] leading-5"
           style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}
         >
-          Not configured. Add the {name === "Xero" ? "XERO" : "QUICKBOOKS"}_CLIENT_ID and
+          Not configured. Add the {envPrefixFor(name)}_CLIENT_ID and
           _CLIENT_SECRET environment variables and restart the server.
         </div>
       )}
