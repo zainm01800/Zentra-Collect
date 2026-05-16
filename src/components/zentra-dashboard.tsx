@@ -1041,8 +1041,9 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                               </span>
                             ) : null}
                           </div>
-                          <div className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-0.5 line-clamp-1" title={item.reason}>
-                            {item.reason}
+                          <div className="text-[12.5px] text-[#6b6253] dark:text-[#8a7d69] mt-0.5 line-clamp-1"
+                               title={item.stopChasingInsight?.message ?? item.reason}>
+                            {item.stopChasingInsight?.message ?? item.reason}
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 whitespace-nowrap">
@@ -1062,7 +1063,16 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                           className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
                           style={{ color: "var(--zn-ink-2)" }}
                         >
-                          {humanAction(item.recommendedAction)}
+                          {item.stopChasingInsight ? (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide"
+                              style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                            >
+                              Don&rsquo;t chase
+                            </span>
+                          ) : (
+                            humanAction(item.recommendedAction)
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <LogOutcomeButton

@@ -41,7 +41,7 @@ export default async function SettingsPage({
               Integrations
             </p>
             <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-              Connect Xero or QuickBooks to skip CSV imports.
+              Xero, QuickBooks, Sage, FreeAgent &amp; GoCardless — skip CSV imports.
             </p>
           </div>
         </div>

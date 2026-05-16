@@ -178,10 +178,10 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Connect your accounting software to sync invoices automatically. CSV import is available now.
+                    Connect Xero, QuickBooks, Sage, FreeAgent, or GoCardless to sync invoices automatically. CSV import still works.
                   </p>
-                  <Button type="button" variant="outline" className="w-full" disabled>
-                    Accounting integrations coming soon
+                  <Button type="button" variant="outline" className="w-full" asChild>
+                    <a href="/settings/integrations">Open integrations</a>
                   </Button>
                 </CardContent>
               </Card>
