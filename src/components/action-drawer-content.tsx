@@ -1,12 +1,13 @@
 "use client";
 
-import { 
-  AlertTriangle, 
-  Copy, 
-  Loader2, 
-  MailPlus, 
-  ShieldCheck, 
-  X 
+import {
+  AlertTriangle,
+  Copy,
+  ExternalLink,
+  Loader2,
+  MailPlus,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,21 @@ export function ActionDrawerContent({
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-5 p-5">
+        {/* Preview-as-customer — opens the sample portal so the user
+            sees exactly what the recipient of this chase will see */}
+        <a
+          href="/demo/portal"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between gap-3 rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] px-4 py-2.5 text-[12.5px] font-medium hover:bg-white/90 dark:hover:bg-[#322c24]"
+        >
+          <span className="flex items-center gap-2 text-neutral-700 dark:text-[#d8ccb5]">
+            <ExternalLink className="size-3.5" />
+            See what your customer sees
+          </span>
+          <span className="text-[11px] text-neutral-400">Opens preview</span>
+        </a>
+
         <section className="grid grid-cols-1 gap-3 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4 sm:grid-cols-2">
           <InfoLine label="Due date" value={formatDate(invoice.dueDate ?? null)} />
           <InfoLine
@@ -477,32 +493,91 @@ export function ActionDrawerContent({
           </Button>
         </div>
         <div className="w-full">
-          <Select
-            value=""
-            onValueChange={(val) => {
-              if (val === "sent") onMarkSent();
-              if (val === "promised") onMarkPromised();
-              if (val === "disputed") onMarkDisputed();
-              if (val === "paid") onMarkPaid();
-              if (val === "snooze") onSnooze();
-              if (val === "do_not_chase") onDoNotChase();
-            }}
-          >
-            <SelectTrigger className="w-full rounded-full border-black/30 bg-white dark:bg-[#211d17] font-bold h-11 text-neutral-950 dark:text-[#f0e8d5]">
-              <SelectValue placeholder="Change status →" />
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl border-black/10 dark:border-white/10">
-              <SelectItem value="sent">Mark as sent</SelectItem>
-              <SelectItem value="promised">Mark promised</SelectItem>
-              <SelectItem value="disputed">Mark disputed</SelectItem>
-              <SelectItem value="paid">Mark paid</SelectItem>
-              <SelectItem value="snooze">Snooze</SelectItem>
-              <SelectItem value="do_not_chase">Do not chase</SelectItem>
-            </SelectContent>
-          </Select>
+          <StatusChangeSelect
+            onMarkSent={onMarkSent}
+            onMarkPromised={onMarkPromised}
+            onMarkDisputed={onMarkDisputed}
+            onMarkPaid={onMarkPaid}
+            onSnooze={onSnooze}
+            onDoNotChase={onDoNotChase}
+          />
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Status change + confirmation toast ───────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  sent:         "Marked as sent",
+  promised:     "Marked as promised",
+  disputed:     "Marked as disputed",
+  paid:         "Marked as paid",
+  snooze:       "Snoozed",
+  do_not_chase: "Excluded from chasing",
+};
+
+function StatusChangeSelect({
+  onMarkSent, onMarkPromised, onMarkDisputed, onMarkPaid, onSnooze, onDoNotChase,
+}: {
+  onMarkSent:     () => void;
+  onMarkPromised: () => void;
+  onMarkDisputed: () => void;
+  onMarkPaid:     () => void;
+  onSnooze:       () => void;
+  onDoNotChase:   () => void;
+}) {
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function fire(val: string) {
+    if (val === "sent")          onMarkSent();
+    else if (val === "promised") onMarkPromised();
+    else if (val === "disputed") onMarkDisputed();
+    else if (val === "paid")     onMarkPaid();
+    else if (val === "snooze")   onSnooze();
+    else if (val === "do_not_chase") onDoNotChase();
+    setToast(STATUS_LABELS[val] ?? "Status updated");
+  }
+
+  return (
+    <>
+      <Select value="" onValueChange={fire}>
+        <SelectTrigger className="w-full rounded-full border-black/30 bg-white dark:bg-[#211d17] font-bold h-11 text-neutral-950 dark:text-[#f0e8d5]">
+          <SelectValue placeholder="Change status →" />
+        </SelectTrigger>
+        <SelectContent className="rounded-2xl border-black/10 dark:border-white/10">
+          <SelectItem value="sent">Mark as sent</SelectItem>
+          <SelectItem value="promised">Mark promised</SelectItem>
+          <SelectItem value="disputed">Mark disputed</SelectItem>
+          <SelectItem value="paid">Mark paid</SelectItem>
+          <SelectItem value="snooze">Snooze</SelectItem>
+          <SelectItem value="do_not_chase">Do not chase</SelectItem>
+        </SelectContent>
+      </Select>
+      {toast && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-[100] rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 text-[13px]"
+          style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
+        >
+          <span>{toast}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="text-[11px] font-semibold opacity-80 hover:opacity-100"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 

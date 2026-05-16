@@ -36,6 +36,8 @@ import { PushPermission } from "@/components/push-permission";
 import { TrialStatusBanner } from "@/components/trial-banners";
 import { QueueStatusBar } from "@/components/queue-status-bar";
 import { InstallPrompt } from "@/components/install-prompt";
+import { MobileFab } from "@/components/mobile-fab";
+import { FirstRunOnboarding } from "@/components/first-run-onboarding";
 import { AutoSendToggle } from "@/components/auto-send-toggle";
 import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
 import { AccountSync } from "@/components/account-sync";
@@ -609,6 +611,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             {children}
           </div>
           <InstallPrompt />
+          <MobileFab />
+          <FirstRunOnboarding />
         </main>
       </div>
 
