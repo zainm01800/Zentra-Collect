@@ -25,7 +25,7 @@ import {
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
-import { verifyPaymentToken } from "@/lib/customer-portal/token";
+import { verifyPaymentToken, quoteEarlyPay } from "@/lib/customer-portal/token";
 import {
   calculateStatutoryInterest,
   isInterestMaterial,
@@ -99,6 +99,16 @@ export default async function PayPage({
   const showStatutoryBreakdown = isInterestMaterial(inv.amount, daysOverdue);
   const interestCalc = showStatutoryBreakdown
     ? calculateStatutoryInterest(inv.amount, daysOverdue)
+    : null;
+
+  // ── Early-pay discount (suppressed once overdue interest applies) ─────────
+  const earlyPay = quoteEarlyPay(inv);
+  const showEarlyPay = !!earlyPay && earlyPay.active && !showStatutoryBreakdown;
+  const earlyPayDeadlineLabel = earlyPay
+    ? new Date(earlyPay.deadlineIso).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+      })
     : null;
 
   // ── Success state ─────────────────────────────────────────────────────────
@@ -217,6 +227,34 @@ export default async function PayPage({
                 className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13.5px] font-medium hover:bg-neutral-50 transition-colors"
               >
                 Pay invoice only ({fmtGBP(inv.amount)})
+              </button>
+            </form>
+          </div>
+        ) : showEarlyPay && earlyPay ? (
+          <div className="space-y-2 mb-3">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-[12.5px] text-emerald-800">
+              Pay by <strong>{earlyPayDeadlineLabel}</strong> and save{" "}
+              <strong>{fmtGBP(earlyPay.discountAmount)}</strong> ({earlyPay.percent}% early-pay discount).
+            </div>
+            <form action="/api/customer-portal/checkout" method="POST">
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="applyDiscount" value="1" />
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 text-white px-5 py-3 text-[14px] font-semibold hover:bg-emerald-700 transition-colors"
+              >
+                <CreditCard className="size-4" />
+                Pay {fmtGBP(earlyPay.discountedTotal)} (save {fmtGBP(earlyPay.discountAmount)})
+              </button>
+            </form>
+            <form action="/api/customer-portal/checkout" method="POST">
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="applyDiscount" value="0" />
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13.5px] font-medium hover:bg-neutral-50 transition-colors"
+              >
+                Pay full amount ({fmtGBP(inv.amount)})
               </button>
             </form>
           </div>

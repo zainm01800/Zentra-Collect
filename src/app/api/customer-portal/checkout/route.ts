@@ -10,7 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/client";
-import { verifyPaymentToken } from "@/lib/customer-portal/token";
+import { verifyPaymentToken, quoteEarlyPay } from "@/lib/customer-portal/token";
 import {
   calculateStatutoryInterest,
   isInterestMaterial,
@@ -21,7 +21,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function POST(request: Request) {
   const formData = await request.formData();
   const token = String(formData.get("token") ?? "");
-  const includeFees = String(formData.get("includeFees") ?? "0") === "1";
+  const includeFees    = String(formData.get("includeFees") ?? "0") === "1";
+  const applyDiscount  = String(formData.get("applyDiscount") ?? "0") === "1";
 
   if (!token) {
     return new NextResponse("Missing token", { status: 400 });
@@ -48,10 +49,22 @@ export async function POST(request: Request) {
   const calc = eligibleForFees
     ? calculateStatutoryInterest(inv.amount, daysOverdue)
     : null;
-  const chargeAmount = calc ? calc.totalRecoverable : inv.amount;
+
+  // Early-pay discount only applies when the customer hasn't gone overdue
+  // far enough to trigger interest (the two paths are mutually exclusive).
+  const earlyPay = !calc ? quoteEarlyPay(inv) : null;
+  const discountActive = applyDiscount && earlyPay?.active;
+
+  const chargeAmount = calc
+    ? calc.totalRecoverable
+    : discountActive
+      ? earlyPay!.discountedTotal
+      : inv.amount;
   const lineItemName = calc
     ? `Invoice ${inv.invoiceNumber} (incl. statutory interest)`
-    : `Invoice ${inv.invoiceNumber}`;
+    : discountActive
+      ? `Invoice ${inv.invoiceNumber} (early-pay discount ${earlyPay!.percent}%)`
+      : `Invoice ${inv.invoiceNumber}`;
 
   try {
     const stripe = getStripe();
@@ -82,9 +95,12 @@ export async function POST(request: Request) {
         businessName:  inv.businessName,
         baseAmount:    String(inv.amount),
         chargedAmount: String(chargeAmount),
-        includedFees:  calc ? "1" : "0",
-        interest:      calc ? String(calc.interest) : "0",
-        compensation:  calc ? String(calc.compensation) : "0",
+        includedFees:    calc ? "1" : "0",
+        interest:        calc ? String(calc.interest) : "0",
+        compensation:    calc ? String(calc.compensation) : "0",
+        earlyPayApplied: discountActive ? "1" : "0",
+        earlyPayPercent: discountActive ? String(earlyPay!.percent) : "0",
+        businessEmail:   inv.businessEmail,
       },
       // Optional — pre-populate the customer email if you have it.
       // customer_email: inv.customerEmail,

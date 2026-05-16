@@ -34,6 +34,16 @@ export interface PaymentTokenPayload {
   businessName:  string;
   /** Reply-to email shown for queries. */
   businessEmail: string;
+  /**
+   * Optional early-payment discount. When present and the customer pays
+   * on or before deadlineIso, percent (0-100) is taken off the invoice
+   * amount at checkout. Server re-derives the discounted total — the
+   * portal flag is just UI intent, never the source of truth.
+   */
+  earlyPay?: {
+    percent:     number;
+    deadlineIso: string;
+  };
   /** Issued-at timestamp (seconds). */
   iat:           number;
   /** Expiry timestamp (seconds). */
@@ -132,6 +142,43 @@ export function verifyPaymentToken(token: string): VerifyResult {
   if (payload.exp < now) return { ok: false, error: "expired" };
 
   return { ok: true, payload };
+}
+
+// ── Early-pay discount helpers ───────────────────────────────────────────────
+
+export interface EarlyPayQuote {
+  /** Discount percent (0-100). */
+  percent:         number;
+  /** Discount in GBP (rounded to 2dp). */
+  discountAmount:  number;
+  /** Discounted invoice total in GBP (rounded to 2dp). */
+  discountedTotal: number;
+  /** ISO deadline by which the customer must pay to qualify. */
+  deadlineIso:     string;
+  /** True if the deadline is in the future (i.e. the offer is live). */
+  active:          boolean;
+}
+
+/**
+ * Compute the early-pay quote for a token. Returns null when the payload
+ * has no earlyPay block. Always returns a quote (even if expired) so the
+ * portal can render a "discount expired" message if it wants — caller
+ * should check `active`.
+ */
+export function quoteEarlyPay(payload: PaymentTokenPayload, now: Date = new Date()): EarlyPayQuote | null {
+  if (!payload.earlyPay) return null;
+  const { percent, deadlineIso } = payload.earlyPay;
+  const clamped = Math.max(0, Math.min(100, percent));
+  const discountAmount  = Math.round(payload.amount * (clamped / 100) * 100) / 100;
+  const discountedTotal = Math.round((payload.amount - discountAmount) * 100) / 100;
+  const active = new Date(deadlineIso).getTime() >= now.getTime();
+  return {
+    percent:         clamped,
+    discountAmount,
+    discountedTotal,
+    deadlineIso,
+    active,
+  };
 }
 
 // ── URL builder ──────────────────────────────────────────────────────────────

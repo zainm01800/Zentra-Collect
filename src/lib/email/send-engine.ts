@@ -72,17 +72,30 @@ export function buildEmailBody(
   >,
   messageText: string,
   fromName: string,
+  opts?: { portalToken?: string },
 ): { subject: string; bodyText: string; bodyHtml: string } {
   const subject = `Re: Invoice ${draft.invoiceNumber} — ${draft.daysOverdue} days overdue`;
 
   const bodyText = `${messageText}\n\n---\nSent via ${fromName}`;
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const qrBlock =
+    opts?.portalToken && siteUrl
+      ? `
+  <div style="margin:24px 0;padding:16px;border:1px solid #e5e5e5;border-radius:12px;text-align:center">
+    <p style="font-size:12px;color:#666;margin:0 0 8px">📱 Scan to pay on your phone</p>
+    <img src="${siteUrl}/api/customer-portal/qr?token=${encodeURIComponent(opts.portalToken)}&size=200"
+         alt="QR code — scan to pay" width="200" height="200"
+         style="display:inline-block;border-radius:8px" />
+  </div>`
+      : "";
 
   const bodyHtml = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /></head>
 <body style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#111;padding:24px">
-  <p style="white-space:pre-wrap;line-height:1.6">${escapeHtml(messageText)}</p>
+  <p style="white-space:pre-wrap;line-height:1.6">${escapeHtml(messageText)}</p>${qrBlock}
   <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0" />
   <p style="font-size:12px;color:#999">Sent via ${escapeHtml(fromName)}</p>
 </body>

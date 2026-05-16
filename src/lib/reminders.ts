@@ -52,7 +52,7 @@ export function generateTemplateReminder(
     ? "\n\nIf payment has already been arranged, please could you confirm the payment date?"
     : "";
   const paymentLink = options.includePaymentLink
-    ? `\n\nPayment link: ${invoice.paymentLink}`
+    ? `\n\nPayment link: ${invoice.paymentLink}\n📱 Scan to pay on your phone — most email clients will display the QR below this line.`
     : "";
   const relationshipLine = options.keepRelationshipWarm
     ? "\n\nWe appreciate your help getting this sorted."
