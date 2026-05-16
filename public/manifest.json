@@ -1,10 +1,12 @@
 {
-  "name": "Zentra Flow",
+  "id": "/?source=pwa",
+  "name": "Zentra Collect",
   "short_name": "Zentra",
-  "description": "Upload overdue invoices. Get a ranked chase plan in minutes.",
-  "start_url": "/dashboard",
+  "description": "Upload overdue invoices. Get a ranked chase plan with action, reason, and draft message — built for UK bookkeepers.",
+  "start_url": "/dashboard?source=pwa",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#efe7d6",
   "theme_color": "#efe7d6",
   "lang": "en-GB",
@@ -18,19 +20,19 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-512.png",
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -38,17 +40,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Chase Plan",
+      "name": "Chase plan",
       "short_name": "Chase",
-      "description": "View your ranked invoice chase plan",
-      "url": "/chase-plan",
+      "description": "Today's ranked chase plan",
+      "url": "/chase-today?source=pwa-shortcut",
       "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
-      "name": "Import Invoices",
+      "name": "Import invoices",
       "short_name": "Import",
-      "description": "Upload a new invoice export",
-      "url": "/import",
+      "description": "Upload a new AR ageing export",
+      "url": "/import?source=pwa-shortcut",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Customers",
+      "short_name": "Customers",
+      "description": "Browse customer list",
+      "url": "/customers?source=pwa-shortcut",
       "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],

@@ -80,9 +80,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#efe7d6",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#efe7d6" },
+    { media: "(prefers-color-scheme: dark)",  color: "#1d1813" },
+  ],
   width: "device-width",
   initialScale: 1,
+  // viewport-fit=cover lets the app draw under the iOS notch / Android
+  // gesture bar; pair with env(safe-area-inset-*) in CSS to keep content
+  // out of those regions. Critical for installed PWAs on mobile.
+  viewportFit: "cover" as const,
+  // Prevent accidental pinch-zoom in standalone mode where it has no
+  // benefit — but allow user-scalable for accessibility.
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -99,9 +109,14 @@ export default function RootLayout({
       {/* Apple PWA meta tags — must be in <head> but Next.js puts these in <head> automatically */}
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* black-translucent makes the iOS status bar transparent so the app
+            draws all the way to the top — pair with safe-area padding. */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Zentra Collect" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* Prevent iOS automatic phone-number detection from messing with
+            invoice numbers and amounts in the UI. */}
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body className="flex min-h-full flex-col">
         {/* Theme init — runs before hydration to prevent flash of wrong mode */}

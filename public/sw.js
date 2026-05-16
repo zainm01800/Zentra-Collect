@@ -4,21 +4,23 @@
  * Responsibilities:
  * 1. Cache the app shell for offline use (install + activate)
  * 2. Serve cached shell on navigation requests (network-first with cache fallback)
- * 3. Handle Web Push notifications (push event)
- * 4. Handle notification clicks (notificationclick event)
+ * 3. Show a dedicated offline page when the network is unreachable
+ * 4. Handle Web Push notifications (push event)
+ * 5. Handle notification clicks (notificationclick event)
  */
 
-const CACHE_NAME = "zentra-shell-v1";
+const CACHE_NAME = "zentra-shell-v3";
 
 // App shell — pages that should be available offline or on slow connections.
 // These are the minimal set needed to show the UI; data is always fetched live.
 const SHELL_URLS = [
   "/",
   "/dashboard",
-  "/chase-plan",
+  "/chase-today",
   "/import",
   "/customers",
   "/settings",
+  "/offline",
   "/manifest.json",
   "/favicon.svg",
 ];
@@ -29,7 +31,21 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_URLS))
+      // Use { cache: "reload" } so we never reuse a stale HTTP cache during
+      // the SW install — important after a deploy.
+      .then((cache) =>
+        Promise.all(
+          SHELL_URLS.map((url) =>
+            fetch(new Request(url, { cache: "reload" }))
+              .then((response) => {
+                if (response.ok) return cache.put(url, response);
+              })
+              .catch(() => {
+                /* shell entry unavailable at install — swallow */
+              }),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()), // activate immediately
   );
 });
@@ -65,15 +81,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests — network-first, fall back to /dashboard from cache
+  // Navigation requests — network-first; on failure serve cached page if any,
+  // otherwise the dedicated /offline page so the user gets something useful.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .catch(() =>
-          caches
-            .match("/dashboard")
-            .then((cached) => cached ?? Response.error()),
-        ),
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const offline = await caches.match("/offline");
+          if (offline) return offline;
+          return Response.error();
+        }),
     );
     return;
   }
@@ -99,7 +118,7 @@ self.addEventListener("push", (event) => {
   const title = payload.title ?? "Zentra Collect";
   const options = {
     body: payload.body ?? "You have updates in your chase plan.",
-    icon: "/favicon.svg",
+    icon: "/icon.png",
     badge: "/favicon.svg",
     tag: payload.tag ?? "zentra-notification",
     data: {
@@ -143,4 +162,12 @@ self.addEventListener("notificationclick", (event) => {
         }
       }),
   );
+});
+
+// ── Message handler — allow the page to trigger skipWaiting + reload ─────────
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

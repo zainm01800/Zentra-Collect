@@ -35,6 +35,7 @@ import { ReviewDrawer } from "@/components/review-drawer";
 import { PushPermission } from "@/components/push-permission";
 import { TrialStatusBanner } from "@/components/trial-banners";
 import { QueueStatusBar } from "@/components/queue-status-bar";
+import { InstallPrompt } from "@/components/install-prompt";
 import { AutoSendToggle } from "@/components/auto-send-toggle";
 import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
 import { AccountSync } from "@/components/account-sync";
@@ -511,12 +512,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       {/* ── Main ── */}
       <div className="flex flex-col min-w-0">
 
-        {/* Mobile top bar (sm only) */}
+        {/* Mobile top bar (sm only) — pads under the iOS notch when installed */}
         <header
           className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b backdrop-blur px-4 py-3"
           style={{
             background: "color-mix(in srgb, var(--zn-bg-2) 95%, transparent)",
             borderColor: "var(--zn-line)",
+            paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+            paddingLeft:  "max(1rem, env(safe-area-inset-left))",
+            paddingRight: "max(1rem, env(safe-area-inset-right))",
           }}
         >
           <Link href="/dashboard" className="flex items-center gap-2.5">
@@ -572,13 +576,16 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         {/* Arming banner — full width, above content */}
         <AutoSendArmingBanner />
 
-        {/* Page content — drawer always overlays, no shift needed */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 pb-24 md:pb-8">
+        {/* Page content — drawer always overlays, no shift needed.
+            zn-main-pb adds 6rem + safe-area-inset-bottom on mobile so
+            the bottom nav and iPhone home indicator never overlap content. */}
+        <main className="zn-main-pb flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 md:pb-8">
           <div className="mx-auto w-full max-w-[1360px]">
             <TrialStatusBanner />
             <QueueStatusBar />
             {children}
           </div>
+          <InstallPrompt />
         </main>
       </div>
 

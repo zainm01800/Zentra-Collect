@@ -585,3 +585,21 @@ body::before {
   background-color: var(--zn-line-hard);
   background-clip: padding-box;
 }
+
+/* ─── Mobile PWA: safe-area aware main padding ─────────────────────────────
+   The mobile bottom nav is 64px tall, and on iPhones the home indicator
+   adds another ~34px. Without this, scrolled content slips behind both.
+   On md and above we use the normal Tailwind pb-8. */
+.zn-main-pb {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 48rem) {
+  .zn-main-pb { padding-bottom: 2rem; }
+}
+
+/* Inputs on iOS — prevent zoom on focus when font-size < 16px */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+}
