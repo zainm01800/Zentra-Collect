@@ -82,6 +82,7 @@ import {
 import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { ImportValidationIssue, ImportPreviewInvoice } from "@/lib/import/zentra-import";
+import { detectDuplicates, type DuplicateWarning } from "@/lib/import/duplicate-detection";
 
 const importFields = Object.keys(importFieldLabels) as ImportTargetField[];
 
@@ -132,6 +133,28 @@ export function ZentraImportFlow() {
     const { invoices } = buildInvoicesFromPreview(validation.preview);
     return compareImportBatches(readPreviousImportInvoices(), invoices);
   }, [account, validation.preview]);
+
+  // Duplicate detection — runs against the user's previously-imported invoices
+  // so any re-imports that look suspiciously like duplicates get flagged early.
+  const duplicateWarnings = useMemo(() => {
+    if (!validation.preview.length) return [];
+    const previous = readPreviousImportInvoices();
+    if (!previous.length) return [];
+    return detectDuplicates(
+      validation.preview.map((p) => ({
+        invoiceNumber: p.invoiceNumber ?? "",
+        customerName:  p.customerName ?? "",
+        amount:        p.amount ?? 0,
+        invoiceDate:   p.invoiceDate ?? undefined,
+      })),
+      previous.map((inv: { invoiceNumber: string; customerName: string; amount: number; invoiceDate?: string }) => ({
+        invoiceNumber: inv.invoiceNumber,
+        customerName:  inv.customerName,
+        amount:        inv.amount,
+        invoiceDate:   inv.invoiceDate,
+      })),
+    );
+  }, [validation.preview]);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -536,6 +559,7 @@ export function ZentraImportFlow() {
                 onImport={importRows}
                 isImporting={isImporting}
               />
+              <DuplicateWarningsPanel warnings={duplicateWarnings} />
               <ValidationPanel issues={validation.issues} />
             </>
           ) : null}
@@ -792,6 +816,52 @@ function SampleRows({ headers, rows }: { headers: string[]; rows: string[][] }) 
             </tbody>
           </table>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DuplicateWarningsPanel({ warnings }: { warnings: DuplicateWarning[] }) {
+  if (!warnings.length) return null;
+
+  const high = warnings.filter((w) => w.confidence === "high");
+  const medium = warnings.filter((w) => w.confidence === "medium");
+
+  return (
+    <Card className="rounded-3xl border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 shadow-none ring-0">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="size-4" />
+          Possible duplicate invoice{warnings.length === 1 ? "" : "s"} ({warnings.length})
+        </CardTitle>
+        <CardDescription className="text-amber-800 dark:text-amber-300">
+          These rows look similar to invoices already in your workspace. Review
+          before importing — you can still proceed if they really are different.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {[...high, ...medium].slice(0, 10).map((w) => (
+          <div
+            key={`${w.newInvoiceNumber}-${w.existingInvoiceNumber}-${w.reason}`}
+            className="flex gap-3 rounded-2xl border border-amber-200 bg-white dark:border-amber-800 dark:bg-amber-950/50 p-3 text-sm text-amber-900 dark:text-amber-100"
+          >
+            <span
+              className="inline-flex h-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em]"
+              style={{
+                background: w.confidence === "high" ? "#fef2f2" : "#fef3c7",
+                color:      w.confidence === "high" ? "#991b1b" : "#92400e",
+              }}
+            >
+              {w.confidence}
+            </span>
+            <span className="leading-relaxed">{w.summary}</span>
+          </div>
+        ))}
+        {warnings.length > 10 ? (
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Showing 10 of {warnings.length} duplicate warnings.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

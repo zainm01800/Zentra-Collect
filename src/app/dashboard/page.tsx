@@ -3,6 +3,7 @@ import { CheckoutSuccessBanner } from "@/components/checkout-success-banner";
 import { FinancialHeader }       from "@/components/financial-header";
 import { OutcomeSummaryBar }     from "@/components/outcome-summary-bar";
 import { CashForecastCard }      from "@/components/cash-forecast-card";
+import { PaymentPatternsCard }   from "@/components/payment-patterns-card";
 
 import { getInvoices }                                    from "@/lib/api/db";
 import { getFinancialSettings, getMonthlyIncomeSummary }  from "@/actions/financial-settings";
@@ -83,6 +84,9 @@ export default async function DashboardPage({
 
       {/* Cash forecast — probability-weighted projection from invoice data */}
       <CashForecastCard />
+
+      {/* Payment patterns — day-of-week analysis (auto-hides under 5 paid invoices) */}
+      <PaymentPatternsCard />
 
       <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
     </>
