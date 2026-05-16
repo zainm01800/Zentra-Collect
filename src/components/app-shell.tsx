@@ -69,14 +69,13 @@ type NavItem = {
 // Invoices hub.
 
 const overviewNav: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/today",     label: "Today",     icon: LayoutDashboard },
   { href: "/portfolio", label: "Portfolio", icon: Wallet },
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/chase-today", label: "Chase plan", icon: CreditCard },
-  { href: "/invoices",    label: "Invoices",   icon: Receipt },
-  { href: "/customers",   label: "Customers",  icon: Users },
+  { href: "/invoices",  label: "Invoices",  icon: Receipt },
+  { href: "/customers", label: "Customers", icon: Users },
 ];
 
 // "Books" replaces "Finance" — the audit found "Finance" was too broad
@@ -95,10 +94,10 @@ const financeNav: NavItem[] = [
  * or via Settings on mobile.
  */
 const mobileBottomNav: NavItem[] = [
-  { href: "/dashboard",  label: "Home",       icon: Home        },
-  { href: "/chase-today",label: "Chase plan", icon: CreditCard  },
-  { href: "/customers",  label: "Customers",  icon: Users       },
-  { href: "/settings",   label: "Settings",   icon: Settings    },
+  { href: "/today",     label: "Today",     icon: Home       },
+  { href: "/invoices",  label: "Invoices",  icon: Receipt    },
+  { href: "/customers", label: "Customers", icon: Users      },
+  { href: "/settings",  label: "Settings",  icon: Settings   },
 ];
 
 // ── Nav hidden-items helpers ──────────────────────────────────────────────────
