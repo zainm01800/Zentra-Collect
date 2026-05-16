@@ -44,6 +44,16 @@ export interface PaymentTokenPayload {
     percent:     number;
     deadlineIso: string;
   };
+  /**
+   * Optional write-back metadata. When present, the Stripe webhook can
+   * call the matching integration's markInvoicePaid() after a successful
+   * payment so the invoice is marked paid in the user's accounting tool.
+   */
+  writeBack?: {
+    accountId:       string;
+    provider:        "xero" | "quickbooks" | "sage" | "freeagent";
+    sourceInvoiceId: string;
+  };
   /** Issued-at timestamp (seconds). */
   iat:           number;
   /** Expiry timestamp (seconds). */

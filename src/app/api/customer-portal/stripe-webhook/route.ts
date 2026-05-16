@@ -30,6 +30,7 @@ import {
   renderCustomerReceiptText,
   type ReceiptFields,
 } from "@/lib/customer-portal/receipt-template";
+import { writeBackPayment, type Provider } from "@/lib/integrations/write-back";
 import type Stripe from "stripe";
 
 export const dynamic   = "force-dynamic";
@@ -150,6 +151,37 @@ export async function POST(request: Request) {
       renderCustomerReceiptHtml(fields),
       renderCustomerReceiptText(fields),
     );
+  }
+
+  // ── Write-back to accounting tool ──────────────────────────────────────
+  // When the portal token carried write-back metadata, mark the source
+  // invoice paid in the user's accounting tool too. Errors here don't
+  // fail the webhook — Stripe must always get a 200 — but they're
+  // surfaced in the user receipt email body for visibility.
+  const wbAccountId = session.metadata?.wbAccountId;
+  const wbProvider  = session.metadata?.wbProvider as Provider | "" | undefined;
+  const wbSourceInvoiceId = session.metadata?.wbSourceInvoiceId;
+
+  if (wbAccountId && wbProvider && wbSourceInvoiceId) {
+    try {
+      const result = await writeBackPayment({
+        accountId:       wbAccountId,
+        provider:        wbProvider as Provider,
+        sourceInvoiceId: wbSourceInvoiceId,
+        amountPaid:      fields.chargedAmount,
+        paidDate:        new Date().toISOString().slice(0, 10),
+        reference:       session.id,
+      });
+      if (!result.ok) {
+        console.warn(
+          `[stripe-webhook] write-back to ${wbProvider} failed for ${wbSourceInvoiceId}:`,
+          result.error,
+          result.reauthorize ? "(needs reauthorize)" : "",
+        );
+      }
+    } catch (err) {
+      console.error("[stripe-webhook] write-back threw:", err);
+    }
   }
 
   return NextResponse.json({ received: true });

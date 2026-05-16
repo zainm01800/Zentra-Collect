@@ -101,6 +101,11 @@ export async function POST(request: Request) {
         earlyPayApplied: discountActive ? "1" : "0",
         earlyPayPercent: discountActive ? String(earlyPay!.percent) : "0",
         businessEmail:   inv.businessEmail,
+        // Write-back metadata so the Stripe webhook can mark the
+        // invoice paid in the user's accounting tool after payment.
+        wbAccountId:       inv.writeBack?.accountId       ?? "",
+        wbProvider:        inv.writeBack?.provider        ?? "",
+        wbSourceInvoiceId: inv.writeBack?.sourceInvoiceId ?? "",
       },
       // Optional — pre-populate the customer email if you have it.
       // customer_email: inv.customerEmail,
