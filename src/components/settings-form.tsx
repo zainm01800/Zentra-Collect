@@ -200,6 +200,23 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
             <OutboundEmailCard />
             <EmailSettingsCard />
           </div>
+          <Card className="rounded-lg mt-5">
+            <CardHeader className="pb-3">
+              <CardTitle>Customer payment portal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Every chase email carries a signed link to a payment portal where
+                customers can pay, promise a date, or explain the delay. Statutory
+                interest, early-pay discounts, and forward-to-AP all surface automatically.
+              </p>
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <a href="/demo/portal" target="_blank" rel="noopener noreferrer">
+                  See what your customers see →
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ── System tab ────────────────────────────────────────────────── */}

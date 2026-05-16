@@ -26,6 +26,8 @@ import {
   demoSingleBusiness,
 } from "@/lib/demo-data/zentra-demo-data";
 import type { Invoice } from "@/types/zentra";
+import { rankCollectionActions } from "@/lib/collections/decision-engine";
+import { buildCustomerBehaviourProfile } from "@/lib/collections/customer-behaviour";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -300,6 +302,24 @@ export default function DemoChasePlanPage() {
         </p>
       </div>
 
+      {/* Smart insights — runs the live decision engine over the demo data */}
+      <SmartInsightsCallout />
+
+      {/* See what your customers see */}
+      <Link
+        href="/demo/portal"
+        className="flex items-center justify-between gap-3 rounded-[10px] px-4 py-3 transition-colors hover:bg-[var(--zn-surface-2)]"
+        style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+      >
+        <div className="flex items-center gap-3">
+          <MessageSquare className="size-4 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
+          <p className="text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
+            <strong>See what your customers see</strong> — preview the signed payment portal that ships with every chase.
+          </p>
+        </div>
+        <ArrowRight className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+      </Link>
+
       {/* Table */}
       <div className="zn-card overflow-hidden">
         {/* Table header */}
@@ -514,6 +534,50 @@ export default function DemoChasePlanPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Smart insights — live engine output on demo data ─────────────────────────
+
+function SmartInsightsCallout() {
+  // Build customer-behaviour profiles so the engine has full context
+  const profiles = demoCustomers.map((c) => buildCustomerBehaviourProfile(c, demoInvoices));
+  const plan = rankCollectionActions({
+    invoices: demoInvoices,
+    customers: demoCustomers,
+    customerBehaviourProfiles: profiles,
+  });
+  const insights = plan
+    .filter((item) => item.stopChasingInsight)
+    .slice(0, 3);
+
+  if (insights.length === 0) return null;
+
+  return (
+    <div
+      className="rounded-[10px] px-4 py-3.5"
+      style={{ background: "var(--zn-safe-soft)", border: "1px solid var(--zn-safe)" }}
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-2.5">
+        <p className="text-[11.5px] font-bold uppercase tracking-wider"
+           style={{ color: "var(--zn-safe)" }}>
+          Smart insights · Don&rsquo;t chase
+        </p>
+        <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+          Live from the decision engine
+        </p>
+      </div>
+      <ul className="space-y-1.5">
+        {insights.map((item) => (
+          <li key={item.id} className="text-[12.5px] leading-snug" style={{ color: "var(--zn-ink-2)" }}>
+            <span className="font-medium" style={{ color: "var(--zn-ink)" }}>
+              {item.customerName} ({item.invoiceNumber})
+            </span>{" "}
+            — {item.stopChasingInsight!.message}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
