@@ -21,6 +21,7 @@ import {
   readActiveClientId,
   clientInvoicesKey,
 } from "@/lib/bookkeeper-clients";
+import { writeDirectDebitEmails } from "@/lib/collections/dd-cache";
 
 const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
 
@@ -89,6 +90,12 @@ export function IntegrationCard({
     try {
       const result = await syncAction();
       if (result.ok) {
+        // Mandate-source integrations (GoCardless) return a list of
+        // emails on active Direct Debit instead of invoices. Cache them
+        // so the chase engine can suppress chases for these customers.
+        if (result.directDebitEmails) {
+          writeDirectDebitEmails(result.directDebitEmails);
+        }
         // Some integrations (e.g. GoCardless) sync mandates, not invoices —
         // they return ok with summary but no invoices array. Skip the
         // localStorage write in that case.

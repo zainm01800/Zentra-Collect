@@ -47,6 +47,12 @@ export interface SyncResult {
   notConfigured?:  boolean;
   /** True when there's no stored connection for this user. */
   notConnected?:   boolean;
+  /**
+   * When this sync produced a list of customer emails on active Direct
+   * Debit (only GoCardless currently), the client caches them in
+   * localStorage for the chase engine to consume.
+   */
+  directDebitEmails?: string[];
 }
 
 // ── Xero ──────────────────────────────────────────────────────────────────────
@@ -203,6 +209,7 @@ export async function syncFromGoCardlessAction(): Promise<SyncResult> {
       ok: true,
       // No invoices — this provider produces mandate metadata.
       summary: `${emails.size} customer${emails.size === 1 ? "" : "s"} on active Direct Debit.`,
+      directDebitEmails: Array.from(emails),
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

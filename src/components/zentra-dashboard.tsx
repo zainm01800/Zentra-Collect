@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { recordToneOutcome, type ToneOutcome } from "@/lib/collections/tone-learning";
+import { readDirectDebitEmails } from "@/lib/collections/dd-cache";
 import type { ReminderTone } from "@/types/cashpilot";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 import { Button } from "@/components/ui/button";
@@ -349,6 +350,9 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
     [importSummary, invoices],
   );
 
+  const [emailsOnDD, setEmailsOnDD] = useState<Set<string>>(() => new Set<string>());
+  useEffect(() => { setEmailsOnDD(readDirectDebitEmails()); }, []);
+
   const plan = useMemo(
     () => {
       const basePlan = rankCollectionActions({
@@ -356,6 +360,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         customers,
         customerBehaviourProfiles: behaviourProfiles,
         referenceDate,
+        emailsOnDirectDebit: emailsOnDD,
       });
       if (!searchQuery.trim()) return basePlan;
       const lowerQuery = searchQuery.toLowerCase();
@@ -364,7 +369,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         (item.invoiceNumber && item.invoiceNumber.toLowerCase().includes(lowerQuery))
       );
     },
-    [behaviourProfiles, customers, invoices, searchQuery],
+    [behaviourProfiles, customers, invoices, searchQuery, emailsOnDD],
   );
   const groups = useMemo(() => groupActionsByCategory(plan), [plan]);
   const filteredVisibleGroups = useMemo(() => {

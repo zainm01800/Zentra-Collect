@@ -15,6 +15,7 @@ import type { CustomerBehaviourProfile, Invoice } from "@/types/zentra";
 
 /** Why the engine recommends skipping this chase. */
 export type StopChasingKind =
+  | "on_direct_debit"          // customer is on an active GoCardless mandate
   | "reliable_late_payer"      // pays late but always within their normal window
   | "recently_chased"          // we touched them in the last 48h, give it a beat
   | "promise_pending"          // they've already promised a date in the future
@@ -32,6 +33,13 @@ interface StopChasingContext {
   daysSinceLastChase: number | null;
   profile?:           CustomerBehaviourProfile;
   referenceDate:      string;
+  /**
+   * Lowercased emails of customers known to be on an active Direct Debit
+   * mandate (currently sourced from GoCardless). When set and the
+   * invoice's customer email is in it, the engine returns the highest-
+   * confidence "don't chase" insight available.
+   */
+  emailsOnDirectDebit?: Set<string>;
 }
 
 /**
@@ -57,6 +65,20 @@ export function computeStopChasingInsight(
     invoice.status === "missed_promise"
   ) {
     return null;
+  }
+
+  // ── Rule 0: customer is on an active Direct Debit ──────────────────────
+  // Highest-confidence rule. If the customer is on a live mandate, they
+  // are paying automatically — chasing is actively annoying.
+  if (ctx.emailsOnDirectDebit && invoice.customerEmail) {
+    const email = invoice.customerEmail.toLowerCase();
+    if (ctx.emailsOnDirectDebit.has(email)) {
+      return {
+        kind:       "on_direct_debit",
+        message:    `${invoice.customerName} is on an active Direct Debit mandate — payment will collect automatically. Don't chase.`,
+        confidence: 99,
+      };
+    }
   }
 
   // ── Rule 1: a future promise has been made ─────────────────────────────

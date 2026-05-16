@@ -29,6 +29,12 @@ type DecisionContext = {
   disputes?: Dispute[];
   customerBehaviourProfiles?: CustomerBehaviourProfile[];
   referenceDate?: string;
+  /**
+   * Lowercased emails of customers on an active Direct Debit mandate
+   * (sourced from GoCardless). When provided, the stop-chasing engine
+   * tags any matching invoice as "on Direct Debit — don't chase".
+   */
+  emailsOnDirectDebit?: Set<string>;
 };
 
 type ScenarioContext = {
@@ -257,6 +263,7 @@ export function rankCollectionActions(context: DecisionContext): CollectionsPlan
         daysSinceLastChase,
         profile,
         referenceDate,
+        emailsOnDirectDebit: context.emailsOnDirectDebit,
       }) ?? undefined;
       // When the stop-chasing engine has a confident view, suppress the
       // chase by deprioritising. We keep the scenario for messaging so

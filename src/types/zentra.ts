@@ -406,7 +406,7 @@ export interface CollectionsPlanItem {
    * Renders as a green "Don't chase" badge with the reason.
    */
   stopChasingInsight?: {
-    kind:       "reliable_late_payer" | "recently_chased" | "promise_pending" | "tiny_balance_low_overdue";
+    kind:       "on_direct_debit" | "reliable_late_payer" | "recently_chased" | "promise_pending" | "tiny_balance_low_overdue";
     message:    string;
     confidence: number;
   };
