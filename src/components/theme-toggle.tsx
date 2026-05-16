@@ -17,6 +17,10 @@ export function ThemeToggle() {
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     try { localStorage.setItem(THEME_KEY, next ? "dark" : "light"); } catch {}
+    // Update the PWA / browser chrome colour so the OS status bar and
+    // Android address bar match the chosen theme — otherwise the user
+    // gets a cream-coloured strip on a dark-mode app.
+    updateThemeColorMeta(next ? "#1d1813" : "#efe7d6");
   }
 
   return (
@@ -31,4 +35,21 @@ export function ThemeToggle() {
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>
   );
+}
+
+/**
+ * Replace the <meta name="theme-color"> tags (both light and dark
+ * media-query variants) with a single, unconditional value so the
+ * user's manual choice wins over prefers-color-scheme. The OS status
+ * bar / address bar updates immediately on mobile.
+ */
+function updateThemeColorMeta(color: string): void {
+  if (typeof document === "undefined") return;
+  document
+    .querySelectorAll('meta[name="theme-color"]')
+    .forEach((el) => el.remove());
+  const meta = document.createElement("meta");
+  meta.name = "theme-color";
+  meta.content = color;
+  document.head.appendChild(meta);
 }
