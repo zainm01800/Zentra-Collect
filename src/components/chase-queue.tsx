@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Volume2, VolumeX } from "lucide-react";
 import { CustomerProfileDrawer } from "@/components/customer-profile-drawer";
 import { AddInvoiceDrawer } from "@/components/add-invoice-drawer";
 import { useReview, statusForOutcome, type ReviewOutcome } from "@/components/review-context";
@@ -268,6 +268,7 @@ export function ChaseQueue({
           />
         </div>
         <div className="flex items-center gap-2">
+          <BriefMeButton queue={queue} />
           <button
             type="button"
             onClick={() => setAddDrawerOpen(true)}
@@ -718,5 +719,77 @@ function WaitingTable({ invoices }: { invoices: ZentraInvoice[] }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+// ── Brief me — read top invoices aloud via the browser's TTS engine ─────────
+
+/**
+ * "Brief me" button — speaks the top 5 invoices in the queue using the
+ * browser's built-in SpeechSynthesis API. Free, no external service.
+ * Useful for the commute home or while doing other work.
+ */
+function BriefMeButton({ queue }: { queue: Invoice[] }) {
+  const [speaking, setSpeaking] = useState(false);
+
+  // Only render when browser supports TTS
+  const supported =
+    typeof window !== "undefined" &&
+    typeof window.speechSynthesis !== "undefined";
+  if (!supported) return null;
+  if (queue.length === 0) return null;
+
+  function buildBriefText(invoices: Invoice[]): string {
+    const top = invoices.slice(0, 5);
+    const intro =
+      invoices.length === 1
+        ? "You have one invoice to chase."
+        : `You have ${invoices.length} invoices to chase. Here are the top ${top.length}.`;
+    const items = top.map((inv, idx) => {
+      const amount = `£${Math.round(inv.amount).toLocaleString("en-GB")}`;
+      const overdue =
+        inv.daysOverdue > 0
+          ? `${inv.daysOverdue} day${inv.daysOverdue === 1 ? "" : "s"} overdue`
+          : "not yet due";
+      const action = getSuggestedAction(inv);
+      return `Number ${idx + 1}. ${inv.customerName}. ${amount}. ${overdue}. Recommended action: ${action}.`;
+    });
+    const outro = "End of brief.";
+    return [intro, ...items, outro].join(" ");
+  }
+
+  function speak() {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(buildBriefText(queue));
+    utterance.rate = 1.05;
+    utterance.pitch = 1;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  }
+
+  function stop() {
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={speaking ? stop : speak}
+      className="zn-pill zn-pill-ghost"
+      title={speaking ? "Stop briefing" : "Read top invoices aloud"}
+    >
+      {speaking ? (
+        <>
+          <VolumeX className="size-3.5" /> Stop
+        </>
+      ) : (
+        <>
+          <Volume2 className="size-3.5" /> Brief me
+        </>
+      )}
+    </button>
   );
 }

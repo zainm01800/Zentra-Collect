@@ -127,10 +127,25 @@ function templateFor(
         tone === "Neutral"  ? `I'm writing to follow up on invoice ${ref} (${amount}), which was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue.` :
         tone === "Firm"     ? `Invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue. We've yet to receive payment.` :
                               `Invoice ${ref} for ${amount} was due on ${due} and is now ${days} day${days === 1 ? "" : "s"} overdue. This invoice has not been settled despite earlier follow-ups.`;
+
+      // Auto-include UK statutory interest phrase in Firm + Final-notice messages
+      // for B2B invoices that are 14+ days overdue and have material interest accrued.
+      // For Friendly/Neutral tones we keep the message lighter — interest is in the
+      // collapsible panel for the user to add if they want.
+      const includeInterest = (tone === "Firm" || tone === "Final notice") && days >= 14;
+      const interestLine = includeInterest
+        ? interestPhraseForChase(inv.amount, days)
+        : null;
+      const bodyParts = [greet, "", opener];
+      if (interestLine) bodyParts.push("", interestLine);
+      bodyParts.push("", TONE_CLOSER[tone], "", signoff);
+
       return {
         subject: `${TONE_SUBJECT_PREFIX[tone]}: invoice ${ref}`,
-        body:    `${greet}\n\n${opener}\n\n${TONE_CLOSER[tone]}\n\n${signoff}`,
-        reason:  `${days}d overdue · no recent reply · standard reminder cadence`,
+        body:    bodyParts.join("\n"),
+        reason:  interestLine
+          ? `${days}d overdue · firm cadence · statutory interest auto-included`
+          : `${days}d overdue · no recent reply · standard reminder cadence`,
       };
     }
     case "ask_date": {
