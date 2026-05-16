@@ -20,6 +20,7 @@ import { freeSlot, readWaitingInvoices } from "@/lib/collections/queue-engine";
 import { computeCustomerRiskMap } from "@/lib/risk-score";
 import { predictInvoiceOutcome } from "@/lib/cash-forecast";
 import { RiskBadge } from "@/components/risk-badge";
+import { ChaseStreakBadge } from "@/components/chase-streak-badge";
 import type { Invoice } from "@/types/cashpilot";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
@@ -268,7 +269,8 @@ export function ChaseQueue({
             }}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ChaseStreakBadge />
           <BriefMeButton queue={queue} />
           <button
             type="button"

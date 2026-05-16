@@ -58,6 +58,13 @@ export function ReviewProvider({ children }: { children: React.ReactNode }) {
       if (current && onOutcome) {
         onOutcome(current.id, outcome);
         setOutcomesLogged((n) => n + 1);
+        // Persist to the chase-streak tracker so the streak badge updates.
+        // Dynamic import keeps this a client-only side effect.
+        if (typeof window !== "undefined") {
+          import("@/lib/chase-streak").then(({ recordOutcome: trackOutcome }) => {
+            trackOutcome();
+          }).catch(() => { /* non-critical */ });
+        }
       }
     },
     [current, onOutcome],
