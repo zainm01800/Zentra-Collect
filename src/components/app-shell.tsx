@@ -68,6 +68,7 @@ const overviewNav: NavItem[] = [
 ];
 
 const collectionsNav: NavItem[] = [
+  { href: "/invoices/new",           label: "New invoice",     icon: Receipt },
   { href: "/import",                 label: "Import invoices", icon: ArrowUpFromLine },
   { href: "/settings/integrations",  label: "Integrations",    icon: Plug },
   { href: "/chase-today",            label: "Chase plan",      icon: CreditCard },
