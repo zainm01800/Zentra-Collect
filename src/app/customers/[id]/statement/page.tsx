@@ -4,7 +4,7 @@ import { CustomerStatement } from "@/components/customer-statement";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Statement of account — Zentra Flow",
+  title: "Statement of account — Zentra Collect",
 };
 
 export default async function CustomerStatementPage({

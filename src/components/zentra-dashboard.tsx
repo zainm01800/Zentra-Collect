@@ -797,7 +797,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
               className="zn-label !p-0 mb-2"
               style={{ color: "rgba(250,245,232,0.55)" }}
             >
-              Welcome to Zentra Flow
+              Welcome to Zentra Collect
             </div>
             <h2
               className="text-[22px] md:text-[26px] leading-[1.15] mb-3"
@@ -1297,7 +1297,7 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
               style={{ background: "var(--zn-bg-inverse)", borderColor: "var(--zn-bg-inverse)" }}
             >
               <div className="zn-label !p-0 mb-1.5" style={{ color: "rgba(250,245,232,0.5)" }}>
-                Welcome to Zentra Flow
+                Welcome to Zentra Collect
               </div>
               <p
                 className="text-[15px] leading-[1.45] mb-4"
@@ -2985,31 +2985,31 @@ function buildActionDraftMessage(
   );
 
   if (scenario === "ASK_FOR_PAYMENT_DATE") {
-    return `Hi there,\n\nI am checking in on invoice ${invoice.invoiceNumber}, which is showing with ${amount} outstanding.\n\nCould you confirm the expected payment date so we can update our records?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nI am checking in on invoice ${invoice.invoiceNumber}, which is showing with ${amount} outstanding.\n\nCould you confirm the expected payment date so we can update our records?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "INTERNAL_ESCALATION") {
     return `Internal escalation\n\nCustomer: ${invoice.customerName}\nInvoice: ${invoice.invoiceNumber}\nOutstanding: ${amount}\nOwner: ${details.internalOwner || "Account manager"}\n\n${details.escalationNote || item.reason}`;
   }
   if (scenario === "THANK_YOU_AFTER_PAYMENT") {
-    return `Hi there,\n\nThank you for arranging payment for invoice ${invoice.invoiceNumber}. We appreciate your help getting this sorted.\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nThank you for arranging payment for invoice ${invoice.invoiceNumber}. We appreciate your help getting this sorted.\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "STATEMENT_OF_ACCOUNT") {
-    return `Hi there,\n\nI am checking the open items on your account. We currently have ${customerInvoices.length} open invoice${customerInvoices.length === 1 ? "" : "s"} totalling ${formatCurrency(totalOutstanding)}.\n\nCould you confirm which items are approved for payment, or whether you need a statement of account from us?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nI am checking the open items on your account. We currently have ${customerInvoices.length} open invoice${customerInvoices.length === 1 ? "" : "s"} totalling ${formatCurrency(totalOutstanding)}.\n\nCould you confirm which items are approved for payment, or whether you need a statement of account from us?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "REQUEST_REMITTANCE") {
-    return `Hi there,\n\nThanks for the update on invoice ${invoice.invoiceNumber}. The balance of ${amount} is still showing as outstanding on our side.\n\nCould you send remittance advice${details.paymentReference ? ` for reference ${details.paymentReference}` : ""} so we can match this correctly?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nThanks for the update on invoice ${invoice.invoiceNumber}. The balance of ${amount} is still showing as outstanding on our side.\n\nCould you send remittance advice${details.paymentReference ? ` for reference ${details.paymentReference}` : ""} so we can match this correctly?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "PROMISE_FOLLOW_UP") {
-    return `Hi there,\n\nI am following up on invoice ${invoice.invoiceNumber}. We had a payment date noted${details.promisedDate ? ` for ${formatDate(details.promisedDate)}` : ""}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nI am following up on invoice ${invoice.invoiceNumber}. We had a payment date noted${details.promisedDate ? ` for ${formatDate(details.promisedDate)}` : ""}, but ${amount} is still showing as outstanding.\n\nCould you confirm whether payment has been made, or share an updated payment date?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "RESOLVE_DISPUTE") {
-    return `Hi there,\n\nThanks for raising the query on invoice ${invoice.invoiceNumber}. We have noted the issue and will review it before sending any further payment reminders.\n\nCould you share any details that would help ${details.disputeOwner || "the team"} resolve this by ${details.nextResolutionDate ? formatDate(details.nextResolutionDate) : "the next update"}?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nThanks for raising the query on invoice ${invoice.invoiceNumber}. We have noted the issue and will review it before sending any further payment reminders.\n\nCould you share any details that would help ${details.disputeOwner || "the team"} resolve this by ${details.nextResolutionDate ? formatDate(details.nextResolutionDate) : "the next update"}?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "ASK_FOR_AP_CONTACT") {
-    return `Hi there,\n\nWe are trying to confirm the best ${details.requestedContactRole || "accounts payable"} contact for invoice ${invoice.invoiceNumber}.\n\nCould you point us to the right person or email address for payment queries?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nWe are trying to confirm the best ${details.requestedContactRole || "accounts payable"} contact for invoice ${invoice.invoiceNumber}.\n\nCould you point us to the right person or email address for payment queries?\n\nThanks,\nZentra Collect`;
   }
   if (scenario === "CONFIRM_INVOICE_RECEIVED") {
-    return `Hi there,\n\nI wanted to confirm that invoice ${invoice.invoiceNumber} for ${amount}, due on ${dueDate}, has reached the right team.\n\nCould you let me know whether it has been received and is scheduled for payment?\n\nThanks,\nZentra Flow`;
+    return `Hi there,\n\nI wanted to confirm that invoice ${invoice.invoiceNumber} for ${amount}, due on ${dueDate}, has reached the right team.\n\nCould you let me know whether it has been received and is scheduled for payment?\n\nThanks,\nZentra Collect`;
   }
 
   return buildDraftMessage(item, invoice);

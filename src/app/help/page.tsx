@@ -4,21 +4,21 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Help & support",
-  description: "How Zentra Flow ranks, what human review means, and how to get help.",
+  description: "How Zentra Collect ranks, what human review means, and how to get help.",
 };
 
 const faqs = [
   {
-    q: "How does Zentra Flow decide who to chase first?",
+    q: "How does Zentra Collect decide who to chase first?",
     a: "Deterministic rules — invoice age, amount, customer payment history, dispute status, and whether a promise is in play. AI is only used to draft messages and classify replies, never to rank.",
   },
   {
-    q: "Will Zentra Flow ever send messages automatically?",
+    q: "Will Zentra Collect ever send messages automatically?",
     a: "No. Every outbound message requires you to review the draft, the safety checks, and copy or send it from your own inbox. That's the safety promise.",
   },
   {
     q: "What happens to a customer in dispute?",
-    a: "They drop out of the chase queue automatically and into Disputes. Once you mark the dispute resolved, Zentra Flow resumes the appropriate chase action.",
+    a: "They drop out of the chase queue automatically and into Disputes. Once you mark the dispute resolved, Zentra Collect resumes the appropriate chase action.",
   },
   {
     q: "Where does the data come from?",
@@ -31,7 +31,7 @@ export default function HelpPage() {
     <div className="flex flex-col gap-5">
         <PageHeader
           kicker="Help & support"
-          title="How Zentra Flow works"
+          title="How Zentra Collect works"
           sub="Quick answers about the decisioning engine, safety rules, and import. For anything else, get in touch."
           actions={
             <>
@@ -42,7 +42,7 @@ export default function HelpPage() {
 
         {/* How Zentra ranks — make the rules-first promise visible */}
         <div className="zn-card p-6 lg:p-7">
-          <div className="zn-label !p-0 mb-1.5">How Zentra Flow ranks</div>
+          <div className="zn-label !p-0 mb-1.5">How Zentra Collect ranks</div>
           <h2
             className="text-[22px] tracking-[-0.015em] leading-[1.1] text-[#1d1813] dark:text-[#f0e8d5] mb-4"
             style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}

@@ -49,7 +49,7 @@ export type DraftGenerationInput = {
   lateFeesEnabled?: boolean;
 
   // Who the email is from. Templates and AI prompt use these to sign correctly.
-  // If absent, the signoff falls back to a neutral "Thanks," (never "Zentra Flow").
+  // If absent, the signoff falls back to a neutral "Thanks," (never "Zentra Collect").
   senderName?: string;
   senderBusinessName?: string;
 };
@@ -166,7 +166,7 @@ Context:
 - Late fees enabled: ${input.lateFeesEnabled === true}
 
 Rules:
-- Sign the email as the sender (and their business if provided). NEVER sign as "Zentra", "Zentra Flow", or any third party — this email comes from the sender's own inbox.
+- Sign the email as the sender (and their business if provided). NEVER sign as "Zentra", "Zentra Collect", or any third party — this email comes from the sender's own inbox.
 - Never claim to be a solicitor or debt collector.
 - Never give legal, accounting, or tax advice.
 - Avoid aggressive, threatening, or intimidating wording.
@@ -198,7 +198,7 @@ function subjectFor(input: DraftGenerationInput) {
 
 function buildSignoff(input: DraftGenerationInput): string {
   // Sign as the user, not Zentra. If we have no sender info, sign neutrally
-  // — never sign as "Zentra Flow" because the email goes from the user's inbox.
+  // — never sign as "Zentra Collect" because the email goes from the user's inbox.
   const lines: string[] = ["Thanks,"];
   if (input.senderName?.trim()) lines.push(input.senderName.trim());
   if (input.senderBusinessName?.trim()) lines.push(input.senderBusinessName.trim());

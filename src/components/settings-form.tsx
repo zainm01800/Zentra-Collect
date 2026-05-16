@@ -442,7 +442,7 @@ function EmailSettingsCard() {
 }
 
 function OutboundEmailCard() {
-  useLocalAccount();
+  const { user } = useLocalAccount();
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -451,6 +451,14 @@ function OutboundEmailCard() {
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
   const [error, setError]       = useState<string | null>(null);
+
+  // Default the "from name" to the user's business name (falls back to their
+  // own name, then to a generic label). Avoids emails going out branded as
+  // "Zentra Collect" to the user's customers, which would confuse them.
+  const fromNameFallback =
+    user?.businessName?.trim() ||
+    user?.name?.trim() ||
+    "Accounts team";
 
   async function handleSave() {
     if (!email.trim() || !password.trim()) return;
@@ -465,7 +473,7 @@ function OutboundEmailCard() {
           accountId: "local",
           email: email.trim(),
           password,
-          fromName: fromName.trim() || "Zentra Flow",
+          fromName: fromName.trim() || fromNameFallback,
         }),
       });
       const json = await res.json();
@@ -535,13 +543,17 @@ function OutboundEmailCard() {
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="smtp-from-name">From name</Label>
+            <Label htmlFor="smtp-from-name">From name (optional)</Label>
             <Input
               id="smtp-from-name"
-              placeholder="Your name or business name"
+              placeholder={fromNameFallback}
               value={fromName}
               onChange={(e) => setFromName(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Shown as the sender in your customer&apos;s inbox. Leave blank to use{" "}
+              <span className="font-medium">{fromNameFallback}</span>.
+            </p>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           {saved && (

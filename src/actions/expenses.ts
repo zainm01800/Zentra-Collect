@@ -3,7 +3,7 @@
 /**
  * src/actions/expenses.ts
  *
- * Expense CRUD and aggregation for Zentra Flow.
+ * Expense CRUD and aggregation for Zentra Collect.
  *
  * When Supabase is configured, persists to `zentra_expenses` table.
  * Otherwise operates fully in-memory / returns empty — the client-side

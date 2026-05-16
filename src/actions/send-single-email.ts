@@ -95,7 +95,7 @@ export async function sendSingleEmail(
       port:     settings.smtp_port ?? 587,
       user:     settings.smtp_user,
       password,
-      fromName: settings.from_name ?? "Zentra Flow",
+      fromName: settings.from_name ?? "Zentra Collect",
     };
 
     // Simple plain-text → HTML wrapper

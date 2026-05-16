@@ -521,7 +521,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         >
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
-            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Flow</span>
+            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Collect</span>
           </Link>
           <MobileAccountPill />
         </header>

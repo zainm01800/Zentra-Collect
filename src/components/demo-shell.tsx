@@ -112,7 +112,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
         >
           <div className="flex items-center gap-2">
             <span className="zn-brand-mark !size-7 !text-[14px]">Z</span>
-            <span className="text-[13.5px] font-semibold">Zentra Flow</span>
+            <span className="text-[13.5px] font-semibold">Zentra Collect</span>
             <span
               className="ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
               style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}

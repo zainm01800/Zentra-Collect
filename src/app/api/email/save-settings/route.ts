@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             smtp_port: port,
             smtp_user: email,
             smtp_password_enc: encryptedPassword,
-            from_name: fromName ?? "Zentra Flow",
+            from_name: fromName ?? "Zentra Collect",
             send_hour_utc: sendHourUtc ?? 9,
             send_days: sendDays ?? "1,2,3,4,5",
             max_per_run: maxPerRun ?? 5,
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       smtp: { host, port, user: email },
-      fromName: fromName ?? "Zentra Flow",
+      fromName: fromName ?? "Zentra Collect",
       sendHourUtc: sendHourUtc ?? 9,
       sendDays: sendDays ?? "1,2,3,4,5",
       maxPerRun: maxPerRun ?? 5,

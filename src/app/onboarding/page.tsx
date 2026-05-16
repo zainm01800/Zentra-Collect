@@ -7,8 +7,8 @@ import {
 } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Get started · Zentra Flow",
-  description: "Set up your Zentra Flow workspace in minutes.",
+  title: "Get started · Zentra Collect",
+  description: "Set up your Zentra Collect workspace in minutes.",
 };
 
 export default async function OnboardingPage() {

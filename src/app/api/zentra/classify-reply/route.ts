@@ -84,7 +84,7 @@ async function classifyWithOpenAI(
       {
         role: "system",
         content:
-          "You classify customer AR replies for Zentra Flow. Be conservative and always require human review.",
+          "You classify customer AR replies for Zentra Collect. Be conservative and always require human review.",
       },
       { role: "user", content: buildReplyClassificationPrompt(input) },
     ],

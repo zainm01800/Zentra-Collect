@@ -44,12 +44,13 @@ const trustItems = [
   { label: "No legal or accounting advice",     Icon: ShieldCheck },
 ];
 
-// 4 plans on the marketing page — trial entry, solo, single business, bookkeeper
+// 5 plans on the marketing page — trial entry through to bookkeeper pro
 const pricingPlanIds: PlanId[] = [
   "TRIAL",
   "STARTER_SOLO",
   "SINGLE_BUSINESS",
   "BOOKKEEPER_STARTER",
+  "BOOKKEEPER_PRO",
 ];
 
 const pricingDescriptions: Record<PlanId, string> = {
@@ -82,7 +83,7 @@ const faqs = [
   },
   {
     q: "Is this debt collection or legal advice?",
-    a: "No. Zentra Flow is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
+    a: "No. Zentra Collect is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
   },
 ];
 
@@ -109,7 +110,7 @@ export default function Home() {
             Upload overdue invoices. Get a ranked chase plan in minutes.
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-            Zentra Flow turns AR ageing reports into clear next actions —
+            Zentra Collect turns AR ageing reports into clear next actions —
             who to chase, what to ask for, what to ignore, what cash is likely
             to land. Action + reason + draft message, in one calm workspace.
           </p>
@@ -380,7 +381,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6] opacity-55">
-              Zentra Flow is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
+              Zentra Collect is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
             </p>
           </div>
         </div>
@@ -392,7 +393,7 @@ export default function Home() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
               <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-              <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Flow</span>
+              <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
             </div>
             <div className="flex flex-wrap gap-x-8 gap-y-3 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
               <div className="flex flex-col gap-2">

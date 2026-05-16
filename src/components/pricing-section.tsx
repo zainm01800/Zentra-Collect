@@ -137,7 +137,7 @@ export function PricingSection({
       </div>
 
       {/* Plan cards */}
-      <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-5">
         {plans.map(({ planId, priceId }) => {
           const plan = getPlanConfig(planId);
           const isFeatured = planId === "SINGLE_BUSINESS";

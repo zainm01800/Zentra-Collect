@@ -392,7 +392,7 @@ export function FinancialSetupFlow() {
           className="text-[15px] font-semibold"
           style={{ color: "var(--zn-ink)" }}
         >
-          Zentra Flow
+          Zentra Collect
         </span>
       </Link>
 

@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
             Z
           </div>
           <span className="text-[15px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-            Zentra Flow
+            Zentra Collect
           </span>
         </div>
 

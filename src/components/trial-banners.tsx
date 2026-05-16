@@ -141,7 +141,7 @@ export function GracePeriodExpiredBanner() {
           <p className="mt-0.5 text-xs leading-5 text-[#9a3535]">
             Your 30-day data retention period has ended. Export your invoices
             and history now, or upgrade to keep everything and continue using
-            Zentra Flow.
+            Zentra Collect.
           </p>
         </div>
       </div>
