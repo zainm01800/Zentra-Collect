@@ -2,13 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
   FileSpreadsheet,
   FileUp,
+  Plug,
   Wand2,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -391,6 +394,55 @@ export function ZentraImportFlow() {
           turn it into a ranked collections plan.
         </p>
       </section>
+
+      {/* Integrations CTA — show only for non-demo users (integrations need real auth) */}
+      {account?.planId !== "demo" && (
+        <Link
+          href="/settings/integrations"
+          className="group block rounded-xl px-5 py-4 transition-colors hover:bg-[var(--zn-surface-2)]"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--zn-surface) 0%, var(--zn-bg-2) 100%)",
+            border: "1px solid var(--zn-line)",
+          }}
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className="size-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "var(--zn-bg-2)", color: "var(--zn-accent)" }}
+              >
+                <Zap className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                    Skip the CSV — connect Xero or QuickBooks directly
+                  </p>
+                  <span
+                    className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded-md"
+                    style={{ background: "var(--zn-accent-soft, #fef3c7)", color: "var(--zn-accent)" }}
+                  >
+                    NEW
+                  </span>
+                </div>
+                <p className="text-[12.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                  One-click sync of your unpaid invoices. Read-only — Zentra never
+                  writes back to your books.
+                </p>
+              </div>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold shrink-0"
+              style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
+            >
+              <Plug className="size-3.5" />
+              Set up integration
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </Link>
+      )}
 
       {account?.planId === "demo" ? (
         <UsageLimitBanner

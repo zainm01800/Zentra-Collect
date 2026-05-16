@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   PiggyBank,
+  Plug,
   Plus,
   Receipt,
   ShieldAlert,
@@ -66,13 +67,14 @@ const overviewNav: NavItem[] = [
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/import",      label: "Import invoices", icon: ArrowUpFromLine },
-  { href: "/chase-today", label: "Chase plan",      icon: CreditCard },
-  { href: "/customers",   label: "Customers",       icon: Users },
-  { href: "/promises",    label: "Promises",        icon: AlertTriangle },
-  { href: "/disputes",    label: "Disputes",        icon: ShieldAlert },
-  { href: "/tools",       label: "Tools",           icon: Calculator },
-  { href: "/reports",     label: "Reports",         icon: BarChart3 },
+  { href: "/import",                 label: "Import invoices", icon: ArrowUpFromLine },
+  { href: "/settings/integrations",  label: "Integrations",    icon: Plug },
+  { href: "/chase-today",            label: "Chase plan",      icon: CreditCard },
+  { href: "/customers",              label: "Customers",       icon: Users },
+  { href: "/promises",               label: "Promises",        icon: AlertTriangle },
+  { href: "/disputes",               label: "Disputes",        icon: ShieldAlert },
+  { href: "/tools",                  label: "Tools",           icon: Calculator },
+  { href: "/reports",                label: "Reports",         icon: BarChart3 },
 ];
 
 const financeNav: NavItem[] = [
