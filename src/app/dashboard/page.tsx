@@ -3,6 +3,7 @@ import { CheckoutSuccessBanner } from "@/components/checkout-success-banner";
 import { FinancialHeader }       from "@/components/financial-header";
 import { OutcomeSummaryBar }     from "@/components/outcome-summary-bar";
 import { CashForecastCard }      from "@/components/cash-forecast-card";
+import { TaxEstimateWidget }     from "@/components/tax-estimate-widget";
 import { PaymentPatternsCard }   from "@/components/payment-patterns-card";
 
 import { getInvoices }                                    from "@/lib/api/db";
@@ -84,6 +85,9 @@ export default async function DashboardPage({
 
       {/* Cash forecast — probability-weighted projection from invoice data */}
       <CashForecastCard />
+
+      {/* Tax estimate — auto-hides when income < £1,000 */}
+      <TaxEstimateWidget />
 
       {/* Payment patterns — day-of-week analysis (auto-hides under 5 paid invoices) */}
       <PaymentPatternsCard />

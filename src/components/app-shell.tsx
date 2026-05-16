@@ -80,11 +80,12 @@ const collectionsNav: NavItem[] = [
 ];
 
 const financeNav: NavItem[] = [
-  { href: "/banking",    label: "Bank feed",    icon: Building2 },
-  { href: "/expenses",   label: "Expenses",     icon: Receipt },
-  { href: "/tax",        label: "Tax reserve",  icon: PiggyBank },
-  { href: "/mtd",        label: "MTD",          icon: CalendarClock },
-  { href: "/aged-debt",  label: "Aged debt",    icon: TableProperties },
+  { href: "/banking",       label: "Bank feed",     icon: Building2 },
+  { href: "/expenses",      label: "Expenses",      icon: Receipt },
+  { href: "/tax-estimate",  label: "Tax estimate",  icon: Calculator },
+  { href: "/tax",           label: "Tax reserve",   icon: PiggyBank },
+  { href: "/mtd",           label: "MTD",           icon: CalendarClock },
+  { href: "/aged-debt",     label: "Aged debt",     icon: TableProperties },
 ];
 
 /**
