@@ -268,7 +268,7 @@ export default function DemoChasePlanPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="zn-section-label">Demo · Working queue</p>
+          <p className="zn-section-label">Demo chase plan</p>
           <h1
             className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
             style={{ color: "var(--zn-ink)" }}

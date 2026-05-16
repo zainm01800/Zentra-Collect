@@ -619,7 +619,7 @@ function DemoPortfolio() {
     <div className="flex flex-col gap-5">
       <section className="flex items-start justify-between gap-4">
         <div>
-          <div className="zn-label mb-1.5">Sample portfolio</div>
+          <div className="zn-label mb-1.5">Demo portfolio</div>
           <h1 className="zn-page-h1">Client portfolio</h1>
           <p className="mt-1.5 max-w-[580px] text-[13.5px] text-[#6b6253] dark:text-[#8a7d69]">
             A preview of how bookkeepers manage multiple businesses in one pane.

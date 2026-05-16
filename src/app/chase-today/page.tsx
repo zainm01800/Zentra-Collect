@@ -16,7 +16,7 @@ export default function ChaseTodayPage() {
     <div className="flex flex-col gap-5 lg:gap-6">
         <DemoModeBanner />
         <PageHeader
-          kicker="Working queue"
+          kicker=""
           title="Chase plan"
           sub="Your ranked chase plan. Each row has a recommended action, the reason behind it, and a Review step before anything goes out."
           actions={<button className="zn-pill zn-pill-ghost">Export</button>}

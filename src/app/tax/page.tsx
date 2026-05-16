@@ -22,8 +22,8 @@ import { TaxCalcDetails } from "@/components/tax-calc-details";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title:       "Tax reserve",
-  description: "Track how much you should be setting aside for your tax bill.",
+  title:       "Tax",
+  description: "Estimate your Self Assessment tax owed and how much to set aside.",
 };
 
 // ── UK tax constants (2024/25) ────────────────────────────────────────────────
@@ -535,11 +535,46 @@ export default async function TaxPage() {
             className="text-[24px] font-semibold tracking-[-0.02em]"
             style={{ color: "var(--zn-ink)" }}
           >
-            Tax reserve
+            Tax
           </h1>
           <p className="mt-0.5 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            How much you should be setting aside, based on the last 12 months of income
+            What you&rsquo;ll owe and how much to set aside. Estimate only — file via HMRC.
           </p>
+        </div>
+
+        {/* ── Two-card hub: estimate vs reserve ─────────────────────────── */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/tax-estimate"
+            className="group rounded-xl p-4 transition-colors hover:bg-[var(--zn-surface-2)]"
+            style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+          >
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]"
+               style={{ color: "var(--zn-ink-3)" }}>
+              Tax estimate
+            </p>
+            <p className="mt-1 text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              What you&rsquo;ll owe this tax year →
+            </p>
+            <p className="mt-1 text-[12.5px] leading-5" style={{ color: "var(--zn-ink-3)" }}>
+              Income Tax + Class 4 NIC on your invoiced income minus tracked expenses.
+            </p>
+          </Link>
+          <div
+            className="rounded-xl p-4"
+            style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+          >
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em]"
+               style={{ color: "var(--zn-ink-3)" }}>
+              Tax reserve
+            </p>
+            <p className="mt-1 text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              How much to set aside each month ↓
+            </p>
+            <p className="mt-1 text-[12.5px] leading-5" style={{ color: "var(--zn-ink-3)" }}>
+              Cash reserve tracker, payment-on-account dates, savings progress.
+            </p>
+          </div>
         </div>
 
         {/* ── 1. Next SA payment banner ─────────────────────────────────── */}

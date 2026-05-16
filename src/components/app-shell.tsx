@@ -61,31 +61,33 @@ type NavItem = {
   comingSoon?: boolean;
 };
 
+// Stage-1 sidebar — pared from 18 items to 8. See AGENTS.md / audit
+// report. Removed from nav (pages still serve at the same URLs):
+//   /tools · /mtd · /promises · /disputes · /digest · /tax-estimate
+//   · /settings/integrations (now reached via Settings only).
+// Stage 2 will fold New invoice + Import + Chase plan into a single
+// Invoices hub.
+
 const overviewNav: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/portfolio", label: "Portfolio",     icon: Wallet },
-  { href: "/digest",    label: "Weekly digest", icon: FileText },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/portfolio", label: "Portfolio", icon: Wallet },
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/invoices/new",           label: "New invoice",     icon: Receipt },
-  { href: "/import",                 label: "Import invoices", icon: ArrowUpFromLine },
-  { href: "/settings/integrations",  label: "Integrations",    icon: Plug },
-  { href: "/chase-today",            label: "Chase plan",      icon: CreditCard },
-  { href: "/customers",              label: "Customers",       icon: Users },
-  { href: "/promises",               label: "Promises",        icon: AlertTriangle },
-  { href: "/disputes",               label: "Disputes",        icon: ShieldAlert },
-  { href: "/tools",                  label: "Tools",           icon: Calculator },
-  { href: "/reports",                label: "Reports",         icon: BarChart3 },
+  { href: "/chase-today",    label: "Chase plan",      icon: CreditCard },
+  { href: "/customers",      label: "Customers",       icon: Users },
+  { href: "/invoices/new",   label: "New invoice",     icon: Receipt },
+  { href: "/import",         label: "Import invoices", icon: ArrowUpFromLine },
 ];
 
+// "Books" replaces "Finance" — the audit found "Finance" was too broad
+// and contained two pages with similar names (Tax estimate vs Tax
+// reserve). Both now route through the unified /tax page.
 const financeNav: NavItem[] = [
-  { href: "/banking",       label: "Bank feed",     icon: Building2 },
-  { href: "/expenses",      label: "Expenses",      icon: Receipt },
-  { href: "/tax-estimate",  label: "Tax estimate",  icon: Calculator },
-  { href: "/tax",           label: "Tax reserve",   icon: PiggyBank },
-  { href: "/mtd",           label: "MTD",           icon: CalendarClock },
-  { href: "/aged-debt",     label: "Aged debt",     icon: TableProperties },
+  { href: "/banking",   label: "Bank feed", icon: Building2 },
+  { href: "/expenses",  label: "Expenses",  icon: Receipt },
+  { href: "/tax",       label: "Tax",       icon: PiggyBank },
+  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
 ];
 
 /**
@@ -337,6 +339,24 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // Hide the entire Collections nav section when the module is off
   const collectionsEnabled = workspacePrefs?.modules.collections ?? true;
 
+  // Hide Portfolio for non-bookkeeper plans — the page redirects to an
+  // upgrade screen anyway, but a sidebar entry that leads to "you can't
+  // use this" is misleading. Bookkeeper plans:
+  //   founding_bookkeeper · bookkeeper_starter · bookkeeper_pro
+  // Also keep visible for demo so the marketing flow still showcases it.
+  const [planIdForGating, setPlanIdForGating] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const acc = readLocalAccount();
+    setPlanIdForGating(acc?.planId ?? null);
+  }, []);
+  const showPortfolio = !planIdForGating
+    || planIdForGating === "demo"
+    || planIdForGating.includes("bookkeeper");
+  const overviewItemsForPlan = showPortfolio
+    ? overviewNav
+    : overviewNav.filter((i) => i.href !== "/portfolio");
+
   // Show "+ Add modules" when any module is disabled (so the user can re-enable from anywhere)
   const someModulesHidden = workspacePrefs
     ? (Object.keys(workspacePrefs.modules) as ModuleKey[])
@@ -388,7 +408,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <CollapsibleSection
             label="Overview"
             sectionKey="overview"
-            items={overviewNav.filter((i) => !hiddenHrefs.has(i.href))}
+            items={overviewItemsForPlan.filter((i) => !hiddenHrefs.has(i.href))}
             collapse={collapse}
             onToggle={toggleSection}
             isActive={isActive}
@@ -414,7 +434,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           {/* Finance — dynamically built from enabled modules */}
           {visibleFinanceItems.length > 0 && (
             <CollapsibleSection
-              label="Finance"
+              label="Books"
               sectionKey="finance"
               items={visibleFinanceItems.filter((i) => !hiddenHrefs.has(i.href))}
               collapse={collapse}
