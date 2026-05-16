@@ -206,6 +206,13 @@ export function TaxEstimateView() {
 
       <div className="flex gap-3 flex-wrap">
         <Link
+          href={`/year-end?year=${encodeURIComponent(taxYear)}`}
+          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold"
+          style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
+        >
+          Generate year-end summary →
+        </Link>
+        <Link
           href="/expenses"
           className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium border"
           style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}

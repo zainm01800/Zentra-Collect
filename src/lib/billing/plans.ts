@@ -179,17 +179,20 @@ export function getPlan(planId: PlanId): Plan {
     cta:
       planId === "demo" ? "Try demo" :
       planId === "trial" ? "Start trial" :
-      planId === "trader" ? "Join the waitlist" :
+      planId === "trader" ? "Get started" :
       "Request access",
     href:
       planId === "demo" ? "/demo" :
       planId === "trial" ? "/login" :
-      planId === "trader" ? "/trader-waitlist" :
+      planId === "trader" ? "/login?plan=trader" :
       "/request-access",
-    highlight: planId === "single_business" || planId === "bookkeeper_starter",
+    highlight:
+      planId === "single_business" ||
+      planId === "bookkeeper_starter" ||
+      planId === "trader",
     highlightLabel:
       planId === "single_business" ? "Recommended" :
-      planId === "trader" ? "Coming soon" :
+      planId === "trader" ? "New" :
       undefined,
     features: featuresMap[planId] || [],
     limits,

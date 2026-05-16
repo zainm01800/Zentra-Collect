@@ -15,6 +15,8 @@ import { PricingSection } from "@/components/pricing-section";
 
 // Monthly plan price IDs — set in env vars, passed to Stripe checkout
 const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
+  TRADER:              process.env.STRIPE_PRICE_ID_TRADER ?? "",
+  FREELANCE:           process.env.STRIPE_PRICE_ID_FREELANCE ?? "",
   STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO ?? "",
   SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE ?? "",
   BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER ?? "",
@@ -25,6 +27,8 @@ const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
 // when none of these are configured, so users don't see a discount that
 // can't actually be redeemed.
 const PLAN_PRICE_IDS_ANNUAL: Partial<Record<PlanId, string>> = {
+  TRADER:              process.env.STRIPE_PRICE_ID_TRADER_ANNUAL ?? "",
+  FREELANCE:           process.env.STRIPE_PRICE_ID_FREELANCE_ANNUAL ?? "",
   STARTER_SOLO:        process.env.STRIPE_PRICE_ID_STARTER_SOLO_ANNUAL ?? "",
   SINGLE_BUSINESS:     process.env.STRIPE_PRICE_ID_SINGLE_ANNUAL ?? "",
   BOOKKEEPER_STARTER:  process.env.STRIPE_PRICE_ID_BOOKKEEPER_STARTER_ANNUAL ?? "",
@@ -54,9 +58,11 @@ const trustItems = [
   { label: "No legal or accounting advice",     Icon: ShieldCheck },
 ];
 
-// 5 plans on the marketing page — trial entry through to bookkeeper pro
+// 7 plans on the marketing page — trial entry through to bookkeeper pro
 const pricingPlanIds: PlanId[] = [
   "TRIAL",
+  "TRADER",
+  "FREELANCE",
   "STARTER_SOLO",
   "SINGLE_BUSINESS",
   "BOOKKEEPER_STARTER",
@@ -66,6 +72,8 @@ const pricingPlanIds: PlanId[] = [
 const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
   TRIAL:               "14 days, no card required. Upload your own AR exports.",
+  TRADER:              "For UK sole traders under £90k — cheaper than Sage, with invoicing, payment portal, and tax estimate.",
+  FREELANCE:           "For freelancers sending 5–15 invoices a month — pairs with your accounting tool.",
   STARTER_SOLO:        "For sole traders and micro businesses with a small invoice book.",
   FOUNDING_SINGLE:     "For one business running a practical chase process.",
   FOUNDING_BOOKKEEPER: "For bookkeepers managing client ledgers.",
