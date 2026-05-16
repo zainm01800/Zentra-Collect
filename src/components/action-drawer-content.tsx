@@ -39,6 +39,7 @@ import type {
 } from "@/lib/collections/safety";
 import { cn } from "@/lib/utils";
 import { recommendTone } from "@/lib/collections/tone-learning";
+import { listTemplates, renderTemplate, type EmailTemplate } from "@/lib/email/template-library";
 import { useEffect, useState } from "react";
 
 export function ActionDrawerContent({
@@ -280,18 +281,35 @@ export function ActionDrawerContent({
         />
 
         <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
                 Draft message
               </p>
             </div>
-            <Badge
-              variant="outline"
-              className="rounded-full border-black/10 dark:border-white/10 bg-neutral-100 dark:bg-[#28231c] font-semibold"
-            >
-              {draftSource ?? "template"} · {draftConfidence}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <TemplatePickerInline
+                invoice={invoice}
+                onApply={(t) => {
+                  const r = renderTemplate(t, {
+                    customerName:  invoice.customerName,
+                    invoiceNumber: invoice.invoiceNumber,
+                    amount:        formatCurrency(invoice.amount),
+                    dueDate:       invoice.dueDate ? formatDate(invoice.dueDate) : "",
+                    daysOverdue:   invoice.daysOverdue,
+                    businessName:  "your business",
+                  });
+                  onSubjectChange(r.subject);
+                  onDraftChange(r.body);
+                }}
+              />
+              <Badge
+                variant="outline"
+                className="rounded-full border-black/10 dark:border-white/10 bg-neutral-100 dark:bg-[#28231c] font-semibold"
+              >
+                {draftSource ?? "template"} · {draftConfidence}
+              </Badge>
+            </div>
           </div>
           <div className="mt-4 space-y-2" id="draft-section">
             <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">
@@ -540,16 +558,78 @@ function SafetyBadge({ value }: { value: string }) {
   );
 }
 
+function TemplatePickerInline({
+  invoice,
+  onApply,
+}: {
+  invoice: Invoice;
+  onApply: (t: EmailTemplate) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  useEffect(() => { setTemplates(listTemplates()); }, []);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] px-3 py-1 text-[11.5px] font-medium hover:bg-neutral-50 dark:hover:bg-[#28231c]"
+      >
+        Use template ▾
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-64 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#211d17] shadow-lg z-10 max-h-72 overflow-y-auto">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => { onApply(t); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-neutral-50 dark:hover:bg-[#28231c] border-b border-black/5 last:border-b-0"
+            >
+              <div className="font-medium">{t.name}</div>
+              <div className="text-[10.5px] text-neutral-500">{t.tone}{t.builtIn ? " · starter" : ""}</div>
+            </button>
+          ))}
+          <a
+            href="/settings/templates"
+            className="block px-3 py-2 text-[11px] underline text-neutral-500 hover:text-neutral-700"
+          >
+            Manage templates →
+          </a>
+        </div>
+      )}
+      {/* Reference invoice — kept here so eslint doesn't strip the prop */}
+      <span className="sr-only">{invoice.id}</span>
+    </div>
+  );
+}
+
 function ToneLearningHint({ customerId }: { customerId: string }) {
-  const [hint, setHint] = useState<string | null>(null);
+  const [state, setState] = useState<
+    | { kind: "confident"; text: string }
+    | { kind: "learning" }
+    | null
+  >(null);
   useEffect(() => {
     const rec = recommendTone(customerId);
-    if (rec && rec.confident) setHint(rec.rationale);
+    if (rec && rec.confident) {
+      setState({ kind: "confident", text: rec.rationale });
+    } else {
+      setState({ kind: "learning" });
+    }
   }, [customerId]);
-  if (!hint) return null;
+  if (!state) return null;
+  if (state.kind === "confident") {
+    return (
+      <p className="mt-1 text-[11px] leading-4 text-emerald-700 dark:text-emerald-400">
+        💡 {state.text}
+      </p>
+    );
+  }
   return (
-    <p className="mt-1 text-[11px] leading-4 text-emerald-700 dark:text-emerald-400">
-      💡 {hint}
+    <p className="mt-1 text-[11px] leading-4 text-neutral-500">
+      Zentra tracks which tone works for each customer. Mark paid / promised / sent below to teach it.
     </p>
   );
 }

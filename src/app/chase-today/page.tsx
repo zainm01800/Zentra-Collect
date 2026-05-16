@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ChaseQueueDataWrapper } from "@/components/chase-queue-data-wrapper";
 import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { DirectDebitNudge } from "@/components/direct-debit-nudge";
 import { PageHeader } from "@/components/page-header";
 
 import type { Metadata } from "next";
@@ -20,6 +21,7 @@ export default function ChaseTodayPage() {
           sub="Your ranked chase plan. Each row has a recommended action, the reason behind it, and a Review step before anything goes out."
           actions={<button className="zn-pill zn-pill-ghost">Export</button>}
         />
+        <DirectDebitNudge />
         <Suspense fallback={null}>
           <ChaseQueueDataWrapper onlyToday={false} />
         </Suspense>

@@ -1059,21 +1059,22 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
                             </div>
                           ) : null}
                         </div>
-                        <div
-                          className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
-                          style={{ color: "var(--zn-ink-2)" }}
-                        >
-                          {item.stopChasingInsight ? (
-                            <span
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide"
-                              style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
-                            >
-                              Don&rsquo;t chase
-                            </span>
-                          ) : (
-                            humanAction(item.recommendedAction)
-                          )}
-                        </div>
+                        {item.stopChasingInsight && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide flex-shrink-0"
+                            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                          >
+                            Don&rsquo;t chase
+                          </span>
+                        )}
+                        {!item.stopChasingInsight && (
+                          <div
+                            className="hidden xl:block w-[160px] text-[12.5px] truncate flex-shrink-0"
+                            style={{ color: "var(--zn-ink-2)" }}
+                          >
+                            {humanAction(item.recommendedAction)}
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <LogOutcomeButton
                             invoiceRef={item.invoiceNumber ?? item.id}

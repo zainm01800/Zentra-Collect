@@ -364,7 +364,15 @@ export function ChaseQueue({
                           </span>
                         )}
                       </p>
-                      <p className="text-[12px] mt-1 truncate" style={{ color: "var(--zn-ink-2)" }}>
+                      <p className="text-[12px] mt-1 truncate flex items-center gap-1.5" style={{ color: "var(--zn-ink-2)" }}>
+                        {(inv.status === "Promised payment" || inv.status === "Disputed") && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-semibold uppercase tracking-wide"
+                            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                          >
+                            Don&rsquo;t chase
+                          </span>
+                        )}
                         {action}
                       </p>
                     </div>
@@ -525,6 +533,17 @@ export function ChaseQueue({
                     </td>
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex items-center gap-2">
+                        {(inv.status === "Promised payment" || inv.status === "Disputed") ? (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide"
+                            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                            title={inv.status === "Promised payment"
+                              ? "Customer promised a date — wait before chasing again"
+                              : "Active dispute — resolve before chasing"}
+                          >
+                            Don&rsquo;t chase
+                          </span>
+                        ) : null}
                         <span
                           className="text-[13px] truncate"
                           style={{ color: "var(--zn-ink-2)" }}

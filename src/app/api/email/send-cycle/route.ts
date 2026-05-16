@@ -4,6 +4,7 @@ import { runSendCycle } from "@/lib/email/send-engine";
 import { buildEmailBody } from "@/lib/email/send-engine";
 import { decryptPassword } from "@/lib/email/crypto";
 import type { SmtpConfig } from "@/lib/email/smtp";
+import { signPaymentToken, buildPortalUrl } from "@/lib/customer-portal/token";
 
 // Called by Vercel cron (schedule: hourly) or manually for testing.
 // Authorization via CRON_SECRET env var.
@@ -110,16 +111,42 @@ export async function POST(req: NextRequest) {
         fromName: settings.from_name ?? "Zentra Collect",
       };
 
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+      const senderName = settings.from_name ?? "Zentra Collect";
+
       const drafts = eligibleInvoices.map((inv: {
         id: string;
         customer_name: string;
         customer_email: string;
         invoice_number: string;
         amount_outstanding: number;
+        due_date: string;
         days_overdue: number;
         draft_body?: string;
       }) => {
-        const messageText = inv.draft_body ?? `Hi,\n\nThis is a reminder that invoice ${inv.invoice_number} for £${inv.amount_outstanding.toFixed(2)} is ${inv.days_overdue} days overdue.\n\nPlease arrange payment at your earliest convenience.\n\nThank you.`;
+        // Sign a portal token so the customer can pay, promise a date, or
+        // explain the delay from one secure link. Returns null when
+        // PAYMENT_TOKEN_SECRET isn't configured — email still goes out,
+        // just without the portal link.
+        const portalToken = signPaymentToken({
+          invoiceId:     inv.id,
+          invoiceNumber: inv.invoice_number,
+          customerName:  inv.customer_name,
+          amount:        inv.amount_outstanding,
+          dueDate:       inv.due_date,
+          businessName:  senderName,
+          businessEmail: settings.smtp_user,
+        });
+
+        const baseMessage = inv.draft_body ?? `Hi,\n\nThis is a reminder that invoice ${inv.invoice_number} for £${inv.amount_outstanding.toFixed(2)} is ${inv.days_overdue} days overdue.\n\nPlease arrange payment at your earliest convenience.\n\nThank you.`;
+
+        // Append a plain-text portal link so recipients on text-only mail
+        // clients still see the pay-online affordance (the HTML body also
+        // embeds a QR code that links to the same URL).
+        const messageText = portalToken && siteUrl
+          ? `${baseMessage}\n\nPay online: ${buildPortalUrl(siteUrl, portalToken)}`
+          : baseMessage;
+
         const { subject, bodyText, bodyHtml } = buildEmailBody(
           {
             customerName: inv.customer_name,
@@ -128,7 +155,8 @@ export async function POST(req: NextRequest) {
             daysOverdue: inv.days_overdue,
           },
           messageText,
-          settings.from_name ?? "Zentra Collect",
+          senderName,
+          { portalToken: portalToken ?? undefined },
         );
         return {
           invoiceId: inv.id,
