@@ -5,11 +5,12 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#why-zentra",   label: "Why Zentra" },
-  { href: "#bookkeepers",  label: "For bookkeepers" },
-  { href: "#pricing",      label: "Pricing" },
-  { href: "#faq",          label: "FAQ" },
+  { href: "#how-it-works",  label: "How it works" },
+  { href: "#why-zentra",    label: "Why Zentra" },
+  { href: "#bookkeepers",   label: "For bookkeepers" },
+  { href: "/free-tools",    label: "Free tools" },
+  { href: "#pricing",       label: "Pricing" },
+  { href: "#faq",           label: "FAQ" },
 ];
 
 export function MarketingNav() {

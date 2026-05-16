@@ -1,6 +1,8 @@
 export type PlanId =
   | "DEMO"
   | "TRIAL"
+  | "TRADER"
+  | "FREELANCE"
   | "STARTER_SOLO"
   | "FOUNDING_SINGLE"
   | "FOUNDING_BOOKKEEPER"
@@ -129,6 +131,51 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
     features: {
       ...defaultFeatures,
       sampleData: true,
+    },
+  },
+  TRADER: {
+    id: "TRADER",
+    name: "Trader",
+    priceMonthlyGbp: 5,
+    description: "For UK sole traders under £90k. Invoice, get paid, track expenses, estimate your tax — without full accounting.",
+    limits: {
+      ...defaultLimits,
+      importsUsedThisMonth: 2,
+      trialImportsUsed: "unlimited",
+      aiActionsUsedThisMonth: 15,
+      trialAiActionsUsed: "unlimited",
+      activeInvoiceCount: 15,
+      clientLedgerCount: 1,
+      savedImportMappingCount: 0,
+      weeklyDigestCountThisMonth: 0,
+    },
+    features: {
+      ...defaultFeatures,
+      realData: true,
+      persistentRealImports: true,
+    },
+  },
+  FREELANCE: {
+    id: "FREELANCE",
+    name: "Freelance",
+    priceMonthlyGbp: 14,
+    description: "For freelancers and contractors sending 5–15 invoices a month — pairs with your accounting tool.",
+    limits: {
+      ...defaultLimits,
+      importsUsedThisMonth: 3,
+      trialImportsUsed: "unlimited",
+      aiActionsUsedThisMonth: 30,
+      trialAiActionsUsed: "unlimited",
+      activeInvoiceCount: 20,
+      clientLedgerCount: 1,
+      savedImportMappingCount: 0,
+      weeklyDigestCountThisMonth: 0,
+    },
+    features: {
+      ...defaultFeatures,
+      realData: true,
+      persistentRealImports: true,
+      emailSendingAddon: true,
     },
   },
   STARTER_SOLO: {

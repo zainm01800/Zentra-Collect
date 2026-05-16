@@ -8,6 +8,8 @@ import {
 export type PlanId =
   | "demo"
   | "trial"
+  | "trader"
+  | "freelance"
   | "starter_solo"
   | "founding_single_business"
   | "founding_bookkeeper"
@@ -95,6 +97,8 @@ export interface ComparisonRow {
 const centralPlanMap: Record<PlanId, CentralPlanId> = {
   demo: "DEMO",
   trial: "TRIAL",
+  trader: "TRADER",
+  freelance: "FREELANCE",
   starter_solo: "STARTER_SOLO",
   founding_single_business: "FOUNDING_SINGLE",
   founding_bookkeeper: "FOUNDING_BOOKKEEPER",
@@ -138,6 +142,8 @@ export function getPlan(planId: PlanId): Plan {
   const taglineMap: Record<PlanId, string> = {
     demo: "Explore the product with sample data.",
     trial: "14-day free trial with your own data.",
+    trader: "For UK sole traders under £90k — cheaper than Sage.",
+    freelance: "For freelancers sending 5–15 invoices a month.",
     starter_solo: "For sole traders with a small invoice book.",
     founding_single_business: "Founding price for a single business.",
     founding_bookkeeper: "Founding price for bookkeepers.",
@@ -149,6 +155,8 @@ export function getPlan(planId: PlanId): Plan {
   const featuresMap: Record<PlanId, string[]> = {
     demo: ["Sample invoices only", "3 AI drafts included", "Ranked chase plan"],
     trial: ["Real invoice exports", "25 AI actions", "Full decision engine"],
+    trader: ["15 active invoices", "Customer payment portal", "Statutory interest auto-applied", "Tax estimate (coming soon)"],
+    freelance: ["20 active invoices", "30 AI actions/mo", "Customer payment portal", "Pairs with Sage/FreeAgent/Xero"],
     starter_solo: ["50 active invoices", "75 AI actions/mo", "5 imports/month"],
     founding_single_business: ["500 active invoices", "150 AI actions/mo", "Price locked for 12mo"],
     founding_bookkeeper: ["1,500 active invoices", "300 AI actions/mo", "Up to 5 client ledgers"],
@@ -168,10 +176,21 @@ export function getPlan(planId: PlanId): Plan {
     periodDisplay,
     trialDays: central.trialDays,
     graceDays: central.gracePeriodDays,
-    cta: planId === "demo" ? "Try demo" : planId === "trial" ? "Start trial" : "Request access",
-    href: planId === "demo" ? "/demo" : planId === "trial" ? "/login" : "/request-access",
+    cta:
+      planId === "demo" ? "Try demo" :
+      planId === "trial" ? "Start trial" :
+      planId === "trader" ? "Join the waitlist" :
+      "Request access",
+    href:
+      planId === "demo" ? "/demo" :
+      planId === "trial" ? "/login" :
+      planId === "trader" ? "/trader-waitlist" :
+      "/request-access",
     highlight: planId === "single_business" || planId === "bookkeeper_starter",
-    highlightLabel: planId === "single_business" ? "Recommended" : undefined,
+    highlightLabel:
+      planId === "single_business" ? "Recommended" :
+      planId === "trader" ? "Coming soon" :
+      undefined,
     features: featuresMap[planId] || [],
     limits,
   };
@@ -180,6 +199,8 @@ export function getPlan(planId: PlanId): Plan {
 export const PLANS: Plan[] = [
   getPlan("demo"),
   getPlan("trial"),
+  getPlan("trader"),
+  getPlan("freelance"),
   getPlan("starter_solo"),
   getPlan("single_business"),
   getPlan("bookkeeper_starter"),
@@ -192,6 +213,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: "Unlimited (sample)",
       trial: "100",
+      trader: "15",
+      freelance: "20",
       starter_solo: "50",
       founding_single_business: "500",
       founding_bookkeeper: "1,500",
@@ -205,6 +228,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 1,
       trial: 1,
+      trader: 1,
+      freelance: 1,
       starter_solo: 1,
       founding_single_business: 1,
       founding_bookkeeper: 5,
@@ -218,6 +243,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 3,
       trial: 25,
+      trader: 15,
+      freelance: 30,
       starter_solo: 75,
       founding_single_business: 150,
       founding_bookkeeper: 300,
@@ -231,6 +258,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: false,
+      trader: false,
+      freelance: false,
       starter_solo: false,
       founding_single_business: true,
       founding_bookkeeper: true,
