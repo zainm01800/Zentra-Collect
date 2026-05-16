@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Plug } from "lucide-react";
+import { ArrowRight, Plug, FileText } from "lucide-react";
 import { SettingsForm } from "@/components/settings-form";
 import { AddonSuccessBanner } from "@/components/addon-success-banner";
 
@@ -42,6 +42,37 @@ export default async function SettingsPage({
             </p>
             <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
               Connect Xero or QuickBooks to skip CSV imports.
+            </p>
+          </div>
+        </div>
+        <ArrowRight
+          className="size-4 transition-transform group-hover:translate-x-0.5"
+          style={{ color: "var(--zn-ink-3)" }}
+        />
+      </Link>
+
+      {/* Templates discoverability strip */}
+      <Link
+        href="/settings/templates"
+        className="group flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-[var(--zn-surface-2)]"
+        style={{
+          background: "var(--zn-surface)",
+          border:     "1px solid var(--zn-line-soft)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="size-8 rounded-lg flex items-center justify-center"
+            style={{ background: "var(--zn-bg-2)", color: "var(--zn-ink-2)" }}
+          >
+            <FileText className="size-4" />
+          </div>
+          <div>
+            <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              Email templates
+            </p>
+            <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+              Starter chase templates you can fork and save.
             </p>
           </div>
         </div>

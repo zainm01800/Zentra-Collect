@@ -38,6 +38,8 @@ import type {
   UnifiedSafetyResult,
 } from "@/lib/collections/safety";
 import { cn } from "@/lib/utils";
+import { recommendTone } from "@/lib/collections/tone-learning";
+import { useEffect, useState } from "react";
 
 export function ActionDrawerContent({
   item,
@@ -184,20 +186,38 @@ export function ActionDrawerContent({
           <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
             Recommendation
           </p>
-          <h3 className="mt-3 text-lg font-bold text-neutral-950 dark:text-[#f0e8d5]">
-            {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-[#8a7d69]">
-            {actionMeta?.explanation ?? item.reason}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StatusBadge value={item.urgencyLevel} />
-            <StatusBadge
-              value={actionMeta?.confidence ?? item.confidenceLevel}
-              prefix="confidence"
-            />
-            <SafetyBadge value={actionMeta?.safetyStatus ?? item.safetyStatus} />
-          </div>
+          {item.stopChasingInsight ? (
+            <>
+              <h3 className="mt-3 text-lg font-bold text-emerald-700 dark:text-emerald-400">
+                Don&rsquo;t chase this week
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-[#8a7d69]">
+                {item.stopChasingInsight.message}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  Stop chasing · {item.stopChasingInsight.confidence}% confidence
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="mt-3 text-lg font-bold text-neutral-950 dark:text-[#f0e8d5]">
+                {actionMeta?.recommendedAction ?? humanAction(item.recommendedAction)}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-[#8a7d69]">
+                {actionMeta?.explanation ?? item.reason}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <StatusBadge value={item.urgencyLevel} />
+                <StatusBadge
+                  value={actionMeta?.confidence ?? item.confidenceLevel}
+                  prefix="confidence"
+                />
+                <SafetyBadge value={actionMeta?.safetyStatus ?? item.safetyStatus} />
+              </div>
+            </>
+          )}
         </section>
 
         <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-4">
@@ -245,6 +265,7 @@ export function ActionDrawerContent({
                     <SelectItem value="final">Final</SelectItem>
                   </SelectContent>
                 </Select>
+                <ToneLearningHint customerId={item.customerId} />
               </div>
             </div>
           </div>
@@ -516,6 +537,20 @@ function SafetyBadge({ value }: { value: string }) {
     <Badge variant="outline" className={cn("rounded-full font-bold h-6", tone)}>
       {humanLabel(value)}
     </Badge>
+  );
+}
+
+function ToneLearningHint({ customerId }: { customerId: string }) {
+  const [hint, setHint] = useState<string | null>(null);
+  useEffect(() => {
+    const rec = recommendTone(customerId);
+    if (rec && rec.confident) setHint(rec.rationale);
+  }, [customerId]);
+  if (!hint) return null;
+  return (
+    <p className="mt-1 text-[11px] leading-4 text-emerald-700 dark:text-emerald-400">
+      💡 {hint}
+    </p>
   );
 }
 

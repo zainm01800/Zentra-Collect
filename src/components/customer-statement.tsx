@@ -181,8 +181,27 @@ export function CustomerStatement({ customerId }: { customerId: string }) {
 
   return (
     <div>
-      {/* Print button — hidden in print */}
-      <div className="flex justify-end mb-6 print:hidden">
+      {/* Print + Email statement — hidden in print */}
+      <div className="flex justify-end gap-2 mb-6 print:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            const ap = customer.apEmail ?? "";
+            const subject = `Statement of account — ${customer.name}`;
+            const body =
+              `Hi ${customer.name},\n\n` +
+              `Please find attached / linked our current statement of account showing ${overdueInvoices.length} overdue invoice(s) totalling £${totalOverdue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}.\n\n` +
+              `Could you confirm when these will be settled?\n\n` +
+              `Statement: ${typeof window !== "undefined" ? window.location.href : ""}\n\n` +
+              `Thanks,`;
+            const href = `mailto:${encodeURIComponent(ap)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = href;
+          }}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium border transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+          style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+        >
+          Email statement
+        </button>
         <button
           type="button"
           onClick={() => window.print()}

@@ -21,6 +21,9 @@ import {
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { recordToneOutcome, type ToneOutcome } from "@/lib/collections/tone-learning";
+import type { ReminderTone } from "@/types/cashpilot";
+import type { Invoice as ZentraInvoice } from "@/types/zentra";
 import { Button } from "@/components/ui/button";
 import { DSOCard } from "@/components/dso-card";
 import {
@@ -1412,14 +1415,21 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         onReplyDisputeReasonChange={setReplyDisputeReason}
         onGenerate={generateDraft}
         onCopy={copyMessage}
-        onMarkSent={() => updateInvoiceStatus("overdue", "Marked as sent")}
-        onMarkPromised={() =>
-          updateInvoiceStatus("promised", "Promise to pay recorded")
-        }
+        onMarkSent={() => {
+          updateInvoiceStatus("overdue", "Marked as sent");
+          recordToneOutcomeForActive(selectedInvoice, selectedTone, "ignored");
+        }}
+        onMarkPromised={() => {
+          updateInvoiceStatus("promised", "Promise to pay recorded");
+          recordToneOutcomeForActive(selectedInvoice, selectedTone, "promised");
+        }}
         onMarkDisputed={() =>
           updateInvoiceStatus("disputed", "Dispute recorded")
         }
-        onMarkPaid={() => updateInvoiceStatus("paid", "Marked paid")}
+        onMarkPaid={() => {
+          updateInvoiceStatus("paid", "Marked paid");
+          recordToneOutcomeForActive(selectedInvoice, selectedTone, "paid");
+        }}
         onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
         onDoNotChase={() =>
           updateInvoiceStatus("do_not_chase", "Marked do not chase")
@@ -3056,6 +3066,26 @@ function humanAction(action: string) {
   };
 
   return labels[action] ?? humanLabel(action);
+}
+
+function recordToneOutcomeForActive(
+  invoice: ZentraInvoice | null | undefined,
+  draftTone: DraftTone,
+  outcome: ToneOutcome,
+) {
+  if (!invoice) return;
+  const map: Record<DraftTone, ReminderTone> = {
+    friendly: "Friendly",
+    neutral:  "Neutral",
+    firm:     "Firm",
+    final:    "Final notice",
+  };
+  recordToneOutcome({
+    customerId: invoice.customerId,
+    tone:       map[draftTone],
+    outcome,
+    at:         new Date().toISOString(),
+  });
 }
 
 function humanLabel(value: string) {

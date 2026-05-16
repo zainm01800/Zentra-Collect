@@ -291,6 +291,16 @@ export default async function PayPage({
           <ForwardToApLink token={token} inv={inv} />
         </div>
 
+        {/* Invoice PDF download */}
+        <div className="text-center mb-4">
+          <Link
+            href={`/pay/${token}/invoice`}
+            className="text-[12px] text-neutral-500 underline hover:text-neutral-700"
+          >
+            Download invoice (PDF)
+          </Link>
+        </div>
+
         {/* Trust footer */}
         <div className="flex items-center justify-center gap-2 text-[11.5px] text-neutral-500">
           <ShieldCheck className="size-3 text-neutral-400" />

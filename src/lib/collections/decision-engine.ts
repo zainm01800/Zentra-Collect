@@ -16,6 +16,7 @@ import type {
   SuggestedMessageType,
   UrgencyLevel,
 } from "@/types/zentra";
+import { computeStopChasingInsight } from "./stop-chasing";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const DEFAULT_REFERENCE_DATE = "2026-05-07";
@@ -252,7 +253,18 @@ export function rankCollectionActions(context: DecisionContext): CollectionsPlan
       const safetyChecks = getSafetyChecks(hydratedInvoice, safetyContext);
       const scenarioContext = { ...safetyContext, safetyChecks };
       const scenario = detectScenario(hydratedInvoice, scenarioContext);
-      const priorityScore = calculatePriorityScore(hydratedInvoice, scenario, scenarioContext);
+      const stopChasingInsight = computeStopChasingInsight(hydratedInvoice, {
+        daysSinceLastChase,
+        profile,
+        referenceDate,
+      }) ?? undefined;
+      // When the stop-chasing engine has a confident view, suppress the
+      // chase by deprioritising. We keep the scenario for messaging so
+      // the user can still draft if they override.
+      const basePriority = calculatePriorityScore(hydratedInvoice, scenario, scenarioContext);
+      const priorityScore = stopChasingInsight
+        ? Math.max(0, basePriority - Math.round(stopChasingInsight.confidence / 2))
+        : basePriority;
       const recommendedAction = actionForScenario(scenario);
 
       return {
@@ -273,7 +285,10 @@ export function rankCollectionActions(context: DecisionContext): CollectionsPlan
         suggestedMessageType: messageTypeForScenario(scenario, hydratedInvoice),
         nextFollowUpDate: nextFollowUpDateFor(hydratedInvoice, scenario, referenceDate),
         safetyChecks,
-        dashboardGroup: dashboardGroupFor(scenario, safetyChecks, priorityScore),
+        dashboardGroup: stopChasingInsight
+          ? "wait_low_priority"
+          : dashboardGroupFor(scenario, safetyChecks, priorityScore),
+        stopChasingInsight,
       } satisfies CollectionsPlanItem;
     })
     .sort((a, b) => b.priorityScore - a.priorityScore);

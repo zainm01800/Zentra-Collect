@@ -400,6 +400,16 @@ export interface CollectionsPlanItem {
   nextFollowUpDate?: string;
   safetyChecks: SafetyCheckResult[];
   dashboardGroup: CollectionsDashboardGroup;
+  /**
+   * Present when the engine recommends NOT chasing this invoice this
+   * cycle (reliable late payer, recent chase, future promise, etc).
+   * Renders as a green "Don't chase" badge with the reason.
+   */
+  stopChasingInsight?: {
+    kind:       "reliable_late_payer" | "recently_chased" | "promise_pending" | "tiny_balance_low_overdue";
+    message:    string;
+    confidence: number;
+  };
 }
 
 export interface WeeklyDigest {
