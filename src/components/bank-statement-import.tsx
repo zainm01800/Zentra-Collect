@@ -3,17 +3,70 @@
 /**
  * src/components/bank-statement-import.tsx
  *
- * Manual CSV bank statement import. Accepts exports from all major UK banks
+ * Manual bank statement import. Accepts exports from all major UK banks
  * (Barclays, HSBC, Lloyds, NatWest, Monzo, Starling, Revolut, Halifax,
  * Santander, RBS, PayPal, Amex) and auto-detects the format.
  *
- * Parses CSV client-side, shows a preview with detected bank name,
- * and stores rows in localStorage under "zentra.bankStatement.v1".
+ * Supported file types:
+ *   - .csv  — comma-separated (default for most banks)
+ *   - .txt  — same as CSV, just renamed
+ *   - .tsv  — tab-separated (some bank exports)
+ *   - .xlsx — Excel workbook (common for HSBC, Barclays business)
+ *   - .xls  — legacy Excel
+ *
+ * All file types are normalised to CSV in-browser, then run through the
+ * same auto-detect parser. Stored in localStorage under "zentra.bankStatement.v1".
  */
 
 import { useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { Upload, FileText, CheckCircle2, AlertTriangle, X, Info, Landmark } from "lucide-react";
 import { detectBankPreset } from "@/lib/banking/bank-presets";
+
+// ── Supported file types ──────────────────────────────────────────────────────
+
+const SUPPORTED_EXTENSIONS = [".csv", ".txt", ".tsv", ".xlsx", ".xls"] as const;
+
+function hasSupportedExtension(name: string): boolean {
+  const lower = name.toLowerCase();
+  return SUPPORTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+/** Convert any supported file type to a CSV string for the parser. */
+async function fileToCsvText(file: File): Promise<string> {
+  const lower = file.name.toLowerCase();
+
+  // Excel workbooks → first sheet → CSV
+  if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return "";
+    const sheet = workbook.Sheets[firstSheetName];
+    return XLSX.utils.sheet_to_csv(sheet);
+  }
+
+  // Tab-separated → swap tabs for commas (quoting any commas already in cells)
+  if (lower.endsWith(".tsv")) {
+    const text = await file.text();
+    return text
+      .split(/\r?\n/)
+      .map((line) =>
+        line
+          .split("\t")
+          .map((cell) =>
+            cell.includes(",") || cell.includes('"')
+              ? `"${cell.replace(/"/g, '""')}"`
+              : cell,
+          )
+          .join(","),
+      )
+      .join("\n");
+  }
+
+  // Default: read as text (CSV / TXT)
+  return file.text();
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -180,35 +233,45 @@ export function BankStatementImport({ onImported }: Props) {
   const [saved, setSaved]               = useState(false);
   const [dragging, setDragging]         = useState(false);
 
-  function processFile(file: File) {
+  async function processFile(file: File) {
     setFileName(file.name);
     setSaved(false);
     setWarning(null);
     setPreview(null);
     setDetectedBank(null);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
+    if (!hasSupportedExtension(file.name)) {
+      setWarning(`Unsupported file type. Use CSV, Excel (.xlsx / .xls), TSV, or TXT.`);
+      return;
+    }
+
+    try {
+      const text = await fileToCsvText(file);
       const { rows, warning: w, detectedBank: bank } = parseStatement(text, file.name);
       if (w) setWarning(w);
       if (bank) setDetectedBank(bank);
       setPreview(rows.length > 0 ? rows : null);
       if (rows.length === 0 && !w) setWarning("No valid transactions found in this file.");
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error("[bank-statement-import] parse failed:", err);
+      setWarning(
+        err instanceof Error
+          ? `Could not read this file: ${err.message}`
+          : "Could not read this file. Try saving it as CSV and re-uploading.",
+      );
+    }
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) processFile(file);
+    if (file) void processFile(file);
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith(".csv") || file.name.endsWith(".txt"))) processFile(file);
+    if (file && hasSupportedExtension(file.name)) void processFile(file);
   }
 
   function handleSave() {
@@ -252,13 +315,19 @@ export function BankStatementImport({ onImported }: Props) {
           </div>
           <div>
             <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-              Drop your bank statement CSV here
+              Drop your bank statement here
             </p>
             <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-              or click to browse · auto-detects Monzo, Starling, Revolut, Barclays, HSBC, Lloyds, NatWest, Halifax, Santander, RBS, PayPal, Amex
+              or click to browse · CSV, Excel (.xlsx / .xls), TSV or TXT · auto-detects Monzo, Starling, Revolut, Barclays, HSBC, Lloyds, NatWest, Halifax, Santander, RBS, PayPal, Amex
             </p>
           </div>
-          <input ref={inputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFile} />
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,.txt,.tsv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values,text/plain"
+            className="hidden"
+            onChange={handleFile}
+          />
         </div>
       )}
 

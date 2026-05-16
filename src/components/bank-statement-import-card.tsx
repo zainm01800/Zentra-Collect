@@ -24,7 +24,7 @@ export function BankStatementImportCard() {
             Import bank statement
           </p>
           <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-            Don&apos;t want to connect your bank? Upload a CSV export instead.
+            CSV, Excel (.xlsx / .xls), TSV or TXT — auto-detects every major UK bank.
           </p>
         </div>
       </div>

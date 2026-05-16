@@ -71,8 +71,9 @@ export default async function BankingPage({
             Bank feed
           </h1>
           <p className="mt-1 text-[14px]" style={{ color: "var(--zn-ink-2)" }}>
-            Connect your bank via Open Banking to automatically match payments to invoices —
-            or upload a CSV statement from any major UK bank if you prefer to stay manual.
+            Upload a statement export from any major UK bank — CSV, Excel, TSV
+            or TXT all work. Zentra parses it client-side and matches credits
+            to your outstanding invoices.
           </p>
         </div>
 
@@ -204,18 +205,20 @@ export default async function BankingPage({
 
 function SetupInstructions() {
   return (
-    <div className="flex flex-col items-center gap-4 py-4 text-center">
+    <div className="flex flex-col items-center gap-3 py-4 text-center">
       <div>
         <p className="text-[15px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-          Open Banking coming soon
+          Upload your bank statement below
         </p>
         <p className="mt-1 text-[13px] max-w-sm mx-auto" style={{ color: "var(--zn-ink-2)" }}>
-          Direct bank connection via Open Banking is in progress. In the meantime,
-          use the CSV import below to upload a statement from any major UK bank.
+          Zentra accepts CSV, Excel, TSV, and TXT exports from every major UK
+          bank. Drag-and-drop the file you exported from your bank&apos;s
+          online banking — Zentra detects the format and shows a preview
+          before saving.
         </p>
       </div>
       <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-        Powered by TrueLayer · Read-only access · No card details required
+        Files are parsed in your browser · nothing leaves your device unless you save
       </p>
     </div>
   );
