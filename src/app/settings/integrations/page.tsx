@@ -5,10 +5,12 @@ import { IntegrationCard } from "@/components/integrations/integration-card";
 import {
   syncFromXeroAction,
   syncFromQuickBooksAction,
+  syncFromSageAction,
   getIntegrationStatusAction,
 } from "@/actions/integrations/sync";
 import { isXeroConfigured } from "@/lib/integrations/xero/client";
 import { isQuickBooksConfigured } from "@/lib/integrations/quickbooks/client";
+import { isSageConfigured } from "@/lib/integrations/sage/client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,6 +28,7 @@ export default async function IntegrationsPage({
   const status = await getIntegrationStatusAction();
   const xeroConfigured = isXeroConfigured();
   const qbConfigured   = isQuickBooksConfigured();
+  const sageConfigured = isSageConfigured();
 
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
@@ -70,6 +73,11 @@ export default async function IntegrationsPage({
           QuickBooks connected. Click <strong>Sync invoices now</strong> to pull your AR.
         </Banner>
       )}
+      {params.connected === "sage" && (
+        <Banner kind="ok">
+          Sage connected. Click <strong>Sync invoices now</strong> to pull your AR.
+        </Banner>
+      )}
       {params.error && <Banner kind="err">{decodeURIComponent(params.error)}</Banner>}
 
       {/* Cards */}
@@ -96,6 +104,17 @@ export default async function IntegrationsPage({
             connected={status.quickbooks.connected}
             tenantName={status.quickbooks.tenantName}
             notConfigured={!qbConfigured}
+          />
+          <IntegrationCard
+            name="Sage Business Cloud"
+            brandColor="#00DC06"
+            tagline="Sync your AR from Sage Business Cloud Accounting (UK)."
+            connectPath="/api/integrations/sage/connect"
+            disconnectPath="/api/integrations/sage/disconnect"
+            syncAction={syncFromSageAction}
+            connected={status.sage.connected}
+            tenantName={status.sage.tenantName}
+            notConfigured={!sageConfigured}
           />
         </div>
       </Suspense>
