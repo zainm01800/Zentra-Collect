@@ -272,6 +272,58 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ─── What's unique to Zentra ─── */}
+      <Section
+        id="why-zentra"
+        eyebrow="Built differently"
+        title="What you won't get anywhere else."
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              kicker: "Don't chase",
+              title:  "Stop-chasing intelligence",
+              body:   "Most tools only tell you to chase more. Zentra also tells you when to stop — reliable late payers, customers on Direct Debit, recent chases — with a reason for each call.",
+            },
+            {
+              kicker: "Learns your customers",
+              title:  "Tone that gets paid",
+              body:   "Records which tone got a response, payment, or promise per customer. After a few chases it tells you 'Firm has worked best — Friendly didn't land.'",
+            },
+            {
+              kicker: "No more chasing",
+              title:  "GoCardless Direct Debit",
+              body:   "Connect GoCardless. Any customer on an active mandate is automatically removed from the chase plan — they're paying themselves.",
+            },
+            {
+              kicker: "Customer portal",
+              title:  "One link, three actions",
+              body:   "Every chase email carries a signed link. Customers can pay, promise a date, or explain the delay — with statutory interest and early-pay discounts surfaced automatically.",
+            },
+            {
+              kicker: "Practice moat",
+              title:  "Counterparty exposure",
+              body:   "When the same customer owes two or more of your clients, Zentra aggregates the exposure across ledgers. No other tool can see this without your portfolio.",
+            },
+            {
+              kicker: "Pull from anywhere",
+              title:  "Xero, QuickBooks, Sage, FreeAgent",
+              body:   "Read-only sync from all four major UK accounting platforms. CSV still works for everything else. Skip CSV exports forever.",
+            },
+          ].map((card) => (
+            <div key={card.title} className="zn-card p-5">
+              <div className="zn-label">{card.kicker}</div>
+              <p className="mt-2 text-[15px] font-semibold leading-tight text-[#1d1813] dark:text-[#f0e8d5]">
+                {card.title}
+              </p>
+              <p className="mt-2 text-[12.5px] leading-[1.55]" style={{ color: "var(--zn-ink-3)" }}>
+                {card.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* ─── Bookkeepers ─── */}
       <Section
         id="bookkeepers"
@@ -289,7 +341,7 @@ export default function Home() {
             {[
               { kicker: "One pane",   value: "All clients",   sub: "Sortable by overdue, exceptions, or risk" },
               { kicker: "Per client", value: "Weekly brief",  sub: "Email-ready summaries for client meetings" },
-              { kicker: "Pricing",    value: "From £99/mo",   sub: "Up to 5 client ledgers on Bookkeeper Starter" },
+              { kicker: "Pricing",    value: "From £119/mo",  sub: "Up to 5 client ledgers on Practice; 20 on Practice Pro" },
             ].map((m) => (
               <div key={m.kicker} className="zn-stat">
                 <div className="zn-label">{m.kicker}</div>

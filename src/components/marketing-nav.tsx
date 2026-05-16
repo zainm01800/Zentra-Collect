@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { href: "#how-it-works", label: "How it works" },
+  { href: "#why-zentra",   label: "Why Zentra" },
   { href: "#bookkeepers",  label: "For bookkeepers" },
   { href: "#pricing",      label: "Pricing" },
   { href: "#faq",          label: "FAQ" },
@@ -25,7 +26,7 @@ export function MarketingNav() {
           <span className="zn-brand-mark">Z</span>
           <span className="flex flex-col leading-[1.1]">
             <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-            <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+            <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
           </span>
         </Link>
 
