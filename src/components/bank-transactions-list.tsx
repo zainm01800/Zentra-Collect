@@ -23,6 +23,7 @@ import {
 } from "@/lib/banking/match";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import { writeBackFromBankFeedAction } from "@/actions/banking-write-back";
 import {
   demoCashpilotInvoices as demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
@@ -103,6 +104,12 @@ export function BankTransactionsList({
 }: BankTransactionsListProps) {
   const [invoices, setInvoices]      = useState<Invoice[]>([]);
   const [paidIds, setPaidIds]        = useState<Set<string>>(new Set());
+  const [writeBackById, setWriteBackById] = useState<Record<string,
+    | { kind: "pending" }
+    | { kind: "ok"; provider: string }
+    | { kind: "err"; message: string }
+    | undefined
+  >>({});
 
   // Load invoices from localStorage after hydration
   useEffect(() => {
@@ -126,11 +133,48 @@ export function BankTransactionsList({
     );
   }, [invoices, transactions]);
 
-  function handleMarkPaid(match: TransactionMatch) {
+  async function handleMarkPaid(match: TransactionMatch) {
+    // 1. Local mark-paid for immediate UI feedback
     markInvoicePaidInStorage(match.invoice.id);
     setPaidIds((prev) => new Set([...prev, match.invoice.id]));
-    // Refresh local invoice state so matches update
     setInvoices(readStoredInvoices());
+
+    // 2. If the invoice came from an integration, fire write-back so it
+    //    gets marked paid in Xero/Sage/FreeAgent/QB too. The action is
+    //    a no-op for manually-created invoices.
+    setWriteBackById((s) => ({ ...s, [match.invoice.id]: { kind: "pending" } }));
+    try {
+      const result = await writeBackFromBankFeedAction({
+        invoiceId:  match.invoice.id,
+        amountPaid: match.transaction.amount,
+        paidDate:   match.transaction.timestamp.slice(0, 10),
+        reference:  match.transaction.description?.slice(0, 60),
+      });
+      if (result.ok) {
+        if (result.provider) {
+          setWriteBackById((s) => ({
+            ...s,
+            [match.invoice.id]: { kind: "ok", provider: result.provider as string },
+          }));
+        } else {
+          // Manual invoice — nothing to write back; clear pending state
+          setWriteBackById((s) => ({ ...s, [match.invoice.id]: undefined }));
+        }
+      } else {
+        setWriteBackById((s) => ({
+          ...s,
+          [match.invoice.id]: { kind: "err", message: result.error },
+        }));
+      }
+    } catch (err) {
+      setWriteBackById((s) => ({
+        ...s,
+        [match.invoice.id]: {
+          kind: "err",
+          message: err instanceof Error ? err.message : "Write-back failed.",
+        },
+      }));
+    }
   }
 
   // ── Error state ───────────────────────────────────────────────────────────
@@ -234,9 +278,34 @@ export function BankTransactionsList({
                       </p>
                     </div>
                     {alreadyPaid ? (
-                      <span className="inline-flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--zn-safe)" }}>
-                        <CheckCircle2 className="size-3.5" /> Marked paid
-                      </span>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--zn-safe)" }}>
+                          <CheckCircle2 className="size-3.5" /> Marked paid
+                        </span>
+                        {(() => {
+                          const wb = writeBackById[m.invoice.id];
+                          if (!wb) return null;
+                          if (wb.kind === "pending") {
+                            return (
+                              <p className="text-[10.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                                Syncing to accounting tool…
+                              </p>
+                            );
+                          }
+                          if (wb.kind === "ok") {
+                            return (
+                              <p className="text-[10.5px] mt-0.5" style={{ color: "var(--zn-safe)" }}>
+                                Also marked paid in {wb.provider}
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className="text-[10.5px] mt-0.5" title={wb.message} style={{ color: "var(--zn-warn)" }}>
+                              Local only — write-back failed
+                            </p>
+                          );
+                        })()}
+                      </div>
                     ) : (
                       <button
                         type="button"

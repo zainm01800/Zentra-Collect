@@ -96,6 +96,36 @@ export default async function IntegrationsPage({
       )}
       {params.error && <Banner kind="err">{decodeURIComponent(params.error)}</Banner>}
 
+      {/* Bank feed entry-point — separate surface lives at /banking */}
+      <Link
+        href="/banking"
+        className="group flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-[var(--zn-surface-2)]"
+        style={{
+          background: "var(--zn-surface)",
+          border:     "1px solid var(--zn-line-soft)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="size-10 rounded-lg flex items-center justify-center text-[13px] font-bold text-white"
+            style={{ background: "#1E3A8A" }}
+          >
+            B
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              Bank feed (Open Banking)
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+              Connect your UK bank via TrueLayer. Incoming payments auto-match to invoices and (when imported from an accounting tool) write back automatically.
+            </p>
+          </div>
+        </div>
+        <span className="text-[12.5px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+          Open →
+        </span>
+      </Link>
+
       {/* Cards */}
       <Suspense fallback={<div className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>Loading…</div>}>
         <div className="grid gap-4 sm:grid-cols-1">
