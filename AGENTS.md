@@ -32,20 +32,27 @@ Every recommendation should show:
 
 ## Product Boundaries
 
+Collections decisioning is the core. A small set of light-touch books
+features (Bank feed import, Expenses, Tax estimate, Aged debt) is in
+scope to serve smaller clients and bookkeepers handling small books
+who would otherwise need a separate tool. Keep these features minimal,
+read-only-ish, and never the headline — they support the chase
+workflow, they don't replace a full accounting product.
+
 Do not turn this into:
 
-- A broad AR automation platform
-- An autonomous collections engine
+- An autonomous collections engine (human approval stays required)
 - A legal debt recovery system
 - A payment processing product
 - A customer portal
 - SMS or call automation
-- Full Xero / QuickBooks integration yet
-- AP ageing yet
+- A full general-ledger / double-entry accounting product (Sage / Xero replacement)
+- A payroll, CRM, or project-management tool
 - A native mobile app
 - An open-ended AI chatbot
 
-Stay focused on turning invoice data into a ranked, explainable chase plan.
+Stay focused on turning invoice data into a ranked, explainable chase
+plan, with light books support around it for small-client workflows.
 
 ## Safety Rules
 
@@ -105,6 +112,6 @@ This repository uses a modern Next.js version with breaking changes compared wit
 - Prefer small, product-aligned changes over broad rewrites.
 - Keep recommendation UI explicit: action, reason, message, confidence / safety.
 - Make empty states helpful and specific to invoice import or collections workflow.
-- Avoid adding unrelated modules such as payments, CRM, payroll, expenses, forecasting, or project management.
+- Avoid adding unrelated modules such as payments, CRM, payroll, or project management. Light books features (bank feed import, expenses, tax estimate) are in scope but should stay small and support collections — they are not the headline.
 - Preserve server-side boundaries for secrets and AI calls.
 - Run lint/build after meaningful implementation work when possible.
