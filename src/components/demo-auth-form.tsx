@@ -35,6 +35,7 @@ export function DemoAuthForm() {
       : null;
 
   const [error, setError] = useState(urlErrorMessage ?? "");
+  const [forgotKind, setForgotKind] = useState<"err" | "ok">("err");
   const supabaseConfigured = hasSupabaseBrowserConfig();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -283,29 +284,13 @@ export function DemoAuthForm() {
                   placeholder={mode === "signup" ? "At least 8 characters" : ""}
                 />
                 {mode === "signin" ? (
-                  <div className="mt-1.5 text-right">
-                    <button
-                      type="button"
-                      className="text-[12px] underline underline-offset-2"
-                      style={{ color: "var(--zn-ink-3)" }}
-                      onClick={async () => {
-                        if (!email.trim()) {
-                          setError("Enter your email above first, then click forgot password.");
-                          return;
-                        }
-                        setError("");
-                        if (hasSupabaseBrowserConfig()) {
-                          const supabase = createSupabaseBrowserClient();
-                          await supabase.auth.resetPasswordForEmail(email, {
-                            redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-                          });
-                        }
-                        setError("If that email exists, we've sent a reset link. Check your inbox.");
-                      }}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
+                  <ForgotPasswordRow
+                    email={email}
+                    onMessage={(msg, kind) => {
+                      setError(msg);
+                      setForgotKind(kind);
+                    }}
+                  />
                 ) : null}
               </div>
 
@@ -313,9 +298,13 @@ export function DemoAuthForm() {
                 <div
                   className="rounded-[10px] p-3 text-[12.5px]"
                   style={{
-                    background: "var(--zn-risk-soft)",
-                    border: "1px solid var(--zn-risk-soft)",
-                    color: "var(--zn-risk)",
+                    background: forgotKind === "ok"
+                      ? "var(--zn-safe-soft)"
+                      : "var(--zn-risk-soft)",
+                    border: "1px solid transparent",
+                    color: forgotKind === "ok"
+                      ? "var(--zn-safe)"
+                      : "var(--zn-risk)",
                   }}
                 >
                   {error}
@@ -426,4 +415,74 @@ function humaniseAuthError(raw: string): string {
   }
   // Default — keep raw message but soften the framing
   return `Something went wrong: ${raw}. Try again or contact support.`;
+}
+
+// ── Forgot-password row ─────────────────────────────────────────────────────
+// Replaces the inline button that swallowed Supabase errors silently
+// (the user clicked, saw "we've sent a reset link", but nothing actually
+// happened if the redirect URL wasn't allow-listed or Supabase rate-
+// limited the call). Now we surface the real Supabase response — both
+// successes and errors land in the parent's banner.
+
+function ForgotPasswordRow({
+  email,
+  onMessage,
+}: {
+  email: string;
+  onMessage: (msg: string, kind: "ok" | "err") => void;
+}) {
+  const [sending, setSending] = useState(false);
+
+  async function handle() {
+    if (!email.trim()) {
+      onMessage("Enter your email above first, then click forgot password.", "err");
+      return;
+    }
+    if (!hasSupabaseBrowserConfig()) {
+      onMessage(
+        "Password reset isn't available on this deployment (Supabase not configured). Contact support.",
+        "err",
+      );
+      return;
+    }
+    setSending(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+      if (error) {
+        // Show the real error so the user (and you) can debug — most
+        // commonly: "Redirect URL not allowed" if Supabase Auth's
+        // allow-list doesn't include the callback URL.
+        onMessage(`Couldn't send reset link: ${error.message}`, "err");
+        return;
+      }
+      onMessage(
+        "Reset link sent. Check your inbox (and spam folder) — the link is valid for 1 hour.",
+        "ok",
+      );
+    } catch (err) {
+      onMessage(
+        `Network error: ${err instanceof Error ? err.message : "unknown"}. Try again.`,
+        "err",
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="mt-1.5 text-right">
+      <button
+        type="button"
+        disabled={sending}
+        onClick={handle}
+        className="text-[12px] underline underline-offset-2 disabled:opacity-50"
+        style={{ color: "var(--zn-ink-3)" }}
+      >
+        {sending ? "Sending reset link…" : "Forgot password?"}
+      </button>
+    </div>
+  );
 }
