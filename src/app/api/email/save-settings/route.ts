@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Auth check: verify the caller owns the account they're modifying ──────
+    // ── Auth check + account resolution ───────────────────────────────────────
+    let resolvedAccountId = accountId; // may be overridden by server-side lookup
     if (hasSupabaseServerConfig()) {
       const supabase = await createSupabaseServerClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,17 +45,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
       }
 
-      // Confirm this user is a member of the target account
+      // Derive the account ID from the authenticated session — don't trust the
+      // client-sent value (which may be the placeholder "local").
       const { data: membership } = await supabase
         .from("zentra_account_members")
         .select("account_id")
         .eq("user_id", user.id)
-        .eq("account_id", accountId)
         .maybeSingle();
 
       if (!membership) {
-        return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });
+        return NextResponse.json({ ok: false, error: "No account found for this user." }, { status: 403 });
       }
+
+      resolvedAccountId = membership.account_id;
     }
 
     const { host, port } = inferSmtpHost(email);
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
         .from("zentra_email_settings")
         .upsert(
           {
-            account_id: accountId,
+            account_id: resolvedAccountId,
             smtp_host: host,
             smtp_port: port,
             smtp_user: email,

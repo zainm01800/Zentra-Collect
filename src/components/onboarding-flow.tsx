@@ -243,6 +243,17 @@ export function OnboardingFlow() {
         type: "email",
       });
       if (verifyError) throw verifyError;
+
+      // Create Supabase account rows (idempotent — safe on re-login)
+      await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: businessName.trim() || identity.businessName,
+          planId: pendingOption.planId,
+        }),
+      }).catch(() => {}); // non-fatal — app still works without Supabase rows
+
       const account = createLocalAccount({
         name: identity.name,
         email: identity.email,
