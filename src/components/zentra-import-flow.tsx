@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { checkAndCelebrate } from "@/components/celebration";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -398,6 +399,7 @@ export function ZentraImportFlow() {
 
     setIsImporting(false);
     setStep("complete");
+    checkAndCelebrate("import");
     router.push(syncFailed ? "/dashboard?import_sync_failed=1" : "/dashboard");
   }
 

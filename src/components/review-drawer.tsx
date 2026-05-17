@@ -21,6 +21,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { checkAndCelebrate } from "@/components/celebration";
+import { playSuccess, playTick } from "@/lib/sounds";
 import { useReview } from "@/components/review-context";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
@@ -349,6 +351,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
     setScenario(inferredScenario);
     setTone(getRecommendedTone(current));
     setOutcome(null);
+    checkAndCelebrate("review");
   }, [current?.id]);
 
   // Esc to close
@@ -390,6 +393,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
   const handleCopy = () => {
     if (!subject && !body) return;
     navigator.clipboard?.writeText(`Subject: ${subject}\n\n${body}`).catch(() => {});
+    playTick();
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
@@ -397,6 +401,10 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
   const handleOutcome = (k: Outcome) => {
     setOutcome(k);
     recordOutcome(k);
+    if (k === "paid") { playSuccess(); checkAndCelebrate("paid"); }
+    else { playTick(); }
+    if (k === "sent") checkAndCelebrate("chase");
+    if (k === "promised") checkAndCelebrate("chase");
   };
 
   // Width strategy:
@@ -695,7 +703,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                       key={k}
                       type="button"
                       onClick={() => handleOutcome(k)}
-                      className="zn-pill"
+                      className="zn-pill active:scale-95 transition-transform"
                       style={{
                         height: 28,
                         fontSize: 12,

@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarClock,
   Calculator,
+  Check,
   ChevronRight,
   CreditCard,
   FileText,
@@ -18,13 +19,16 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Pencil,
   PiggyBank,
   Plug,
   Plus,
   Receipt,
+  Shield,
   ShieldAlert,
   Settings,
   TableProperties,
+  TrendingUp,
   Users,
   Wallet,
   X,
@@ -39,6 +43,8 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { MobileFab } from "@/components/mobile-fab";
 import { FirstRunOnboarding } from "@/components/first-run-onboarding";
 import { AutoSendToggle } from "@/components/auto-send-toggle";
+import { MilestoneToast } from "@/components/celebration";
+import { OnboardingGuide } from "@/components/onboarding-guide";
 import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
 import { AccountSync } from "@/components/account-sync";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
@@ -48,6 +54,12 @@ import { toAccountState } from "@/lib/account/access";
 import { readWorkspacePrefs, type WorkspacePrefs } from "@/lib/prefs";
 import { MODULES, type ModuleKey } from "@/lib/modules";
 import { readLocalAccount, demoUserStorageKey } from "@/lib/demo-auth";
+import {
+  loadCustomSections,
+  saveCustomSections,
+  DEFAULT_CUSTOM_SECTIONS,
+  type CustomNavSection,
+} from "@/lib/nav-customization";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
@@ -79,13 +91,20 @@ const collectionsNav: NavItem[] = [
   { href: "/invoices",  label: "Invoices",  icon: Receipt },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
+  { href: "/reports",   label: "Reports",   icon: BarChart3 },
 ];
 
-// "Books" — light-touch accounting features that support the chase workflow.
+// Banking — fixed section, always its own heading.
+const bankingNav: NavItem[] = [
+  { href: "/banking", label: "Bank feed", icon: Building2 },
+];
+
+// Books — user-customisable section (Expenses, P&L, Bills, Tax & VAT).
 const financeNav: NavItem[] = [
-  { href: "/banking",   label: "Bank feed", icon: Building2 },
-  { href: "/expenses",  label: "Expenses",  icon: Receipt },
-  { href: "/tax",       label: "Tax",       icon: PiggyBank },
+  { href: "/expenses", label: "Expenses",  icon: Receipt    },
+  { href: "/pl",       label: "P&L",       icon: TrendingUp },
+  { href: "/bills",    label: "Bills",     icon: FileText   },
+  { href: "/tax",      label: "Tax & VAT", icon: PiggyBank  },
 ];
 
 /**
@@ -200,6 +219,7 @@ function CollapsibleSection({
   isActive,
   badges,
   onHide,
+  onEdit,
   className,
 }: {
   label: string;
@@ -210,6 +230,7 @@ function CollapsibleSection({
   isActive: (href: string) => boolean;
   badges?: Partial<Record<string, number>>;
   onHide?: (href: string) => void;
+  onEdit?: () => void;
   className?: string;
 }) {
   // Never collapse a section that contains the current page
@@ -217,23 +238,36 @@ function CollapsibleSection({
   const isCollapsed = !hasActive && (collapse[sectionKey] ?? false);
 
   return (
-    <div className={className}>
-      <button
-        type="button"
-        onClick={() => onToggle(sectionKey)}
-        className="zn-section-label w-full flex items-center justify-between group cursor-pointer select-none"
-        aria-expanded={!isCollapsed}
-      >
-        <span>{label}</span>
-        <ChevronRight
-          className="size-3 transition-transform duration-200"
-          style={{
-            color: hasActive ? "var(--zn-accent)" : "var(--zn-ink-3)",
-            transform: isCollapsed ? "none" : "rotate(90deg)",
-            opacity: 0.7,
-          }}
-        />
-      </button>
+    <div className={cn("group/section", className)}>
+      <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={() => onToggle(sectionKey)}
+          className="zn-section-label flex-1 flex items-center justify-between cursor-pointer select-none"
+          aria-expanded={!isCollapsed}
+        >
+          <span>{label}</span>
+          <ChevronRight
+            className="size-3 transition-transform duration-200"
+            style={{
+              color: hasActive ? "var(--zn-accent)" : "var(--zn-ink-3)",
+              transform: isCollapsed ? "none" : "rotate(90deg)",
+              opacity: 0.7,
+            }}
+          />
+        </button>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            title="Customise sections"
+            className="opacity-0 group-hover/section:opacity-100 transition-opacity flex-shrink-0 size-5 rounded flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5"
+            style={{ color: "var(--zn-ink-3)" }}
+          >
+            <Pencil className="size-3" />
+          </button>
+        )}
+      </div>
       {!isCollapsed && (
         <div className="flex flex-col gap-1 mt-0.5">
           {items.map((item) => (
@@ -293,6 +327,64 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // Hidden nav items — user can hide/restore individual items
   const [hiddenHrefs, setHiddenHrefs] = useState<Set<string>>(new Set());
   useEffect(() => { setHiddenHrefs(readHiddenHrefs()); }, []);
+
+  // Custom nav sections — user-defined groupings for the "Other tools" area
+  const [customSections, setCustomSections] = useState<CustomNavSection[]>(DEFAULT_CUSTOM_SECTIONS);
+  useEffect(() => { setCustomSections(loadCustomSections()); }, []);
+  const [editingNav, setEditingNav] = useState(false);
+
+  function updateCustomSections(updater: (prev: CustomNavSection[]) => CustomNavSection[]) {
+    setCustomSections((prev) => {
+      const next = updater(prev);
+      saveCustomSections(next);
+      return next;
+    });
+  }
+  function addNavSection() {
+    updateCustomSections((prev) => [
+      ...prev,
+      { id: `section-${Date.now()}`, label: "New section", items: [] },
+    ]);
+  }
+  function deleteNavSection(id: string) {
+    updateCustomSections((prev) => {
+      if (prev.length <= 1) return prev;
+      const idx = prev.findIndex((s) => s.id === id);
+      if (idx === -1) return prev;
+      const orphaned = prev[idx].items;
+      const rest = prev.filter((s) => s.id !== id);
+      if (orphaned.length > 0) rest[0] = { ...rest[0], items: [...rest[0].items, ...orphaned] };
+      return rest;
+    });
+  }
+  function renameNavSection(id: string, label: string) {
+    updateCustomSections((prev) => prev.map((s) => (s.id === id ? { ...s, label } : s)));
+  }
+  // Move item up/down within its section
+  function moveItemWithin(sectionId: string, href: string, dir: 1 | -1) {
+    updateCustomSections((prev) => prev.map((s) => {
+      if (s.id !== sectionId) return s;
+      const items = [...s.items];
+      const idx = items.indexOf(href);
+      if (idx === -1) return s;
+      const next = idx + dir;
+      if (next < 0 || next >= items.length) return s;
+      [items[idx], items[next]] = [items[next], items[idx]];
+      return { ...s, items };
+    }));
+  }
+  // Move item to the next section (cycles through)
+  function moveItemToNextSection(href: string, currentSectionId: string) {
+    updateCustomSections((prev) => {
+      const currentIdx = prev.findIndex((s) => s.id === currentSectionId);
+      const targetIdx  = (currentIdx + 1) % prev.length;
+      return prev.map((s, i) => {
+        if (i === currentIdx) return { ...s, items: s.items.filter((h) => h !== href) };
+        if (i === targetIdx)  return { ...s, items: s.items.includes(href) ? s.items : [...s.items, href] };
+        return s;
+      });
+    });
+  }
   const [hiddenExpanded, setHiddenExpanded] = useState(false);
 
   function hideNavItem(href: string) {
@@ -322,7 +414,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("zentra:workspaceprefs", onPrefs);
   }, []);
 
-  // Build the visible Finance nav items from enabled modules (cashflow/expenses/tax/reports)
+  // Build the visible finance items (banking + books) from enabled modules
   const visibleFinanceItems = useMemo<NavItem[]>(() => {
     if (!workspacePrefs) return [];
     const enabledHrefs = new Set<string>();
@@ -331,7 +423,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         MODULES[key].navHrefs.forEach((h) => enabledHrefs.add(h));
       }
     });
-    return financeNav.filter((item) => enabledHrefs.has(item.href));
+    return [...bankingNav, ...financeNav].filter((item) => enabledHrefs.has(item.href));
   }, [workspacePrefs]);
 
   // Hide the entire Collections nav section when the module is off
@@ -403,16 +495,29 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Scrollable nav — grows to fill space, scrolls if sections overflow */}
         <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
-          {/* Overview */}
+
+          {/* Portfolio — pinned above sections for bookkeeper plans only.
+              Single-business plans have nothing multi-client to show here. */}
+          {showPortfolio && !hiddenHrefs.has("/portfolio") && (
+            <NavLink
+              item={{ href: "/portfolio", label: "Portfolio overview", icon: Wallet }}
+              active={isActive("/portfolio")}
+              onHide={() => hideNavItem("/portfolio")}
+            />
+          )}
+
+          {/* Overview — Today only for non-bookkeeper plans (Portfolio moved above) */}
           <CollapsibleSection
             label="Overview"
             sectionKey="overview"
-            items={overviewItemsForPlan.filter((i) => !hiddenHrefs.has(i.href))}
+            items={overviewNav
+              .filter((i) => i.href !== "/portfolio")
+              .filter((i) => !hiddenHrefs.has(i.href))}
             collapse={collapse}
             onToggle={toggleSection}
             isActive={isActive}
             onHide={hideNavItem}
-            className="mb-[14px]"
+            className="mt-2 mb-[14px]"
           />
 
           {/* Collections — only shown when the Collections module is enabled */}
@@ -430,55 +535,183 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          {/* Finance — dynamically built from enabled modules */}
-          {visibleFinanceItems.length > 0 && (
+          {/* Banking — fixed section, always its own heading */}
+          {visibleFinanceItems.some((i) => i.href === "/banking") && (
             <CollapsibleSection
-              label="Books"
-              sectionKey="finance"
-              items={visibleFinanceItems.filter((i) => !hiddenHrefs.has(i.href))}
+              label="Banking"
+              sectionKey="banking"
+              items={bankingNav.filter((i) => !hiddenHrefs.has(i.href))}
               collapse={collapse}
               onToggle={toggleSection}
               isActive={isActive}
               onHide={hideNavItem}
+              className="mb-[14px]"
             />
           )}
 
-          {/* Hidden pages — restore section */}
+          {/* Books — user-customisable sections */}
+          {visibleFinanceItems.some((i) => i.href !== "/banking") && !editingNav && customSections.map((section) => {
+            const sectionItems = section.items
+              .map((href) => financeNav.find((i) => i.href === href))
+              .filter((item): item is NavItem => item !== undefined)
+              .filter((item) => visibleFinanceItems.some((v) => v.href === item.href))
+              .filter((item) => !hiddenHrefs.has(item.href));
+            if (!sectionItems.length) return null;
+            return (
+              <CollapsibleSection
+                key={section.id}
+                label={section.label}
+                sectionKey={`custom-${section.id}`}
+                items={sectionItems}
+                collapse={collapse}
+                onToggle={toggleSection}
+                isActive={isActive}
+                onHide={hideNavItem}
+                onEdit={() => setEditingNav(true)}
+                className="mb-[14px]"
+              />
+            );
+          })}
+
+          {/* Edit mode — click-based reorder (↑↓) and move between sections */}
+          {visibleFinanceItems.some((i) => i.href !== "/banking") && editingNav && (
+            <div className="mb-[14px]">
+              {customSections.map((section) => {
+                const sectionItems = section.items
+                  .map((href) => financeNav.find((i) => i.href === href))
+                  .filter((item): item is NavItem => item !== undefined)
+                  .filter((item) => visibleFinanceItems.some((v) => v.href === item.href));
+                const nextSection = customSections[(customSections.indexOf(section) + 1) % customSections.length];
+                const showMoveBtn = customSections.length > 1;
+                return (
+                  <div key={section.id} className="mb-3">
+                    {/* Editable section label */}
+                    <div className="flex items-center gap-1 mb-1">
+                      <input
+                        type="text"
+                        value={section.label}
+                        onChange={(e) => renameNavSection(section.id, e.target.value)}
+                        className="zn-section-label flex-1 bg-transparent outline-none min-w-0"
+                        style={{ borderBottom: "1px dashed var(--zn-ink-3)" }}
+                      />
+                      {customSections.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => deleteNavSection(section.id)}
+                          title="Remove section"
+                          className="flex-shrink-0 size-4 rounded flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                          style={{ color: "var(--zn-ink-3)" }}
+                        >
+                          <X className="size-3" />
+                        </button>
+                      )}
+                    </div>
+                    {/* Items with reorder + move controls */}
+                    {sectionItems.map((item, idx) => (
+                      <div
+                        key={item.href}
+                        className="flex items-center gap-1 px-1.5 py-1 rounded-lg"
+                        style={{ background: "var(--zn-surface)" }}
+                      >
+                        {/* Up / down */}
+                        <div className="flex flex-col gap-px flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => moveItemWithin(section.id, item.href, -1)}
+                            disabled={idx === 0}
+                            className="size-4 flex items-center justify-center rounded transition-colors hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20"
+                            style={{ color: "var(--zn-ink-3)" }}
+                            title="Move up"
+                          >
+                            <ChevronRight className="size-3 -rotate-90" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveItemWithin(section.id, item.href, 1)}
+                            disabled={idx === sectionItems.length - 1}
+                            className="size-4 flex items-center justify-center rounded transition-colors hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20"
+                            style={{ color: "var(--zn-ink-3)" }}
+                            title="Move down"
+                          >
+                            <ChevronRight className="size-3 rotate-90" />
+                          </button>
+                        </div>
+                        <item.icon className="zn-nav-icon size-4 flex-shrink-0" />
+                        <span className="flex-1 truncate text-[12px]" style={{ color: "var(--zn-ink-2)" }}>{item.label}</span>
+                        {/* Move to next section */}
+                        {showMoveBtn && (
+                          <button
+                            type="button"
+                            onClick={() => moveItemToNextSection(item.href, section.id)}
+                            title={`Move to ${nextSection.label}`}
+                            className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap"
+                            style={{ color: "var(--zn-ink-3)", border: "1px solid var(--zn-line)" }}
+                          >
+                            → {nextSection.label}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {sectionItems.length === 0 && (
+                      <p className="px-1.5 py-2 text-[11px] text-center" style={{ color: "var(--zn-ink-3)" }}>
+                        Empty — move items here using →
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={addNavSection}
+                className="flex items-center gap-1.5 px-1.5 py-1 text-[12px] rounded-lg w-full transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                style={{ color: "var(--zn-ink-3)" }}
+              >
+                <Plus className="size-3" />
+                <span>Add section</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingNav(false)}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[12px] rounded-lg font-medium transition-colors"
+                style={{ background: "var(--zn-ink)", color: "var(--background)" }}
+              >
+                <Check className="size-3" />
+                Done
+              </button>
+            </div>
+          )}
+
+          {/* Hidden items — compact restore strip, no alarming label */}
           {hiddenHrefs.size > 0 && (
-            <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
+            <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
               <button
                 type="button"
                 onClick={() => setHiddenExpanded((v) => !v)}
-                className="zn-section-label w-full flex items-center justify-between cursor-pointer select-none"
+                className="flex items-center gap-1 px-1.5 py-1 text-[11px] w-full rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 select-none"
+                style={{ color: "var(--zn-ink-3)" }}
               >
-                <span>Hidden pages</span>
                 <ChevronRight
-                  className="size-3 transition-transform duration-200"
-                  style={{
-                    color: "var(--zn-ink-3)",
-                    transform: hiddenExpanded ? "rotate(90deg)" : "none",
-                    opacity: 0.7,
-                  }}
+                  className="size-3 transition-transform duration-150"
+                  style={{ transform: hiddenExpanded ? "rotate(90deg)" : "none" }}
                 />
+                <span>{hiddenHrefs.size} hidden</span>
               </button>
               {hiddenExpanded && (
                 <div className="flex flex-col gap-0.5 mt-1">
-                  {[...overviewNav, ...collectionsNav, ...financeNav]
+                  {[...overviewNav, ...collectionsNav, ...bankingNav, ...financeNav]
                     .filter((i) => hiddenHrefs.has(i.href))
                     .map((item) => (
                       <div key={item.href} className="flex items-center gap-2 px-1.5 py-1 rounded-lg">
-                        <span className="size-3.5 flex-shrink-0 flex items-center justify-center" style={{ color: "var(--zn-ink-3)" }}><item.icon className="size-3.5" /></span>
-                        <span className="flex-1 text-[12px] truncate" style={{ color: "var(--zn-ink-3)" }}>
-                          {item.label}
-                        </span>
+                        <item.icon className="size-3.5 flex-shrink-0 zn-nav-icon" />
+                        <span className="flex-1 text-[12px] truncate" style={{ color: "var(--zn-ink-3)" }}>{item.label}</span>
                         <button
                           type="button"
                           onClick={() => restoreNavItem(item.href)}
                           title={`Restore ${item.label}`}
-                          className="flex-shrink-0 size-5 rounded flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                           style={{ color: "var(--zn-ink-3)" }}
                         >
-                          <Plus className="size-3" />
+                          Show
                         </button>
                       </div>
                     ))}
@@ -514,6 +747,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               <span>Settings</span>
             </Link>
             <ThemeToggle />
+            <Link
+              href="/trust"
+              className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#2d2820]"
+              title="Trust & Security"
+              aria-label="Trust & Security"
+              style={{ color: isActive("/trust") ? "var(--zn-ink)" : "var(--zn-ink-3)" }}
+            >
+              <Shield className="size-4" />
+            </Link>
             <Link
               href="/help"
               className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#2d2820]"
@@ -631,6 +873,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* Review drawer (fixed-position, overlays page) */}
       <ReviewDrawer allInvoices={allInvoices} />
+
+      {/* Milestone celebrations — confetti + toast */}
+      <MilestoneToast />
+
+      {/* Guided first-5-minutes onboarding tooltip */}
+      <OnboardingGuide />
 
       {/* Push notification permission banner — appears after 8 s, dismissed on click */}
       <PushPermission delayMs={8000} />

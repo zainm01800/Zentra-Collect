@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Search, Volume2, VolumeX } from "lucide-react";
 import { CustomerProfileDrawer } from "@/components/customer-profile-drawer";
@@ -44,6 +44,7 @@ export function ChaseQueue({
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [waitingInvoices, setWaitingInvoices] = useState<ZentraInvoice[]>([]);
+  const [expandedRankId, setExpandedRankId] = useState<string | null>(null);
   const review = useReview();
 
   // Hydrate waiting invoices from localStorage on mount and after any slot change
@@ -231,6 +232,39 @@ export function ChaseQueue({
   ];
 
   const totalAmount = queue.reduce((s, i) => s + i.amount, 0);
+
+  function rankBreakdown(inv: Invoice, urgency: string) {
+    const factors: { label: string; value: string; tone: "risk" | "warn" | "safe" | "neutral" }[] = [];
+    const tone = (d: number): "risk" | "warn" | "neutral" =>
+      d > 60 ? "risk" : d > 30 ? "warn" : "neutral";
+
+    factors.push({
+      label: "Priority",
+      value: urgency,
+      tone: urgency === "Critical" ? "risk" : urgency === "High" || urgency === "Blocked" ? "warn" : "neutral",
+    });
+    if (inv.daysOverdue > 0) {
+      factors.push({ label: "Days overdue", value: `${inv.daysOverdue}d`, tone: tone(inv.daysOverdue) });
+    }
+    factors.push({
+      label: "Outstanding",
+      value: formatCurrency(inv.amount),
+      tone: inv.amount >= 8000 ? "risk" : inv.amount >= 2000 ? "warn" : "neutral",
+    });
+    if (inv.chaseCount > 0) {
+      factors.push({ label: "Prev chases", value: `${inv.chaseCount} unanswered`, tone: inv.chaseCount >= 3 ? "warn" : "neutral" });
+    }
+    if (inv.relationshipType === "high-value client") {
+      factors.push({ label: "Relationship", value: "High-value client", tone: "safe" });
+    }
+    if (inv.status === "Promised payment") {
+      factors.push({ label: "Status", value: "Promise pending — verify", tone: "warn" });
+    }
+    if (inv.status === "Disputed") {
+      factors.push({ label: "Status", value: "Active dispute", tone: "risk" });
+    }
+    return factors;
+  }
 
   function openInvoice(invoice: Invoice) {
     setCustomerDrawerOpen(false);
@@ -461,11 +495,12 @@ export function ChaseQueue({
                                          "var(--zn-ink-2)";
                 const isHighlighted = idx === highlightedIdx;
                 return (
+                  <React.Fragment key={inv.id}>
                   <tr
-                    key={inv.id}
                     onClick={() => openInvoice(inv)}
                     onMouseEnter={() => setHighlightedIdx(idx)}
                     className="transition-colors cursor-pointer hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
+                    {...(idx === 0 ? { "data-chase-row-first": "true" } : {})}
                     style={{
                       borderTop: "1px solid var(--zn-line-soft)",
                       background: isHighlighted ? "var(--zn-surface-2)" : undefined,
@@ -475,14 +510,35 @@ export function ChaseQueue({
                     }}
                   >
                     <td
-                      className="text-[14px] italic"
-                      style={{
-                        padding: "14px 22px",
-                        color: "var(--zn-ink-3)",
-                        fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
-                      }}
+                      style={{ padding: "14px 22px", verticalAlign: "top" }}
                     >
-                      {idx + 1}
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className="text-[14px] italic"
+                          style={{
+                            color: "var(--zn-ink-3)",
+                            fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedRankId(expandedRankId === inv.id ? null : inv.id);
+                          }}
+                          title="Why this rank?"
+                          className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full transition-colors"
+                          style={{
+                            background: expandedRankId === inv.id ? "var(--zn-accent)" : "var(--zn-surface-2)",
+                            color: expandedRankId === inv.id ? "#fff" : "var(--zn-ink-3)",
+                            border: "1px solid var(--zn-line)",
+                          }}
+                        >
+                          why?
+                        </button>
+                      </div>
                     </td>
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex flex-col">
@@ -605,6 +661,47 @@ export function ChaseQueue({
                       </button>
                     </td>
                   </tr>
+                  {expandedRankId === inv.id && (
+                    <tr key={`${inv.id}-why`} onClick={(e) => e.stopPropagation()}>
+                      <td
+                        colSpan={8}
+                        style={{
+                          padding: "0 22px 14px",
+                          background: "var(--zn-surface-2)",
+                          borderTop: "1px dashed var(--zn-line)",
+                        }}
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-2 mt-2" style={{ color: "var(--zn-ink-3)" }}>
+                          Why ranked #{idx + 1}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {rankBreakdown(inv, urgency).map((f) => {
+                            const bg =
+                              f.tone === "risk" ? "var(--zn-risk-soft)" :
+                              f.tone === "warn" ? "var(--zn-warn-soft)" :
+                              f.tone === "safe" ? "var(--zn-safe-soft)" :
+                              "var(--zn-surface)";
+                            const fg =
+                              f.tone === "risk" ? "var(--zn-risk)" :
+                              f.tone === "warn" ? "var(--zn-warn)" :
+                              f.tone === "safe" ? "var(--zn-safe)" :
+                              "var(--zn-ink-2)";
+                            return (
+                              <span
+                                key={f.label}
+                                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]"
+                                style={{ background: bg, border: `1px solid ${fg}22` }}
+                              >
+                                <span style={{ color: "var(--zn-ink-3)" }}>{f.label}</span>
+                                <span className="font-semibold" style={{ color: fg }}>{f.value}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })
             )}
