@@ -23,7 +23,7 @@ import {
 } from "@/lib/bookkeeper-clients";
 import { writeDirectDebitEmails } from "@/lib/collections/dd-cache";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 function resolveInvoiceKey(planId: string): string {
   if (BOOKKEEPER_PLAN_IDS.includes(planId)) {

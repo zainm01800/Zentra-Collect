@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ArTrendChart } from "@/components/ar-trend-chart";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -242,6 +243,9 @@ export function ReportsContent() {
               ))}
             </div>
           </div>
+
+          {/* Historical AR trends */}
+          <ArTrendChart isDemo={!hasData} />
         </>
       )}
     </div>

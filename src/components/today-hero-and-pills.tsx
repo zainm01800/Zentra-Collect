@@ -18,7 +18,7 @@ import { readLocalAccount } from "@/lib/demo-auth";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 function resolveKey(planId: string): string {
   if (BOOKKEEPER_PLAN_IDS.includes(planId)) {

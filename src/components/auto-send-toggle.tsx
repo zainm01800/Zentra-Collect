@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Lock, Zap } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { AutoSendModal } from "@/components/auto-send-modal";
-import { EmailAddonUpgradeModal } from "@/components/email-addon-upgrade-modal";
 import {
   readEmailUiSettings,
   disableAutoSend,
   isArmingCountdownActive,
   getDemoPhase,
-  startDemoArming,
   startArming,
   disableDemoAutoSend,
 } from "@/lib/email/settings-store";
@@ -21,42 +19,26 @@ import { getPlanConfig } from "@/lib/account/plans";
 type Props = {
   planId?: PlanId;
   isDemoMode?: boolean;
-  hasEmailAddon?: boolean;
 };
 
-type ToggleState =
-  | "full"          // plan includes emailSending
-  | "addon-active"  // addon purchased (emailSendingAddon plan + emailAddon=true)
-  | "addon-upgrade" // addon purchasable but not bought
-  | "demo"          // demo account — show fake UI
-  | "locked";       // plan doesn't include email at all
+type ToggleState = "full" | "demo" | "locked";
 
-function resolveState(
-  planId: PlanId | undefined,
-  isDemoMode: boolean,
-  hasEmailAddon: boolean,
-): ToggleState {
+function resolveState(planId: PlanId | undefined, isDemoMode: boolean): ToggleState {
   if (isDemoMode) return "demo";
   if (!planId) return "locked";
   const features = getPlanConfig(planId).features;
-  if (features.emailSending) return "full";
-  if (features.emailSendingAddon) return hasEmailAddon ? "addon-active" : "addon-upgrade";
+  if (features.autoSendEmail) return "full";
   return "locked";
 }
 
-export function AutoSendToggle({
-  planId,
-  isDemoMode = false,
-  hasEmailAddon = false,
-}: Props) {
-  const state = resolveState(planId, isDemoMode, hasEmailAddon);
+export function AutoSendToggle({ planId, isDemoMode = false }: Props) {
+  const state = resolveState(planId, isDemoMode);
 
   const [isEnabled, setIsEnabled] = useState(false);
   const [isArming, setIsArming] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [savedSettings, setSavedSettings] = useState<EmailUiSettings | null>(null);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   function sync() {
     if (state === "demo") {
@@ -82,10 +64,6 @@ export function AutoSendToggle({
   }, [state]);
 
   function handleToggle() {
-    if (state === "addon-upgrade") {
-      setUpgradeOpen(true);
-      return;
-    }
     if (state === "locked") return;
 
     if (state === "demo") {
@@ -99,7 +77,6 @@ export function AutoSendToggle({
       return;
     }
 
-    // full or addon-active
     if (isEnabled || isArming) {
       disableAutoSend();
       sync();
@@ -115,42 +92,18 @@ export function AutoSendToggle({
     }
   }
 
-  // ── Locked / upgrade states ──────────────────────────────────────────────
   if (state === "locked") {
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-400 dark:text-[#6a5f4e] text-sm cursor-not-allowed select-none">
         <Lock className="size-3.5" />
         <span>Auto-send</span>
         <span className="ml-auto text-xs bg-zinc-100 dark:bg-[#28231c] text-zinc-500 dark:text-[#8a7d69] rounded-full px-2 py-0.5">
-          Upgrade
+          Business+
         </span>
       </div>
     );
   }
 
-  if (state === "addon-upgrade") {
-    return (
-      <>
-        <button
-          onClick={handleToggle}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-zinc-100 dark:hover:bg-[#28231c] transition-colors group"
-        >
-          <Zap className="size-3.5 text-zinc-400 dark:text-[#6a5f4e] group-hover:text-zinc-600 dark:group-hover:text-[#8a7d69]" />
-          <span className="text-zinc-500 dark:text-[#8a7d69] group-hover:text-zinc-700 dark:group-hover:text-[#c8b99a]">Auto-send</span>
-          <span className="ml-auto text-xs bg-zinc-100 dark:bg-[#28231c] text-zinc-500 dark:text-[#8a7d69] rounded-full px-2 py-0.5">
-            Add-on
-          </span>
-        </button>
-        <EmailAddonUpgradeModal
-          open={upgradeOpen}
-          onClose={() => setUpgradeOpen(false)}
-          planId={planId}
-        />
-      </>
-    );
-  }
-
-  // ── Active states (full / addon-active / demo) ───────────────────────────
   const statusDot = isEnabled
     ? "bg-emerald-500"
     : isArming

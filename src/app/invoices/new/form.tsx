@@ -3,15 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, Check, Plus, Trash2, Mail, ArrowRight } from "lucide-react";
-import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
-import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients";
-import { readLocalAccount } from "@/lib/demo-auth";
 import { createInvoiceLinkAction } from "@/actions/create-invoice-link";
+import { createInvoice as storeCreateInvoice } from "@/lib/invoice-store";
 import type { Invoice } from "@/types/zentra";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
 
 interface LineItem {
   id:          string;
@@ -47,16 +43,6 @@ function autoInvoiceNumber(): string {
   const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
   const seq = String(Math.floor(Math.random() * 900) + 100); // 100-999
   return `INV-${ym}-${seq}`;
-}
-
-function resolveInvoiceKey(planId: string): string {
-  if (BOOKKEEPER_PLAN_IDS.includes(planId)) {
-    const activeClientId = readActiveClientId();
-    if (activeClientId && activeClientId !== "all") {
-      return clientInvoicesKey(activeClientId);
-    }
-  }
-  return importedInvoicesStorageKey;
 }
 
 export function NewInvoiceForm() {
@@ -113,8 +99,6 @@ export function NewInvoiceForm() {
     } catch { /* quota */ }
 
     const id = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const account = readLocalAccount();
-    // DemoUser doesn't expose id directly — fall back to a stable local id.
     const businessId = "local";
 
     const invoice: Invoice = {
@@ -149,15 +133,11 @@ export function NewInvoiceForm() {
       customerNotes:     notes.trim() || undefined,
     };
 
-    // Save to localStorage (matches existing import flow)
+    // Save via the unified store so P&L, Tax, Aged Debt update immediately
     try {
-      const key = resolveInvoiceKey(account?.planId ?? "");
-      const existing = window.localStorage.getItem(key);
-      const arr: Invoice[] = existing ? JSON.parse(existing) : [];
-      arr.unshift(invoice);
-      window.localStorage.setItem(key, JSON.stringify(arr));
+      storeCreateInvoice(invoice);
     } catch (err) {
-      console.error("[new-invoice] localStorage write failed:", err);
+      console.error("[new-invoice] store write failed:", err);
       setState("error");
       setErrorMessage("Couldn't save the invoice locally. Free up space and try again.");
       return;
@@ -410,8 +390,8 @@ export function NewInvoiceForm() {
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="Payment terms, PO number, project reference…"
-          className="w-full rounded-lg px-3 py-2 text-[14px] border bg-white"
-          style={{ borderColor: "var(--zn-line)" }}
+          className="w-full rounded-lg px-3 py-2 text-[14px] border"
+          style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
         />
       </Section>
 
@@ -489,8 +469,8 @@ function Input({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full rounded-lg px-3 py-2 text-[14px] border bg-white"
-      style={{ borderColor: "var(--zn-line)" }}
+      className="w-full rounded-lg px-3 py-2 text-[14px] border"
+      style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
     />
   );
 }

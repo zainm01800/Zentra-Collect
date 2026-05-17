@@ -22,7 +22,7 @@ import {
 } from "@/lib/bookkeeper-clients";
 
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 function resolveInvoiceKey(planId: string): string {
   if (BOOKKEEPER_PLAN_IDS.includes(planId)) {

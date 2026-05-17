@@ -105,7 +105,7 @@ export function BetaRequestConfirmation() {
         `Name: ${request?.name ?? name}`,
         `Email: ${request?.email ?? email}`,
         `Business: ${request?.businessName ?? businessName}`,
-        `Requested plan: ${isBookkeeper ? "Founding Bookkeeper" : "Founding Single Business"}`,
+        `Requested plan: ${isBookkeeper ? "Bookkeeper Starter" : "Single Business"}`,
         `Bookkeeper/accountant: ${isBookkeeper ? "Yes" : "No"}`,
         `Client ledgers: ${clientCountEstimate}`,
         `Accounting software: ${accountingSoftware}`,
@@ -174,8 +174,8 @@ export function BetaRequestConfirmation() {
     }
 
     const selectedPlan = isBookkeeper
-      ? "founding_bookkeeper"
-      : "founding_single_business";
+      ? "bookkeeper_starter"
+      : "single_business";
     const account = createLocalAccount({
       name: request?.name ?? name,
       email: request?.email ?? email,
@@ -183,7 +183,7 @@ export function BetaRequestConfirmation() {
       planId: selectedPlan,
     });
     writeLocalAccount(account);
-    router.push(selectedPlan === "founding_bookkeeper" ? "/portfolio" : "/dashboard");
+    router.push(selectedPlan === "bookkeeper_starter" ? "/portfolio" : "/dashboard");
   }
 
   function openDemoWhileWaiting() {
@@ -215,8 +215,8 @@ export function BetaRequestConfirmation() {
             this request to prioritise serious early users and bookkeepers.
           </p>
           <div className="mt-8 grid gap-3">
-            <PriceCard title="Single Business beta" price={"\u00A329/month"} detail="One business, early beta, 12-month founding lock." />
-            <PriceCard title="Bookkeeper beta" price={"\u00A379/month"} detail="Up to 5 client ledgers, early portfolio features, 12-month founding lock." />
+            <PriceCard title="Single Business" price={"\u00A359/month"} detail="One business, 500 active invoices, 200 AI actions/month." />
+            <PriceCard title="Bookkeeper Starter" price={"\u00A3119/month"} detail="Up to 5 client ledgers, 2,000 active invoices, portfolio view." />
           </div>
           <p className="mt-6 text-xs leading-5 text-neutral-500 dark:text-[#8a7d69]">
             TODO: replace local request storage with Supabase, a beta_requests

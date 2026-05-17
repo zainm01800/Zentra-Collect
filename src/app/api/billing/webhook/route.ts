@@ -7,17 +7,20 @@ export async function POST(req: Request) {
   const body = await req.text();
   const signature = (await headers()).get('Stripe-Signature') as string;
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error("[webhook] STRIPE_WEBHOOK_SECRET is not configured");
+    return NextResponse.json({ error: "Webhook not configured." }, { status: 500 });
+  }
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error(`Webhook signature verification failed: ${msg}`);
+    return NextResponse.json({ error: `Webhook Error: ${msg}` }, { status: 400 });
   }
 
   const supabase = getSupabaseAdminClient();
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
             .eq('id', accountId);
         } else {
           // Base plan purchase
-          const planId = session.metadata?.planId ?? 'FOUNDING_SINGLE';
+          const planId = session.metadata?.planId ?? 'SINGLE_BUSINESS';
           await supabase
             .from('zentra_accounts')
             .update({

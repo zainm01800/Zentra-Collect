@@ -100,7 +100,8 @@ export async function POST(request: Request) {
     if (!priceId) return NextResponse.json({ error: "Price ID is required" }, { status: 400 });
 
     const centralPlanId = planId?.toUpperCase()
-      .replace("FOUNDING_SINGLE_BUSINESS", "FOUNDING_SINGLE") ?? "SINGLE_BUSINESS";
+      .replace("FOUNDING_SINGLE_BUSINESS", "SINGLE_BUSINESS")
+      .replace("FOUNDING_BOOKKEEPER", "BOOKKEEPER_STARTER") ?? "SINGLE_BUSINESS";
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,

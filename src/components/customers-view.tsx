@@ -7,6 +7,7 @@ import { demoCustomers, demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CustomerRiskProfile } from "@/components/customer-risk-profile";
 import { CustomerAiDiagnosis } from "@/components/customer-ai-diagnosis";
+import { CustomerTimeline } from "@/components/customer-timeline";
 import { computeCustomerRisk } from "@/lib/risk-score";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
@@ -16,7 +17,7 @@ import {
 } from "@/lib/bookkeeper-clients";
 import type { Invoice } from "@/types/zentra";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 // ── Customer contact overrides storage ────────────────────────────────────────
 const CONTACT_OVERRIDES_KEY = "zentra.customerOverrides.v1";
@@ -509,6 +510,14 @@ export function CustomerDetail({
             No note yet. Click Edit to add one.
           </p>
         )}
+      </div>
+
+      {/* Communication timeline */}
+      <div className="zn-card p-5">
+        <div className="zn-label !p-0 mb-4">Communication history</div>
+        <CustomerTimeline
+          invoices={invoices.filter((inv) => inv.customerId === customerId)}
+        />
       </div>
 
       {/* Charts + open invoices */}

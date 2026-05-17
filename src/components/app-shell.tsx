@@ -46,6 +46,7 @@ import { AutoSendToggle } from "@/components/auto-send-toggle";
 import { MilestoneToast } from "@/components/celebration";
 import { OnboardingGuide } from "@/components/onboarding-guide";
 import { AutoSendArmingBanner } from "@/components/auto-send-arming-banner";
+import { useSupabaseInvoiceSync } from "@/hooks/use-supabase-invoice-sync";
 import { AccountSync } from "@/components/account-sync";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -320,6 +321,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
 
+  // Sync invoices from Supabase for authenticated real users on mount
+  useSupabaseInvoiceSync();
+
   // Collapsible section state — Finance collapses by default
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ overview: false, collections: false, finance: true });
   useEffect(() => { setCollapse(readCollapse()); }, []);
@@ -432,7 +436,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // Hide Portfolio for non-bookkeeper plans — the page redirects to an
   // upgrade screen anyway, but a sidebar entry that leads to "you can't
   // use this" is misleading. Bookkeeper plans:
-  //   founding_bookkeeper · bookkeeper_starter · bookkeeper_pro
+  //   bookkeeper_starter · bookkeeper_pro
   // Also keep visible for demo so the marketing flow still showcases it.
   // We use the same useLocalAccount() hook that PortfolioGate uses so the
   // sidebar and the page agree (fixes audit issue #1).
@@ -738,6 +742,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           className="flex flex-col gap-1.5 pt-[14px] border-t"
           style={{ borderColor: "var(--zn-line-soft)" }}
         >
+          <AutoSendToggleInSidebar />
           <div className="flex items-center gap-1">
             <Link
               href="/settings"
@@ -1041,7 +1046,6 @@ function AutoSendToggleInSidebar() {
     <AutoSendToggle
       planId={centralPlanId}
       isDemoMode={isDemoMode}
-      hasEmailAddon={user?.emailAddon === true}
     />
   );
 }

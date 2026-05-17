@@ -58,9 +58,7 @@ export type BetaAccessRequest = {
 
 export type OnboardingAccountType =
   | "demo"
-  | "trial"
-  | "founding_single_business"
-  | "founding_bookkeeper";
+  | "trial";
 
 export type OnboardingState = {
   selectedAccountType: OnboardingAccountType;
@@ -156,7 +154,7 @@ export function createLocalAccount({
     trialEndsAt,
     graceEndsAt,
     usage: createUsageCounters(),
-    betaApprovedAt: plan.accountType === "founding" ? now.toISOString() : undefined,
+    betaApprovedAt: undefined,
   };
 }
 

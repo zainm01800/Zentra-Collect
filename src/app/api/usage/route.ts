@@ -72,29 +72,8 @@ export async function GET() {
 
   // Overlay real plan ID from DB
   if (planId) {
-    snapshot.planId = planId;
-  }
-
-  // For authenticated users, overlay real import count from Supabase
-  // so the meter is accurate even after a server cold-start wipes in-memory state.
-  if (accountId && hasSupabaseServerConfig()) {
-    try {
-      const supabase = await createSupabaseServerClient();
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-      const { count: importCount } = await supabase
-        .from("zentra_import_batches")
-        .select("id", { count: "exact", head: true })
-        .eq("account_id", accountId)
-        .gte("created_at", monthStart);
-
-      if (importCount !== null) {
-        snapshot.importsThisMonth = importCount;
-      }
-    } catch {
-      // Non-fatal — keep in-memory count
-    }
+    // planId from DB is already lowercased; cast to PlanId since we trust the DB value
+    (snapshot as { planId: string }).planId = planId;
   }
 
   return NextResponse.json(snapshot);

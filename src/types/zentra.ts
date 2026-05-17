@@ -42,7 +42,8 @@ export type ActionScenario =
   | "PROMISE_FOLLOW_UP"
   | "RESOLVE_DISPUTE"
   | "INTERNAL_ESCALATION"
-  | "THANK_YOU_AFTER_PAYMENT";
+  | "THANK_YOU_AFTER_PAYMENT"
+  | "DO_NOT_CHASE";
 
 export interface ScenarioDetails {
   promisedDate: string;
@@ -67,6 +68,7 @@ export interface ScenarioDetails {
 export type CollectionStatus =
   | "overdue"
   | "due_soon"
+  | "not_due"
   | "promised"
   | "missed_promise"
   | "disputed"

@@ -41,7 +41,7 @@ import { AiDigestNarration } from "@/components/ai-digest-narration";
 import type { Customer, Invoice } from "@/types/zentra";
 
 export function ZentraWeeklyDigest() {
-  const { account } = useLocalAccount();
+  const { account, user } = useLocalAccount();
   const invoices = readImportedInvoices();
   const customers = readCustomersFromInvoices(invoices);
   const isImported = invoices !== demoInvoices;
@@ -90,7 +90,7 @@ export function ZentraWeeklyDigest() {
       </section>
 
       {/* AI Sunday brief — generate + email yourself the narrated version */}
-      <AiDigestNarration brief={digest} recipientName={account?.businessName ?? "there"} />
+      <AiDigestNarration brief={digest} recipientName={user?.businessName ?? "there"} />
 
       <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <DigestStat

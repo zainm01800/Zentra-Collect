@@ -10,10 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, ChevronRight, Zap, Server } from "lucide-react";
 import { writeEmailUiSettings, startArming, startDemoArming } from "@/lib/email/settings-store";
 
-type Step = "risk" | "smtp" | "rules" | "confirm";
+type DeliveryMethod = "managed" | "smtp";
+type Step = "risk" | "delivery" | "smtp" | "rules" | "confirm";
 
 type Props = {
   open: boolean;
@@ -35,6 +36,8 @@ type RulesFields = {
 
 export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
   const [step, setStep] = useState<Step>("risk");
+  const [delivery, setDelivery] = useState<DeliveryMethod>("managed");
+  const [managedAvailable, setManagedAvailable] = useState<boolean | null>(null);
   const [smtp, setSmtp] = useState<SmtpFields>({
     email: "",
     password: "",
@@ -48,8 +51,22 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
+  async function checkManagedAvailability() {
+    try {
+      const res = await fetch("/api/email/send-managed");
+      const data = await res.json();
+      setManagedAvailable(data.configured);
+      if (!data.configured) setDelivery("smtp");
+    } catch {
+      setManagedAvailable(false);
+      setDelivery("smtp");
+    }
+  }
+
   function reset() {
     setStep("risk");
+    setDelivery("managed");
+    setManagedAvailable(null);
     setSmtp({ email: "", password: "", fromName: "Zentra Collect" });
     setRules({ sendHourUtc: 9, sendDays: "1,2,3,4,5", maxPerRun: 5 });
     setTesting(false);
@@ -88,25 +105,28 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
 
   async function handleConfirm() {
     if (!isDemoMode) {
+      const connectedEmail = delivery === "managed" ? "chase@zentracollect.co.uk" : smtp.email;
       writeEmailUiSettings({
-        connectedEmail: smtp.email,
+        connectedEmail,
         fromName: smtp.fromName,
         sendHourUtc: rules.sendHourUtc,
         sendDays: rules.sendDays,
         maxPerRun: rules.maxPerRun,
       });
 
-      await fetch("/api/email/save-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountId: "local",
-          email: smtp.email,
-          password: smtp.password,
-          fromName: smtp.fromName,
-          ...rules,
-        }),
-      }).catch(() => null);
+      if (delivery === "smtp") {
+        await fetch("/api/email/save-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId: "local",
+            email: smtp.email,
+            password: smtp.password,
+            fromName: smtp.fromName,
+            ...rules,
+          }),
+        }).catch(() => null);
+      }
     }
 
     if (isDemoMode) {
@@ -142,7 +162,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
 
         {/* Step indicator */}
         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
-          {(["risk", "smtp", "rules", "confirm"] as Step[]).map((s, i) => (
+          {(["risk", "delivery", ...(delivery === "smtp" ? ["smtp"] : []), "rules", "confirm"] as Step[]).map((s, i, arr) => (
             <span key={s} className="flex items-center gap-1">
               <span
                 className={`w-5 h-5 rounded-full flex items-center justify-center font-medium ${
@@ -153,10 +173,10 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
               >
                 {i + 1}
               </span>
-              {i < 3 && <ChevronRight className="size-3" />}
+              {i < arr.length - 1 && <ChevronRight className="size-3" />}
             </span>
           ))}
-          <span className="ml-2 capitalize">{step}</span>
+          <span className="ml-2 capitalize">{step === "delivery" ? "Delivery" : step === "smtp" ? "Email" : step}</span>
         </div>
 
         {step === "risk" && (
@@ -178,10 +198,7 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
               <ul className="text-sm text-amber-800 dark:text-[#c8a040] space-y-1.5 list-disc pl-5">
                 <li>Emails are sent automatically to your customers on a configured schedule.</li>
                 <li>You must review your chase plan before enabling — auto-send acts on it as-is.</li>
-                <li>
-                  Only the AI-drafted message shown in the chase plan is sent. Review and edit
-                  drafts first.
-                </li>
+                <li>Only the AI-drafted message shown in the chase plan is sent. Review and edit drafts first.</li>
                 <li>Do not enable if your invoice data has not been reviewed recently.</li>
                 <li>
                   There is a <strong>5-minute cancellation window</strong> after enabling —
@@ -195,8 +212,85 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
                 responsible for all outbound customer communications.
               </p>
             )}
-            <Button className="w-full rounded-full" onClick={() => setStep("smtp")}>
+            <Button
+              className="w-full rounded-full"
+              onClick={() => {
+                checkManagedAvailability();
+                setStep("delivery");
+              }}
+            >
               {isDemoMode ? "See how setup works" : "I understand — continue"}
+            </Button>
+          </div>
+        )}
+
+        {step === "delivery" && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose how Zentra Collect sends emails on your behalf.
+            </p>
+
+            {/* Zentra delivery option */}
+            <button
+              type="button"
+              onClick={() => setDelivery("managed")}
+              className={`w-full text-left rounded-2xl border-2 p-4 transition-colors ${
+                delivery === "managed"
+                  ? "border-zinc-900 dark:border-[#f0e8d5] bg-zinc-50 dark:bg-[#28231c]"
+                  : "border-zinc-200 dark:border-[#2d2820] hover:border-zinc-300 dark:hover:border-[#3d3428]"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 size-8 rounded-full bg-zinc-900 dark:bg-[#f0e8d5] flex items-center justify-center shrink-0">
+                  <Zap className="size-4 text-white dark:text-[#1a1612]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Zentra delivery</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    No setup required. Emails sent from{" "}
+                    <span className="font-mono">chase@zentracollect.co.uk</span> with proper
+                    SPF/DKIM/DMARC. Better deliverability, no app passwords needed.
+                  </p>
+                  {managedAvailable === false && (
+                    <p className="text-xs text-amber-600 mt-1">Not configured on this instance — contact support.</p>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Own SMTP option */}
+            <button
+              type="button"
+              onClick={() => setDelivery("smtp")}
+              className={`w-full text-left rounded-2xl border-2 p-4 transition-colors ${
+                delivery === "smtp"
+                  ? "border-zinc-900 dark:border-[#f0e8d5] bg-zinc-50 dark:bg-[#28231c]"
+                  : "border-zinc-200 dark:border-[#2d2820] hover:border-zinc-300 dark:hover:border-[#3d3428]"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 size-8 rounded-full bg-zinc-100 dark:bg-[#28231c] flex items-center justify-center shrink-0">
+                  <Server className="size-4 text-zinc-600 dark:text-[#8a7d69]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Your own email</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Emails sent from your Gmail, Outlook, or custom SMTP. Requires an app
+                    password. Replies land in your inbox.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <Button
+              className="w-full rounded-full"
+              onClick={() => {
+                if (delivery === "managed") setStep("rules");
+                else setStep("smtp");
+              }}
+              disabled={delivery === "managed" && managedAvailable === false}
+            >
+              Continue
             </Button>
           </div>
         )}
@@ -380,7 +474,11 @@ export function AutoSendModal({ open, onClose, isDemoMode = false }: Props) {
               <div className="font-medium">Review your settings</div>
               <div className="text-muted-foreground space-y-1">
                 <div>
-                  <span className="text-zinc-900 dark:text-[#f0e8d5]">From:</span> {smtp.fromName} &lt;{smtp.email}&gt;
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">Delivery:</span>{" "}
+                  {delivery === "managed" ? "Zentra delivery (chase@zentracollect.co.uk)" : `Your email (${smtp.email})`}
+                </div>
+                <div>
+                  <span className="text-zinc-900 dark:text-[#f0e8d5]">From name:</span> {smtp.fromName || "Zentra Collect"}
                 </div>
                 <div>
                   <span className="text-zinc-900 dark:text-[#f0e8d5]">Send time:</span> {rules.sendHourUtc}:00 UTC

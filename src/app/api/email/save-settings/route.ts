@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  createSupabaseServerClient,
+  hasSupabaseServerConfig,
+} from "@/lib/supabase/server";
 import { inferSmtpHost } from "@/lib/email/smtp";
 import { encryptPassword } from "@/lib/email/crypto";
 
@@ -31,6 +35,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Auth check: verify the caller owns the account they're modifying ──────
+    if (hasSupabaseServerConfig()) {
+      const supabase = await createSupabaseServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+      }
+
+      // Confirm this user is a member of the target account
+      const { data: membership } = await supabase
+        .from("zentra_account_members")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .eq("account_id", accountId)
+        .maybeSingle();
+
+      if (!membership) {
+        return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });
+      }
+    }
+
     const { host, port } = inferSmtpHost(email);
     const encryptedPassword = encryptPassword(password);
 
@@ -57,7 +83,6 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("[save-settings] upsert failed:", error.message);
-        // Don't fail the request — return ok so client state is still updated
       }
     }
 

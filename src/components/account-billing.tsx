@@ -50,7 +50,6 @@ import type { Invoice } from "@/types/zentra";
 
 const ADMIN_EMAILS = [
   process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL,
-  "zainmanda01@gmail.com",
 ].filter(Boolean) as string[];
 
 /** Set this key in localStorage to pause AccountSync and keep a local plan override. */
@@ -841,10 +840,10 @@ export function AccountBilling() {
                   asChild
                   className="rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
                 >
-                  <Link href={recommendation.plan.href}>
+                  <Link href={recommendation.plan.tier === "trial" ? "/onboarding" : "/#pricing"}>
                     {recommendation.plan.tier === "trial"
                       ? "Start free trial"
-                      : "Request founding access"}
+                      : "Upgrade plan"}
                     <ArrowRight className="size-3.5" />
                   </Link>
                 </Button>
@@ -1086,15 +1085,15 @@ export function AccountBilling() {
               Billing is managed manually during the founding period. You won&apos;t be charged until billing goes live.
             </p>
 
-            {/* Non-paid — show request access CTA */}
+            {/* Non-paid — show upgrade CTA */}
             {snapshot.tier !== "paid" && (
               <Button
                 asChild
                 variant="outline"
                 className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
               >
-                <Link href="/request-access">
-                  Request founding access
+                <Link href="/#pricing">
+                  View plans
                   <ArrowRight className="size-3.5" />
                 </Link>
               </Button>
@@ -1106,7 +1105,7 @@ export function AccountBilling() {
                 <Lock className="size-3.5 shrink-0 text-neutral-400" />
                 <p className="text-xs text-neutral-600 dark:text-[#8a7d69]">
                   Your billing is managed directly.{" "}
-                  <a href="mailto:hello@zentra.co" className="underline underline-offset-2 hover:text-neutral-900">
+                  <a href="mailto:hello@zentracollect.co.uk" className="underline underline-offset-2 hover:text-neutral-900">
                     Email us
                   </a>{" "}
                   to make changes to your plan.
