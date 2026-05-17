@@ -106,7 +106,7 @@ export function ReferralCard() {
           className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-2 rounded-xl whitespace-nowrap active:scale-95 transition-transform"
           style={{
             background: copied ? "var(--zn-safe)" : "var(--zn-ink)",
-            color: "#fff",
+            color: "var(--zn-surface)",
           }}
         >
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

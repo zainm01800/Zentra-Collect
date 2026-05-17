@@ -106,10 +106,10 @@ export function OnboardingGuide({ anchorSelector = "[data-chase-row-first]" }: P
           top: pos?.top ?? "50%",
           left: pos?.left ?? "50%",
           width: 300,
-          background: "var(--zn-ink)",
+          background: "var(--zn-bg-inverse)",
           borderRadius: 14,
           padding: "14px 16px",
-          boxShadow: "0 8px 32px rgba(29,24,19,0.25)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
           ...(pos ? {} : { transform: "translate(-50%, -50%)" }),
         }}
       >
@@ -125,7 +125,7 @@ export function OnboardingGuide({ anchorSelector = "[data-chase-row-first]" }: P
               height: 0,
               borderLeft: "6px solid transparent",
               borderRight: "6px solid transparent",
-              borderBottom: "6px solid var(--zn-ink)",
+              borderBottom: "6px solid var(--zn-bg-inverse)",
             }}
           />
         )}
