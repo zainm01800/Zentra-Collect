@@ -86,15 +86,59 @@ export async function POST(req: Request) {
             .single();
 
           if (account) {
+            // past_due = payment failed but Stripe is still retrying — keep accessible
             const status = subscription.status === 'active' ? 'active' :
                            subscription.status === 'trialing' ? 'trialing' :
-                           subscription.status === 'past_due' ? 'expired' : 'cancelled';
+                           subscription.status === 'past_due' ? 'past_due' : 'cancelled';
 
             await supabase
               .from('zentra_accounts')
               .update({ status })
               .eq('id', account.id);
           }
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string | undefined;
+        if (!customerId) break;
+
+        console.warn(`[webhook] Payment failed for Stripe customer ${customerId} — invoice ${invoice.id}`);
+
+        const { data: account } = await supabase
+          .from('zentra_accounts')
+          .select('id, status')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (account && account.status === 'active') {
+          await supabase
+            .from('zentra_accounts')
+            .update({ status: 'past_due' })
+            .eq('id', account.id);
+        }
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string | undefined;
+        if (!customerId) break;
+
+        const { data: account } = await supabase
+          .from('zentra_accounts')
+          .select('id, status')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        // Recover from past_due if payment eventually succeeded
+        if (account && account.status === 'past_due') {
+          await supabase
+            .from('zentra_accounts')
+            .update({ status: 'active' })
+            .eq('id', account.id);
         }
         break;
       }
