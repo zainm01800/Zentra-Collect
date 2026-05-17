@@ -45,15 +45,21 @@ export function TodayQueueWrapper({
 }: {
   initialInvoices?: ZentraInvoice[];
 }) {
-  const [count, setCount] = useState<number | null>(null);
+  // Prefer server-provided count when available — initialInvoices comes
+  // from the Supabase query in /today/page.tsx. That keeps the SSR
+  // output correct (no flash of duplicate empty cards) before client
+  // hydration takes over.
+  const [count, setCount] = useState<number | null>(
+    initialInvoices !== undefined ? initialInvoices.length : null,
+  );
   useEffect(() => {
     setCount(readInvoiceCount());
   }, []);
 
-  // On first SSR render we don't know the count — render the dashboard
-  // so paid users see their queue immediately. Once mounted, hide it
-  // when there's truly nothing.
-  if (count === 0) return null;
+  // Hide on SSR (count === null) AND when client-side reading confirms
+  // zero invoices. The TodayHeroAndPills welcome card already covers
+  // the "what should I do?" empty-state prompt.
+  if (count === null || count === 0) return null;
 
   return <ZentraDashboard initialInvoices={initialInvoices} />;
 }
