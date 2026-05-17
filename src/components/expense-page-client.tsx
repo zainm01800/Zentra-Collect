@@ -32,6 +32,7 @@ import {
   ArrowDownToLine,
   CheckCircle2,
   HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
@@ -54,6 +55,11 @@ type RichEntry = ExpenseEntry & {
 };
 
 type ActiveTab = "all" | "allowable" | "not-allowable";
+
+interface PendingDeletion {
+  entry:   RichEntry;
+  timerId: ReturnType<typeof setTimeout>;
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -770,6 +776,7 @@ export function ExpensePageClient() {
   const [importableCount, setImportableCount] = useState(0);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState<number | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null);
 
   useEffect(() => {
     const loaded = loadFromStorage();
@@ -790,8 +797,41 @@ export function ExpensePageClient() {
   }, []);
 
   const handleDelete = useCallback((id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-    deleteExpense(id).catch(() => {/* graceful */});
+    // Commit any previously pending deletion before starting a new one
+    setPendingDeletion((prev) => {
+      if (prev) {
+        clearTimeout(prev.timerId);
+        deleteExpense(prev.entry.id).catch(() => {});
+      }
+      return null;
+    });
+
+    setEntries((current) => {
+      const entry = current.find((e) => e.id === id);
+      if (!entry) return current;
+
+      const timerId = setTimeout(() => {
+        deleteExpense(id).catch(() => {});
+        setPendingDeletion(null);
+      }, 5000);
+
+      setPendingDeletion({ entry, timerId });
+      return current.filter((e) => e.id !== id);
+    });
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setPendingDeletion((prev) => {
+      if (!prev) return null;
+      clearTimeout(prev.timerId);
+      setEntries((current) => {
+        // Re-insert at original position by date
+        const updated = [prev.entry, ...current];
+        updated.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+        return updated;
+      });
+      return null;
+    });
   }, []);
 
   const handleAllowabilityChange = useCallback((id: string, value: Allowability) => {
@@ -1005,6 +1045,31 @@ export function ExpensePageClient() {
           Figures are for planning purposes only. Always consult an accountant for your
           actual Self Assessment return. HMRC rules on allowable expenses apply.
         </p>
+      )}
+
+      {/* ── Undo toast ───────────────────────────────────────────────────── */}
+      {pendingDeletion && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl px-4 py-3 shadow-xl"
+          style={{
+            background:  "var(--zn-ink)",
+            color:       "var(--zn-bg)",
+            whiteSpace:  "nowrap",
+          }}
+        >
+          <span className="text-[13px]">
+            Expense deleted
+          </span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="flex items-center gap-1.5 text-[13px] font-semibold underline underline-offset-2"
+            style={{ color: "var(--zn-bg)" }}
+          >
+            <RotateCcw className="size-3.5" />
+            Undo
+          </button>
+        </div>
       )}
     </div>
   );
