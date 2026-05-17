@@ -7,6 +7,7 @@ import {
   type ReplyClassificationResult,
 } from "@/lib/ai/reply-classifier";
 import { checkRateLimit } from "@/lib/server/rate-limit";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 let openaiClient: OpenAI | null = null;
 
@@ -19,6 +20,12 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  }
+
   const rateLimit = checkRateLimit(request, {
     namespace: "zentra-classify-reply",
     limit: 30,
