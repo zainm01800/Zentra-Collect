@@ -56,16 +56,6 @@ interface IntegrationCardProps {
   notConfigured: boolean;
 }
 
-function envPrefixFor(name: string): string {
-  const lc = name.toLowerCase();
-  if (lc.startsWith("xero")) return "XERO";
-  if (lc.startsWith("quickbooks")) return "QUICKBOOKS";
-  if (lc.startsWith("sage")) return "SAGE";
-  if (lc.startsWith("gocardless")) return "GC";
-  if (lc.startsWith("freeagent")) return "FREEAGENT";
-  return name.toUpperCase().replace(/\s+/g, "_");
-}
-
 export function IntegrationCard({
   name,
   brandColor,
@@ -180,14 +170,18 @@ export function IntegrationCard({
         </p>
       )}
 
-      {/* Not configured warning */}
+      {/* Coming-soon state for integrations whose OAuth app isn't live yet. */}
       {notConfigured && (
         <div
           className="rounded-lg px-3 py-2 mb-3 text-[12px] leading-5"
-          style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}
+          style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)" }}
         >
-          Not configured. Add the {envPrefixFor(name)}_CLIENT_ID and
-          _CLIENT_SECRET environment variables and restart the server.
+          Coming soon — {name} support is in the works. Email
+          {" "}
+          <a href="mailto:hello@zentracollect.co.uk" style={{ color: "var(--zn-ink-2)", textDecoration: "underline" }}>
+            hello@zentracollect.co.uk
+          </a>
+          {" "}if you&apos;d like early access.
         </div>
       )}
 

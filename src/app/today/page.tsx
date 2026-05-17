@@ -75,10 +75,15 @@ export default async function TodayPage({
         </aside>
       </div>
 
-      {/* Below the fold — collapsed by default, preference persists */}
-      <CollapsibleInsights>
-        <PaymentPatternsCard />
-      </CollapsibleInsights>
+      {/* Below the fold — collapsed by default, preference persists.
+          Hidden entirely when there are no invoices because the inner
+          PaymentPatternsCard has nothing to render, so expanding the
+          toggle would reveal blank space (audit issue). */}
+      {dbInvoices.length > 0 && (
+        <CollapsibleInsights>
+          <PaymentPatternsCard />
+        </CollapsibleInsights>
+      )}
     </div>
   );
 }
