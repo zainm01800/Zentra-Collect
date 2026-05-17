@@ -41,6 +41,7 @@ import { getPlan, PLANS, type Plan, type PlanId } from "@/lib/billing/plans";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import {
   addDays,
+  readLocalAccount,
   writeLocalAccount,
   type DemoUser,
 } from "@/lib/demo-auth";
@@ -490,6 +491,32 @@ export function AccountBilling() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // Re-sync account plan from Supabase so the billing page always reflects
+    // the real current plan, even if AccountSync ran with stale data earlier
+    // (e.g. the PWA was open before a Stripe webhook fired).
+    async function syncAccount() {
+      try {
+        const res = await fetch("/api/account/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.authenticated || !data.hasAccount || !data.account) return;
+        const serverAccount: Omit<DemoUser, "usage"> = data.account;
+        const existing = readLocalAccount();
+        if (
+          existing &&
+          (existing.planId !== serverAccount.planId ||
+            existing.subscriptionStatus !== serverAccount.subscriptionStatus ||
+            existing.emailAddon !== serverAccount.emailAddon)
+        ) {
+          writeLocalAccount({ ...serverAccount, usage: existing.usage });
+        }
+      } catch {
+        // Silently ignore — localStorage is the fallback
+      }
+    }
+
+    syncAccount();
+
     fetch("/api/usage")
       .then((res) => {
         if (!res.ok) throw new Error("Failed");
