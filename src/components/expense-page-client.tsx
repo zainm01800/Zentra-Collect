@@ -1,21 +1,25 @@
-﻿"use client";
+"use client";
 
 /**
  * src/components/expense-page-client.tsx
  *
- * Full expense tracking UI — client component.
- *
- * Because many users are in demo / offline mode (no Supabase), expenses are
- * persisted to localStorage under "zentra.expenses.v1".  When Supabase IS
- * configured the server actions are called, but the local state always reflects
- * the optimistic result immediately.
+ * Smart expense tracking UI — client component.
  *
  * Features:
- *   - Add expense with category pill-picker, amount, date, description
+ *   - Import debit transactions from a saved bank statement automatically
+ *   - HMRC auto-classification: each imported transaction is labelled
+ *     Allowable / Not allowable / Review (uncertain)
+ *   - Three-tab view: All · Allowable · Not allowable
+ *   - Per-expense allowability toggle (one tap to reclassify)
+ *   - Manually add expenses (defaults to Allowable)
  *   - Monthly grouped list with per-month subtotals
- *   - Category breakdown bar (top 5 by spend)
+ *   - Category breakdown bar (allowable expenses only)
  *   - Delete individual entries
- *   - Running 12-month total shown in hero
+ *   - Running total hero (allowable only — the tax-relevant figure)
+ *
+ * Storage:
+ *   Expenses → localStorage "zentra.expenses.v1"  (ExtendedEntry[])
+ *   Bank statement → localStorage "zentra.bankStatement.v1" (ParsedTransaction[])
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -25,27 +29,39 @@ import {
   PlusCircle,
   Trash2,
   X,
+  ArrowDownToLine,
+  CheckCircle2,
+  HelpCircle,
 } from "lucide-react";
-import { addExpense, deleteExpense }  from "@/actions/expenses";
-import type { ExpenseEntry }          from "@/actions/expenses";
-import { EXPENSE_CATEGORIES }         from "@/lib/expense-categories";
+import { addExpense, deleteExpense } from "@/actions/expenses";
+import type { ExpenseEntry } from "@/actions/expenses";
+import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
+import {
+  classifyExpense,
+  allowabilityColors,
+  allowabilityLabel,
+} from "@/lib/expense-allowability";
+import type { Allowability } from "@/lib/expense-allowability";
+import { BANK_STATEMENT_KEY } from "@/components/bank-statement-import";
+import type { ParsedTransaction } from "@/components/bank-statement-import";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Extended type ──────────────────────────────────────────────────────────────
+
+type RichEntry = ExpenseEntry & {
+  allowability?: Allowability;
+  /** "manual" = user-added via form; "bank-import" = pulled from bank statement */
+  source?: "manual" | "bank-import";
+};
+
+type ActiveTab = "all" | "allowable" | "not-allowable";
+
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "zentra.expenses.v1";
 
-// Colour palette for categories (cycles if more than defined)
 const CAT_COLOURS = [
-  "#c88a1e", // amber
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f43f5e", // rose
-  "#8b5cf6", // violet
-  "#f97316", // orange
-  "#06b6d4", // cyan
-  "#84cc16", // lime
-  "#ec4899", // pink
-  "#6b7280", // grey
+  "#c88a1e", "#3b82f6", "#10b981", "#f43f5e",
+  "#8b5cf6", "#f97316", "#06b6d4", "#84cc16", "#ec4899", "#6b7280",
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -74,26 +90,30 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function loadFromStorage(): ExpenseEntry[] {
+function loadFromStorage(): RichEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as ExpenseEntry[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as RichEntry[];
+    if (!Array.isArray(parsed)) return [];
+    // Backfill: manual entries without allowability → default to "allowable"
+    return parsed.map((e) => ({
+      ...e,
+      allowability: e.allowability ?? (e.source === "bank-import" ? "review" : "allowable"),
+    }));
   } catch {
     return [];
   }
 }
 
-function saveToStorage(entries: ExpenseEntry[]) {
+function saveToStorage(entries: RichEntry[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-/** Group expenses descending by year-month */
-function groupByMonth(entries: ExpenseEntry[]): { ym: string; entries: ExpenseEntry[] }[] {
-  const map = new Map<string, ExpenseEntry[]>();
+function groupByMonth(entries: RichEntry[]): { ym: string; entries: RichEntry[] }[] {
+  const map = new Map<string, RichEntry[]>();
   for (const e of entries) {
     const ym = e.date.slice(0, 7);
     if (!map.has(ym)) map.set(ym, []);
@@ -104,8 +124,7 @@ function groupByMonth(entries: ExpenseEntry[]): { ym: string; entries: ExpenseEn
     .map(([ym, entries]) => ({ ym, entries }));
 }
 
-/** Category totals sorted by spend descending */
-function categoryTotals(entries: ExpenseEntry[]): { category: string; total: number }[] {
+function categoryTotals(entries: RichEntry[]): { category: string; total: number }[] {
   const map: Record<string, number> = {};
   for (const e of entries) {
     map[e.category] = (map[e.category] ?? 0) + e.amount;
@@ -115,7 +134,66 @@ function categoryTotals(entries: ExpenseEntry[]): { category: string; total: num
     .sort((a, b) => b.total - a.total);
 }
 
+/** Load saved bank statement and return debit transactions only. */
+function loadBankDebits(): ParsedTransaction[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(BANK_STATEMENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ParsedTransaction[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((t) => t.amount < 0);
+  } catch {
+    return [];
+  }
+}
+
+/** Count bank debits that aren't already in the expense list. */
+function countImportable(debits: ParsedTransaction[], existing: RichEntry[]): number {
+  return debits.filter((tx) =>
+    !existing.some(
+      (e) =>
+        e.date === tx.date &&
+        Math.abs(e.amount - Math.abs(tx.amount)) < 0.01 &&
+        e.description.toLowerCase() === tx.description.toLowerCase(),
+    ),
+  ).length;
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+/** Clickable pill that cycles an expense between Allowable / Not allowable. */
+function AllowabilityBadge({
+  value,
+  onChange,
+}: {
+  value: Allowability;
+  onChange: (v: Allowability) => void;
+}) {
+  const colors = allowabilityColors(value);
+  const label  = allowabilityLabel(value);
+  const next: Allowability =
+    value === "allowable" ? "not-allowable" :
+    value === "not-allowable" ? "allowable" :
+    "allowable"; // review → allowable on first tap
+
+  return (
+    <button
+      type="button"
+      title={`Currently: ${label}. Click to toggle.`}
+      onClick={() => onChange(next)}
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold transition-all flex-shrink-0"
+      style={{
+        background:  colors.bg,
+        color:       colors.text,
+        border:      `1px solid ${colors.border}`,
+      }}
+    >
+      {value === "review" && <HelpCircle className="size-2.5" />}
+      {label}
+    </button>
+  );
+}
 
 function CategoryPill({
   cat,
@@ -132,9 +210,9 @@ function CategoryPill({
       onClick={onClick}
       className="inline-flex items-center px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors"
       style={{
-        background:   selected ? "var(--zn-ink)" : "transparent",
-        color:        selected ? "var(--zn-surface)" : "var(--zn-ink-2)",
-        borderColor:  selected ? "var(--zn-ink)" : "var(--zn-line)",
+        background:  selected ? "var(--zn-ink)" : "transparent",
+        color:       selected ? "var(--zn-surface)" : "var(--zn-ink-2)",
+        borderColor: selected ? "var(--zn-ink)" : "var(--zn-line)",
       }}
     >
       {cat}
@@ -142,33 +220,33 @@ function CategoryPill({
   );
 }
 
-function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
-  const [open, setOpen]           = useState(false);
-  const [category, setCategory]   = useState<string>(EXPENSE_CATEGORIES[0]);
-  const [amount, setAmount]       = useState("");
-  const [date, setDate]           = useState(todayISO());
-  const [description, setDesc]    = useState("");
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
+  const [open, setOpen]         = useState(false);
+  const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0]);
+  const [amount, setAmount]     = useState("");
+  const [date, setDate]         = useState(todayISO());
+  const [description, setDesc]  = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) { setError("Enter a valid amount."); return; }
-    if (!category) { setError("Select a category."); return; }
 
     setSaving(true);
     setError(null);
 
-    const newEntry: ExpenseEntry = {
-      id:          crypto.randomUUID(),
+    const newEntry: RichEntry = {
+      id:           crypto.randomUUID(),
       date,
-      amount:      amt,
+      amount:       amt,
       category,
-      description: description.trim(),
+      description:  description.trim(),
+      allowability: "allowable",
+      source:       "manual",
     };
 
-    // Call server action (no-ops gracefully without Supabase)
     await addExpense({ date, amount: amt, category, description: description.trim() });
 
     onAdd(newEntry);
@@ -184,7 +262,7 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors"
+        className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold"
         style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
       >
         <PlusCircle className="size-4" />
@@ -198,7 +276,6 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
       className="rounded-[14px] border"
       style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)" }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 border-b"
         style={{ borderColor: "var(--zn-line-soft)" }}
@@ -209,7 +286,7 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded p-1 transition-colors hover:bg-[#ece3cc] dark:hover:bg-[#28231c]"
+          className="rounded p-1 hover:bg-[#ece3cc] dark:hover:bg-[#28231c] transition-colors"
           aria-label="Close"
         >
           <X className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
@@ -217,7 +294,6 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
-        {/* Category */}
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wide mb-2"
             style={{ color: "var(--zn-ink-3)" }}>
@@ -235,7 +311,6 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
           </div>
         </div>
 
-        {/* Amount + Date */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="exp-amount" className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
@@ -280,7 +355,6 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
           </div>
         </div>
 
-        {/* Description */}
         <div>
           <label htmlFor="exp-desc" className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
             style={{ color: "var(--zn-ink-3)" }}>
@@ -309,7 +383,7 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="px-4 py-2 rounded-full text-[13px] font-medium border transition-colors"
+            className="px-4 py-2 rounded-full text-[13px] font-medium border"
             style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
           >
             Cancel
@@ -317,7 +391,7 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 rounded-full text-[13px] font-semibold transition-opacity disabled:opacity-50"
+            className="px-4 py-2 rounded-full text-[13px] font-semibold disabled:opacity-50"
             style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
           >
             {saving ? "Saving…" : "Save expense"}
@@ -328,9 +402,9 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: ExpenseEntry) => void }) {
   );
 }
 
-/** Horizontal stacked bar of top categories */
-function CategoryBreakdown({ entries }: { entries: ExpenseEntry[] }) {
-  const totals = categoryTotals(entries).slice(0, 5);
+/** Stacked category bar — only shown for allowable entries. */
+function CategoryBreakdown({ entries }: { entries: RichEntry[] }) {
+  const totals    = categoryTotals(entries).slice(0, 5);
   const grandTotal = totals.reduce((s, t) => s + t.total, 0);
   if (grandTotal <= 0) return null;
 
@@ -339,14 +413,9 @@ function CategoryBreakdown({ entries }: { entries: ExpenseEntry[] }) {
       className="rounded-[14px] border px-5 py-4"
       style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)" }}
     >
-      <span
-        className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
-        style={{ color: "var(--zn-ink-3)" }}
-      >
-        By category
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>
+        Allowable — by category
       </span>
-
-      {/* Stacked bar */}
       <div className="mt-3 flex h-[8px] w-full overflow-hidden rounded-full gap-[2px]">
         {totals.map((t, i) => (
           <div
@@ -360,21 +429,12 @@ function CategoryBreakdown({ entries }: { entries: ExpenseEntry[] }) {
           />
         ))}
       </div>
-
-      {/* Legend */}
       <div className="mt-3 space-y-1.5">
         {totals.map((t, i) => (
           <div key={t.category} className="flex items-center gap-2">
-            <span
-              className="size-2.5 rounded-full flex-shrink-0"
-              style={{ background: CAT_COLOURS[i % CAT_COLOURS.length] }}
-            />
-            <span className="flex-1 text-[12px]" style={{ color: "var(--zn-ink-2)" }}>
-              {t.category}
-            </span>
-            <span className="text-[12px] font-medium tabular-nums" style={{ color: "var(--zn-ink)" }}>
-              {fmtGBP(t.total)}
-            </span>
+            <span className="size-2.5 rounded-full flex-shrink-0" style={{ background: CAT_COLOURS[i % CAT_COLOURS.length] }} />
+            <span className="flex-1 text-[12px]" style={{ color: "var(--zn-ink-2)" }}>{t.category}</span>
+            <span className="text-[12px] font-medium tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP(t.total)}</span>
             <span className="text-[10.5px] w-[32px] text-right" style={{ color: "var(--zn-ink-3)" }}>
               {Math.round((t.total / grandTotal) * 100)}%
             </span>
@@ -385,15 +445,73 @@ function CategoryBreakdown({ entries }: { entries: ExpenseEntry[] }) {
   );
 }
 
-/** Collapsible month group */
+/** Single expense row with allowability badge + delete. */
+function ExpenseRow({
+  entry,
+  onDelete,
+  onAllowabilityChange,
+}: {
+  entry:                  RichEntry;
+  onDelete:               (id: string) => void;
+  onAllowabilityChange:   (id: string, v: Allowability) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 group">
+      {/* Category colour dot */}
+      <span
+        className="size-2 rounded-full flex-shrink-0"
+        style={{
+          background: CAT_COLOURS[
+            EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]) % CAT_COLOURS.length
+          ] ?? "var(--zn-ink-3)",
+        }}
+      />
+
+      <div className="flex-1 min-w-0">
+        <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
+          {entry.description || entry.category}
+        </p>
+        <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+          {entry.category} · {fmtDate(entry.date)}
+          {entry.source === "bank-import" && (
+            <span className="ml-1 opacity-60">· from bank</span>
+          )}
+        </p>
+      </div>
+
+      {/* Allowability badge — click to toggle */}
+      <AllowabilityBadge
+        value={entry.allowability ?? "allowable"}
+        onChange={(v) => onAllowabilityChange(entry.id, v)}
+      />
+
+      <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink)" }}>
+        {fmtGBP(entry.amount)}
+      </span>
+
+      <button
+        type="button"
+        onClick={() => onDelete(entry.id)}
+        className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label="Delete expense"
+      >
+        <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
+      </button>
+    </div>
+  );
+}
+
+/** Collapsible month group. */
 function MonthGroup({
   ym,
   entries,
   onDelete,
+  onAllowabilityChange,
 }: {
-  ym:       string;
-  entries:  ExpenseEntry[];
-  onDelete: (id: string) => void;
+  ym:                   string;
+  entries:              RichEntry[];
+  onDelete:             (id: string) => void;
+  onAllowabilityChange: (id: string, v: Allowability) => void;
 }) {
   const [open, setOpen] = useState(true);
   const total = entries.reduce((s, e) => s + e.amount, 0);
@@ -403,7 +521,6 @@ function MonthGroup({
       className="rounded-[14px] border overflow-hidden"
       style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)" }}
     >
-      {/* Month header */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -413,67 +530,27 @@ function MonthGroup({
           {monthLabel(ym)}
         </span>
         <div className="flex items-center gap-3">
-          <span
-            className="text-[13px] font-bold tabular-nums"
-            style={{ color: "var(--zn-ink)" }}
-          >
+          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--zn-ink)" }}>
             {fmtGBP(total)}
           </span>
           {open
-            ? <ChevronUp  className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+            ? <ChevronUp   className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
             : <ChevronDown className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />}
         </div>
       </button>
 
-      {/* Expense rows */}
       {open && (
-        <div
-          className="border-t divide-y"
-          style={{ borderColor: "var(--zn-line-soft)" }}
-        >
+        <div className="border-t divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
           {entries
             .slice()
             .sort((a, b) => b.date.localeCompare(a.date))
             .map((e) => (
-              <div
+              <ExpenseRow
                 key={e.id}
-                className="flex items-center gap-3 px-4 py-3 group"
-              >
-                {/* Category dot */}
-                <span
-                  className="size-2 rounded-full flex-shrink-0"
-                  style={{
-                    background: CAT_COLOURS[
-                      EXPENSE_CATEGORIES.indexOf(e.category as typeof EXPENSE_CATEGORIES[number]) % CAT_COLOURS.length
-                    ] ?? "var(--zn-ink-3)",
-                  }}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                    {e.description || e.category}
-                  </p>
-                  <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-                    {e.category} · {fmtDate(e.date)}
-                  </p>
-                </div>
-
-                <span
-                  className="text-[13px] font-semibold tabular-nums flex-shrink-0"
-                  style={{ color: "var(--zn-ink)" }}
-                >
-                  {fmtGBP(e.amount)}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => onDelete(e.id)}
-                  className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Delete expense"
-                >
-                  <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
-                </button>
-              </div>
+                entry={e}
+                onDelete={onDelete}
+                onAllowabilityChange={onAllowabilityChange}
+              />
             ))}
         </div>
       )}
@@ -481,24 +558,234 @@ function MonthGroup({
   );
 }
 
+/**
+ * "Needs review" section — shown at the top of the All tab when the bank
+ * import left entries with uncertain allowability.
+ */
+function ReviewSection({
+  entries,
+  onAllowabilityChange,
+}: {
+  entries:              RichEntry[];
+  onAllowabilityChange: (id: string, v: Allowability) => void;
+}) {
+  if (entries.length === 0) return null;
+
+  return (
+    <div
+      className="rounded-[14px] border overflow-hidden"
+      style={{ borderColor: "var(--zn-warn)", background: "var(--zn-warn-soft)" }}
+    >
+      <div className="flex items-center gap-2 px-4 py-3">
+        <HelpCircle className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-warn)" }} />
+        <span className="text-[12.5px] font-semibold" style={{ color: "var(--zn-warn)" }}>
+          {entries.length} transaction{entries.length > 1 ? "s" : ""} need classifying
+        </span>
+        <span className="text-[11.5px]" style={{ color: "var(--zn-warn)" }}>
+          — tap a badge to mark as Allowable or Not allowable
+        </span>
+      </div>
+      <div
+        className="border-t divide-y"
+        style={{ borderColor: "var(--zn-warn)", background: "var(--zn-bg-2)" }}
+      >
+        {entries
+          .slice()
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .map((e) => (
+            <div key={e.id} className="flex items-center gap-3 px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
+                  {e.description || e.category}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                  {fmtDate(e.date)} · from bank
+                </p>
+              </div>
+              <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink)" }}>
+                {fmtGBP(e.amount)}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onAllowabilityChange(e.id, "allowable")}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-semibold border"
+                  style={{
+                    background:  "var(--zn-safe-soft)",
+                    color:       "var(--zn-safe)",
+                    borderColor: "var(--zn-safe)",
+                  }}
+                >
+                  ✓ Business
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onAllowabilityChange(e.id, "not-allowable")}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-semibold border"
+                  style={{
+                    background:  "var(--zn-risk-soft)",
+                    color:       "var(--zn-risk)",
+                    borderColor: "var(--zn-risk)",
+                  }}
+                >
+                  ✗ Personal
+                </button>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+/** Banner shown when a bank statement is saved but has unimported debits. */
+function BankImportBanner({
+  count,
+  onImport,
+  importing,
+}: {
+  count:     number;
+  onImport:  () => void;
+  importing: boolean;
+}) {
+  if (count === 0) return null;
+
+  return (
+    <div
+      className="rounded-[14px] border flex items-center justify-between gap-4 px-5 py-4 flex-wrap"
+      style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)" }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="size-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "var(--zn-bg-2)", border: "1px solid var(--zn-line)" }}
+        >
+          <ArrowDownToLine className="size-4" style={{ color: "var(--zn-ink-2)" }} />
+        </div>
+        <div>
+          <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+            {count} debit transaction{count > 1 ? "s" : ""} found in your bank statement
+          </p>
+          <p className="mt-0.5 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+            Zentra will auto-classify each one as allowable or personal — you can correct any with one tap.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onImport}
+        disabled={importing}
+        className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold disabled:opacity-50 flex-shrink-0"
+        style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+      >
+        <ArrowDownToLine className="size-3.5" />
+        {importing ? "Importing…" : `Import ${count} transaction${count > 1 ? "s" : ""}`}
+      </button>
+    </div>
+  );
+}
+
+/** Three-tab bar: All / Allowable / Not allowable */
+function TabBar({
+  active,
+  allCount,
+  allowableCount,
+  allowableTotal,
+  notAllowableCount,
+  reviewCount,
+  onSelect,
+}: {
+  active:             ActiveTab;
+  allCount:           number;
+  allowableCount:     number;
+  allowableTotal:     number;
+  notAllowableCount:  number;
+  reviewCount:        number;
+  onSelect:           (t: ActiveTab) => void;
+}) {
+  const tabs: Array<{ id: ActiveTab; label: string; badge: React.ReactNode }> = [
+    {
+      id: "all",
+      label: "All",
+      badge: (
+        <span className="ml-1.5 tabular-nums">
+          {allCount}
+          {reviewCount > 0 && (
+            <span
+              className="ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold"
+              style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}
+            >
+              {reviewCount} to classify
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      id: "allowable",
+      label: "Allowable",
+      badge: (
+        <span className="ml-1.5 tabular-nums">
+          {allowableCount > 0 ? `${allowableCount} · ${fmtGBP(allowableTotal)}` : "0"}
+        </span>
+      ),
+    },
+    {
+      id: "not-allowable",
+      label: "Not allowable",
+      badge: (
+        <span className="ml-1.5 tabular-nums">{notAllowableCount}</span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex items-center gap-1 p-1 rounded-[10px]" style={{ background: "var(--zn-bg-2)", border: "1px solid var(--zn-line-soft)" }}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelect(tab.id)}
+          className="flex-1 flex items-center justify-center rounded-[8px] px-3 py-2 text-[12.5px] font-medium transition-all"
+          style={{
+            background: active === tab.id ? "var(--zn-surface)" : "transparent",
+            color:      active === tab.id ? "var(--zn-ink)" : "var(--zn-ink-3)",
+            boxShadow:  active === tab.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+          }}
+        >
+          {tab.label}
+          {tab.badge}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ExpensePageClient() {
-  const [entries, setEntries] = useState<ExpenseEntry[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [entries,   setEntries]   = useState<RichEntry[]>([]);
+  const [hydrated,  setHydrated]  = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("all");
+  const [importableCount, setImportableCount] = useState(0);
+  const [importing, setImporting] = useState(false);
+  const [importedCount, setImportedCount] = useState<number | null>(null);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    setEntries(loadFromStorage());
+    const loaded = loadFromStorage();
+    setEntries(loaded);
+    const debits = loadBankDebits();
+    setImportableCount(countImportable(debits, loaded));
     setHydrated(true);
   }, []);
 
-  // Persist to localStorage whenever entries change
   useEffect(() => {
     if (hydrated) saveToStorage(entries);
   }, [entries, hydrated]);
 
-  const handleAdd = useCallback((entry: ExpenseEntry) => {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleAdd = useCallback((entry: RichEntry) => {
     setEntries((prev) => [entry, ...prev]);
   }, []);
 
@@ -507,12 +794,69 @@ export function ExpensePageClient() {
     deleteExpense(id).catch(() => {/* graceful */});
   }, []);
 
-  const total12m = entries.reduce((s, e) => s + e.amount, 0);
-  const grouped  = groupByMonth(entries);
+  const handleAllowabilityChange = useCallback((id: string, value: Allowability) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, allowability: value } : e)),
+    );
+  }, []);
+
+  function handleBankImport() {
+    if (importing) return;
+    setImporting(true);
+
+    const debits = loadBankDebits();
+    const current = entries;
+    const newEntries: RichEntry[] = [];
+
+    for (const tx of debits) {
+      const alreadyExists = current.some(
+        (e) =>
+          e.date === tx.date &&
+          Math.abs(e.amount - Math.abs(tx.amount)) < 0.01 &&
+          e.description.toLowerCase() === tx.description.toLowerCase(),
+      );
+      if (alreadyExists) continue;
+
+      const { category, allowability } = classifyExpense(tx.description);
+      newEntries.push({
+        id:           crypto.randomUUID(),
+        date:         tx.date,
+        amount:       Math.abs(tx.amount),
+        category,
+        description:  tx.description,
+        allowability,
+        source:       "bank-import",
+      });
+    }
+
+    setEntries((prev) => [...newEntries, ...prev]);
+    setImportableCount(0);
+    setImportedCount(newEntries.length);
+    setImporting(false);
+
+    // Jump to All tab so the user sees review items
+    setActiveTab("all");
+  }
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  const allowableEntries    = entries.filter((e) => e.allowability === "allowable");
+  const notAllowableEntries = entries.filter((e) => e.allowability === "not-allowable");
+  const reviewEntries       = entries.filter((e) => e.allowability === "review");
+  const allowableTotal      = allowableEntries.reduce((s, e) => s + e.amount, 0);
+
+  // What to render in the list area based on active tab
+  const displayEntries: RichEntry[] =
+    activeTab === "allowable"     ? allowableEntries :
+    activeTab === "not-allowable" ? notAllowableEntries :
+    entries; // "all"
+
+  const grouped = groupByMonth(displayEntries.filter((e) => e.allowability !== "review" || activeTab !== "all"));
 
   return (
     <div className="space-y-5">
-      {/* ── Page heading ─────────────────────────────────────────────────── */}
+
+      {/* ── Page heading ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1
@@ -528,27 +872,49 @@ export function ExpensePageClient() {
         <AddExpensePanel onAdd={handleAdd} />
       </div>
 
-      {/* ── Hero total ────────────────────────────────────────────────────── */}
+      {/* ── Bank import banner ────────────────────────────────────────────── */}
+      {hydrated && (
+        <>
+          <BankImportBanner
+            count={importableCount}
+            onImport={handleBankImport}
+            importing={importing}
+          />
+          {importedCount !== null && importedCount > 0 && (
+            <div
+              className="flex items-center gap-2 rounded-[10px] px-4 py-3"
+              style={{ background: "var(--zn-safe-soft)", border: "1px solid var(--zn-safe)" }}
+            >
+              <CheckCircle2 className="size-3.5" style={{ color: "var(--zn-safe)" }} />
+              <span className="text-[12.5px] font-medium" style={{ color: "var(--zn-safe)" }}>
+                {importedCount} transaction{importedCount > 1 ? "s" : ""} imported — review and classify below.
+              </span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Hero total (allowable only) ───────────────────────────────────── */}
       {entries.length > 0 && (
         <div
           className="rounded-[14px] border px-5 py-4 flex items-center justify-between"
           style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)" }}
         >
           <div>
-            <p
-              className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
-              style={{ color: "var(--zn-ink-3)" }}
-            >
-              Total recorded
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>
+              Total allowable
             </p>
             <p
               className="mt-1 text-[36px] font-bold leading-none tabular-nums"
               style={{ color: "var(--zn-safe)" }}
             >
-              {fmtGBP(total12m)}
+              {fmtGBP(allowableTotal)}
             </p>
             <p className="mt-1.5 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-              Deducted from taxable income in tax reserve & MTD calculations
+              Deducted from taxable income · estimated tax saving{" "}
+              <span className="font-medium" style={{ color: "var(--zn-ink-2)" }}>
+                {fmtGBP(allowableTotal * 0.2)}–{fmtGBP(allowableTotal * 0.4)}
+              </span>
             </p>
           </div>
           <div
@@ -561,10 +927,10 @@ export function ExpensePageClient() {
         </div>
       )}
 
-      {/* ── Category breakdown ────────────────────────────────────────────── */}
-      {entries.length > 0 && <CategoryBreakdown entries={entries} />}
+      {/* ── Category breakdown (allowable entries only) ───────────────────── */}
+      {allowableEntries.length > 0 && <CategoryBreakdown entries={allowableEntries} />}
 
-      {/* ── Add panel (shown inline when no entries yet) ──────────────────── */}
+      {/* ── Empty state ───────────────────────────────────────────────────── */}
       {entries.length === 0 && hydrated && (
         <div
           className="rounded-[14px] border px-5 py-8 text-center"
@@ -579,19 +945,57 @@ export function ExpensePageClient() {
           <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
             No expenses recorded yet
           </p>
-          <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            Add your allowable business expenses — they reduce your taxable income and your Self Assessment bill.
+          <p className="mt-1 text-[12.5px] max-w-sm mx-auto" style={{ color: "var(--zn-ink-3)" }}>
+            Upload a bank statement in the{" "}
+            <a href="/banking" className="underline" style={{ color: "var(--zn-ink-2)" }}>Bank feed</a>{" "}
+            to import your transactions automatically, or add expenses manually above.
           </p>
         </div>
       )}
 
-      {/* ── Monthly groups ────────────────────────────────────────────────── */}
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      {entries.length > 0 && (
+        <TabBar
+          active={activeTab}
+          allCount={entries.length}
+          allowableCount={allowableEntries.length}
+          allowableTotal={allowableTotal}
+          notAllowableCount={notAllowableEntries.length}
+          reviewCount={reviewEntries.length}
+          onSelect={setActiveTab}
+        />
+      )}
+
+      {/* ── Review section (All tab only) ─────────────────────────────────── */}
+      {activeTab === "all" && (
+        <ReviewSection
+          entries={reviewEntries}
+          onAllowabilityChange={handleAllowabilityChange}
+        />
+      )}
+
+      {/* ── Empty tab state ───────────────────────────────────────────────── */}
+      {entries.length > 0 && displayEntries.length === 0 && activeTab !== "all" && (
+        <div
+          className="rounded-[14px] border px-5 py-6 text-center"
+          style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}
+        >
+          <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+            {activeTab === "allowable"
+              ? "No allowable expenses yet. Tap the badge on any expense to mark it as allowable."
+              : "No personal/non-allowable expenses."}
+          </p>
+        </div>
+      )}
+
+      {/* ── Monthly groups ───────────────────────────────────────────────── */}
       {grouped.map(({ ym, entries: monthEntries }) => (
         <MonthGroup
           key={ym}
           ym={ym}
           entries={monthEntries}
           onDelete={handleDelete}
+          onAllowabilityChange={handleAllowabilityChange}
         />
       ))}
 
