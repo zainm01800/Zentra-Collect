@@ -344,12 +344,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // use this" is misleading. Bookkeeper plans:
   //   founding_bookkeeper · bookkeeper_starter · bookkeeper_pro
   // Also keep visible for demo so the marketing flow still showcases it.
-  const [planIdForGating, setPlanIdForGating] = useState<string | null>(null);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const acc = readLocalAccount();
-    setPlanIdForGating(acc?.planId ?? null);
-  }, []);
+  // We use the same useLocalAccount() hook that PortfolioGate uses so the
+  // sidebar and the page agree (fixes audit issue #1).
+  const { account: gatingAccount } = useLocalAccount();
+  const planIdForGating = gatingAccount?.planId ?? null;
   const showPortfolio = !planIdForGating
     || planIdForGating === "demo"
     || planIdForGating.includes("bookkeeper");
@@ -389,7 +387,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       >
         {/* Brand */}
         <Link
-          href="/dashboard"
+          href="/today"
           className="flex items-center gap-3 mb-[22px] px-1.5"
         >
           <span className="zn-brand-mark">Z</span>
@@ -399,8 +397,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        {/* Client / workspace switcher */}
-        <WorkspaceSwitcher />
+        {/* Client / workspace switcher — only meaningful for bookkeeper
+            plans (which manage multiple client ledgers). Hides for
+            single-business plans where there's only one workspace
+            (fixes audit issue #9). */}
+        {showPortfolio && <WorkspaceSwitcher />}
 
         {/* Scrollable nav — grows to fill space, scrolls if sections overflow */}
         <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
@@ -545,7 +546,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             paddingRight: "max(1rem, env(safe-area-inset-right))",
           }}
         >
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Link href="/today" className="flex items-center gap-2.5">
             <span className="zn-brand-mark" style={{ width: 28, height: 28, fontSize: 16 }}>Z</span>
             <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Zentra Collect</span>
           </Link>

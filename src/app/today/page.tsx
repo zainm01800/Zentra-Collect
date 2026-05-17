@@ -27,7 +27,7 @@ import { OutcomeSummaryBar } from "@/components/outcome-summary-bar";
 import { CashForecastCard } from "@/components/cash-forecast-card";
 import { TaxEstimateWidget } from "@/components/tax-estimate-widget";
 import { PaymentPatternsCard } from "@/components/payment-patterns-card";
-import { ZentraDashboard } from "@/components/zentra-dashboard";
+import { TodayQueueWrapper } from "@/components/today-queue-wrapper";
 import { TodayHeroAndPills } from "@/components/today-hero-and-pills";
 import { CollapsibleInsights } from "@/components/today-collapsible-insights";
 import { getInvoices } from "@/lib/api/db";
@@ -67,7 +67,7 @@ export default async function TodayPage({
       {/* Top of the fold: Top-5 queue (wide) + Cash/Tax sidebar (narrow) */}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">
-          <ZentraDashboard initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
+          <TodayQueueWrapper initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
         </div>
         <aside className="flex flex-col gap-3">
           <TaxEstimateWidget />

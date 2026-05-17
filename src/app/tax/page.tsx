@@ -26,14 +26,15 @@ export const metadata: Metadata = {
   description: "Estimate your Self Assessment tax owed and how much to set aside.",
 };
 
-// ── UK tax constants (2024/25) ────────────────────────────────────────────────
+// ── UK tax constants (2025/26 — Class 4 main rate cut from 9% to 6%
+//    effective 6 April 2024; Class 2 largely abolished from 2024/25) ─────────
 
 const PERSONAL_ALLOWANCE  = 12_570;
 const CLASS_4_LOWER_LIMIT =  12_570;
 const CLASS_4_UPPER_LIMIT =  50_270;
-const CLASS_4_RATE_LOWER  =      0.09; // 9 % on profits £12,570–£50,270
-const CLASS_4_RATE_UPPER  =      0.02; // 2 % on profits above £50,270
-const CLASS_2_NI_ANNUAL   =    179;    // £179 flat rate per year
+const CLASS_4_RATE_LOWER  =      0.06; // 6% on profits £12,570–£50,270 (2024/25 onwards)
+const CLASS_4_RATE_UPPER  =      0.02; // 2% on profits above £50,270
+const CLASS_2_NI_ANNUAL   =      0;    // Class 2 abolished for most self-employed from 2024/25
 
 // ── Pure calculation helpers ──────────────────────────────────────────────────
 

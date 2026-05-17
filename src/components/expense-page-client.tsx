@@ -580,7 +580,7 @@ export function ExpensePageClient() {
             No expenses recorded yet
           </p>
           <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            Add your allowable business expenses — they reduce your taxable income and MTD submissions
+            Add your allowable business expenses — they reduce your taxable income and your Self Assessment bill.
           </p>
         </div>
       )}
