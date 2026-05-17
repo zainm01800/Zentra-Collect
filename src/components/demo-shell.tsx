@@ -42,7 +42,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           <span className="zn-brand-mark">Z</span>
           <span className="flex flex-col leading-[1.1]">
             <span className="text-[13.5px] font-semibold tracking-[-0.01em]">Zentra</span>
-            <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+            <span className="zn-section-label !p-0 !mt-0.5">COLLECT</span>
           </span>
         </div>
 

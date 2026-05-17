@@ -662,6 +662,14 @@ function UploadPanel({ onFile }: { onFile: (file: File | undefined) => void }) {
           <span className="mt-2 max-w-md text-sm leading-6 text-[#6b6253] dark:text-[#8a7d69]">
             CSV files supported. Excel (.xlsx) coming soon.
           </span>
+          <a
+            href="/sample-ar-export.csv"
+            download
+            onClick={(e) => e.stopPropagation()}
+            className="mt-3 text-[12.5px] underline underline-offset-2 text-[#6b6253] dark:text-[#8a7d69] hover:text-[#1d1813] dark:hover:text-[#f0e8d5]"
+          >
+            Download sample CSV
+          </a>
           <Input
             id="invoice-file"
             type="file"

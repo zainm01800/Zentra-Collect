@@ -164,9 +164,20 @@ function LockedImport({ variant }: { variant: "demo" | "trial-ended" }) {
               : "Open the demo dashboard — it's populated with realistic sample invoices already mapped and ranked."}
           </div>
         </div>
-        <Link href="/dashboard" className="zn-pill zn-pill-ghost flex-shrink-0">
-          {isTrial ? "Open dashboard" : "Open demo dashboard"} <ArrowRight className="size-3.5" />
-        </Link>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {!isTrial && (
+            <a
+              href="/sample-ar-export.csv"
+              download
+              className="text-[12.5px] underline underline-offset-2 text-[#6b6253] dark:text-[#8a7d69] hover:text-[#1d1813] dark:hover:text-[#f0e8d5]"
+            >
+              Download sample CSV
+            </a>
+          )}
+          <Link href="/dashboard" className="zn-pill zn-pill-ghost flex-shrink-0">
+            {isTrial ? "Open dashboard" : "Open demo dashboard"} <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
       </div>
     </div>
   );

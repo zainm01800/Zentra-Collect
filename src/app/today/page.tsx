@@ -30,6 +30,7 @@ import { PaymentPatternsCard } from "@/components/payment-patterns-card";
 import { TodayQueueWrapper } from "@/components/today-queue-wrapper";
 import { TodayHeroAndPills } from "@/components/today-hero-and-pills";
 import { CollapsibleInsights } from "@/components/today-collapsible-insights";
+import { SetupChecklist } from "@/components/setup-checklist";
 import { getInvoices } from "@/lib/api/db";
 
 import type { Metadata } from "next";
@@ -66,7 +67,8 @@ export default async function TodayPage({
 
       {/* Top of the fold: Top-5 queue (wide) + Cash/Tax sidebar (narrow, desktop only) */}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="min-w-0">
+        <div className="min-w-0 flex flex-col gap-5">
+          {dbInvoices.length === 0 && <SetupChecklist />}
           <TodayQueueWrapper initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
         </div>
         <aside className="hidden lg:flex flex-col gap-3">

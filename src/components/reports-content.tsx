@@ -122,7 +122,9 @@ function computeMetrics(invoices: Invoice[]) {
     };
   });
 
-  return { openBalance, recoveredCash, avgDaysToPay, chaseToPaidRatio, promised, disputeCount: disputes.length, ageing, overdueCount: overdueInvoices.length };
+  const recoveryRate = invoices.length > 0 ? Math.round((paid.length / invoices.length) * 100) : 0;
+
+  return { openBalance, recoveredCash, avgDaysToPay, chaseToPaidRatio, promised, disputeCount: disputes.length, ageing, overdueCount: overdueInvoices.length, recoveryRate, totalChases };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -200,7 +202,7 @@ export function ReportsContent() {
           </div>
 
           {/* KPIs */}
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             <div className="zn-stat">
               <div className="zn-label">Avg days to pay</div>
               <div className="zn-stat-num mt-2">
@@ -228,6 +230,18 @@ export function ReportsContent() {
                 {m.disputeCount}
               </div>
               <div className="text-[12px] text-[#6b6253] mt-1">awaiting resolution</div>
+            </div>
+            <div className="zn-stat">
+              <div className="zn-label">Recovery rate</div>
+              <div className="zn-stat-num mt-2" style={{ color: m.recoveryRate >= 50 ? "var(--zn-safe)" : "var(--zn-ink)" }}>
+                {m.recoveryRate}<span className="text-[16px] text-[#8d8472]">%</span>
+              </div>
+              <div className="text-[12px] text-[#6b6253] mt-1">invoices paid vs total</div>
+            </div>
+            <div className="zn-stat">
+              <div className="zn-label">Chases sent</div>
+              <div className="zn-stat-num mt-2">{m.totalChases}</div>
+              <div className="text-[12px] text-[#6b6253] mt-1">total chase actions logged</div>
             </div>
           </div>
 

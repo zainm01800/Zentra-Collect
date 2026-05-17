@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone, WalletCards } from "lucide-react";
+import { Info, Mail, Phone, WalletCards } from "lucide-react";
 import type { ElementType } from "react";
 import {
   Sheet,
@@ -13,6 +13,12 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/status-badge";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getCustomerProfile, getRiskLabels, getSuggestedAction } from "@/lib/invoice-logic";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { Invoice } from "@/types/cashpilot";
@@ -71,7 +77,21 @@ export function CustomerProfileDrawer({
           </div>
 
           <div className="mt-4 rounded-lg border bg-muted/30 p-4">
-            <p className="text-sm font-medium">Payment behaviour</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium">Payment behaviour</p>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex" aria-label="How risk is scored">
+                      <Info className="size-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[260px] text-[12px] leading-relaxed">
+                    Risk score is based on: days overdue, outstanding amount, number of previous chases, customer payment history, and open invoice count. Invoices with active disputes are automatically blocked.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{profile.summary}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {riskLabels.length ? (
