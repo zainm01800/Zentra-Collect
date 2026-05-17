@@ -5,6 +5,10 @@
       "schedule": "0 9 * * 1-5"
     },
     {
+      "path": "/api/email/trial-reminder",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/push/send?type=digest",
       "schedule": "0 8 * * 1-5"
     },
