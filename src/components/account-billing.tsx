@@ -1253,27 +1253,29 @@ export function AccountBilling() {
             <SectionLabel>Billing</SectionLabel>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
-              Billing is managed manually during the founding period. You won&apos;t be charged until billing goes live.
-            </p>
-
-            {/* Non-paid — show upgrade CTA */}
-            {snapshot.tier !== "paid" && (
-              <Button
-                asChild
-                variant="outline"
-                className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
-              >
-                <Link href="/#pricing">
-                  View plans
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </Button>
-            )}
-
-            {/* Paid — Stripe portal for self-serve billing management */}
-            {snapshot.tier === "paid" && (
-              <StripePortalButton />
+            {snapshot.tier !== "paid" ? (
+              <>
+                <p className="text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
+                  Upgrade to a paid plan to unlock unlimited imports, AI actions, and auto-send email.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
+                >
+                  <Link href="/#pricing">
+                    View plans
+                    <ArrowRight className="size-3.5" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm leading-6 text-neutral-500 dark:text-[#8a7d69]">
+                  Manage your subscription, update your payment method, or download invoices via the Stripe portal.
+                </p>
+                <StripePortalButton />
+              </>
             )}
 
             <p className="text-xs text-neutral-400">

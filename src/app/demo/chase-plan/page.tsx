@@ -147,7 +147,7 @@ Hi ${contact},
 
 I'm following up on invoice ${inv.invoiceNumber} for ${amount}, due ${due}.
 
-We had noted a payment commitment for ${fmtDate(inv.promisedPaymentDate)}, but we haven't yet received the funds or remittance advice.
+We had noted a payment commitment${inv.promisedPaymentDate ? ` for ${fmtDate(inv.promisedPaymentDate)}` : " you previously confirmed"}, but we haven't yet received the funds or remittance advice.
 
 Could you let me know if there's been a delay, or share a revised payment date? I want to make sure we can get this resolved promptly.
 
