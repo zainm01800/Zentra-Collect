@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Search, Volume2, VolumeX } from "lucide-react";
 import { CustomerProfileDrawer } from "@/components/customer-profile-drawer";
@@ -348,8 +349,16 @@ export function ChaseQueue({
         {/* ── Mobile card list (< sm) ── */}
         <div className="sm:hidden divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
           {queue.length === 0 ? (
-            <div className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
-              No invoices match this view.
+            <div className="px-4 py-12 text-center" style={{ color: "var(--zn-ink-3)" }}>
+              {invoices.length === 0 ? (
+                <>
+                  <p className="text-[14px] font-medium mb-1" style={{ color: "var(--zn-ink)" }}>No invoices to chase yet</p>
+                  <p className="text-[13px] mb-4">Import an AR ageing export to get your ranked chase plan.</p>
+                  <Link href="/import" className="zn-pill text-[13px]">Import invoices</Link>
+                </>
+              ) : (
+                <p className="text-[13px]">No invoices match this view.</p>
+              )}
             </div>
           ) : queue.map((inv, idx) => {
             const urgency = getInvoiceUrgency(inv);
@@ -471,12 +480,16 @@ export function ChaseQueue({
           <tbody>
             {queue.length === 0 ? (
               <tr>
-                <td
-                  colSpan={8}
-                  className="text-center text-[13px]"
-                  style={{ padding: "40px 22px", color: "var(--zn-ink-3)" }}
-                >
-                  No invoices match this view.
+                <td colSpan={8} style={{ padding: "60px 22px" }}>
+                  {invoices.length === 0 ? (
+                    <div className="text-center">
+                      <p className="text-[14px] font-medium mb-1" style={{ color: "var(--zn-ink)" }}>No invoices to chase yet</p>
+                      <p className="text-[13px] mb-4" style={{ color: "var(--zn-ink-3)" }}>Import an AR ageing export to get your ranked chase plan.</p>
+                      <Link href="/import" className="zn-pill text-[13px]">Import invoices →</Link>
+                    </div>
+                  ) : (
+                    <p className="text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>No invoices match this view.</p>
+                  )}
                 </td>
               </tr>
             ) : (
