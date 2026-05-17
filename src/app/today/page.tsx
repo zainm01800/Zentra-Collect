@@ -64,12 +64,12 @@ export default async function TodayPage({
       {/* Hero + Promises / Disputes pills — derived client-side from invoices */}
       <TodayHeroAndPills />
 
-      {/* Top of the fold: Top-5 queue (wide) + Cash/Tax sidebar (narrow) */}
+      {/* Top of the fold: Top-5 queue (wide) + Cash/Tax sidebar (narrow, desktop only) */}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">
           <TodayQueueWrapper initialInvoices={dbInvoices.length ? dbInvoices : undefined} />
         </div>
-        <aside className="flex flex-col gap-3">
+        <aside className="hidden lg:flex flex-col gap-3">
           <TaxEstimateWidget />
           <CashForecastCard />
         </aside>

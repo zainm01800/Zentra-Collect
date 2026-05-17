@@ -94,6 +94,7 @@ export function draftScenarioForAction(scenario: ActionScenario): DraftScenario 
     RESOLVE_DISPUTE: "DISPUTE_RESPONSE",
     INTERNAL_ESCALATION: null,
     THANK_YOU_AFTER_PAYMENT: null,
+    DO_NOT_CHASE: null,
   };
   return scenarios[scenario];
 }
@@ -239,6 +240,7 @@ export function actionScenarioMeta(
     RESOLVE_DISPUTE: "Resolve dispute",
     INTERNAL_ESCALATION: "Escalate internally",
     THANK_YOU_AFTER_PAYMENT: "Send thank you message",
+    DO_NOT_CHASE: "Do not chase",
   };
 
   const explanations: Record<ActionScenario, string> = {
@@ -252,6 +254,7 @@ export function actionScenarioMeta(
     RESOLVE_DISPUTE: `Address the dispute regarding: ${details.disputeReason || "the customer's query"}.`,
     INTERNAL_ESCALATION: `This invoice requires internal review before further action.`,
     THANK_YOU_AFTER_PAYMENT: `Acknowledge payment received for invoice ${invoice.invoiceNumber}.`,
+    DO_NOT_CHASE: `This invoice has been flagged as do not chase — no action required.`,
   };
 
   const safety = buildInvoiceMessageSafetyResult({

@@ -347,11 +347,7 @@ export function ChaseQueue({
 
         {/* ── Mobile card list (< sm) ── */}
         <div className="sm:hidden divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {filter === "waiting" ? (
-            <div className="px-4 py-3 text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
-              Waiting invoices are shown on desktop.
-            </div>
-          ) : queue.length === 0 ? (
+          {queue.length === 0 ? (
             <div className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
               No invoices match this view.
             </div>
