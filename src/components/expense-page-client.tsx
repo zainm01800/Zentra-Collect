@@ -61,9 +61,13 @@ interface PendingDeletion {
   timerId: ReturnType<typeof setTimeout>;
 }
 
+type DeletedEntry = RichEntry & { deletedAt: string }; // ISO date string
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "zentra.expenses.v1";
+const STORAGE_KEY         = "zentra.expenses.v1";
+const DELETED_STORAGE_KEY = "zentra.expenses.deleted.v1";
+const DELETED_RETENTION_DAYS = 30;
 
 const CAT_COLOURS = [
   "#c88a1e", "#3b82f6", "#10b981", "#f43f5e",
@@ -116,6 +120,35 @@ function loadFromStorage(): RichEntry[] {
 function saveToStorage(entries: RichEntry[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function loadDeletedFromStorage(): DeletedEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DELETED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as DeletedEntry[];
+    if (!Array.isArray(parsed)) return [];
+    const cutoff = Date.now() - DELETED_RETENTION_DAYS * 86_400_000;
+    return parsed.filter((e) => new Date(e.deletedAt).getTime() > cutoff);
+  } catch {
+    return [];
+  }
+}
+
+function saveDeletedToStorage(deleted: DeletedEntry[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(deleted));
+}
+
+function permanentlyDelete(entry: RichEntry) {
+  const deleted = loadDeletedFromStorage();
+  const already = deleted.some((d) => d.id === entry.id);
+  if (!already) {
+    deleted.unshift({ ...entry, deletedAt: new Date().toISOString() });
+    saveDeletedToStorage(deleted);
+  }
+  deleteExpense(entry.id).catch(() => {});
 }
 
 function groupByMonth(entries: RichEntry[]): { ym: string; entries: RichEntry[] }[] {
@@ -767,6 +800,84 @@ function TabBar({
   );
 }
 
+/** Collapsible recently-deleted bin — 30-day recovery window. */
+function RecentlyDeleted({
+  entries,
+  onRestore,
+}: {
+  entries:   DeletedEntry[];
+  onRestore: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (entries.length === 0) return null;
+
+  return (
+    <div
+      className="rounded-[14px] border overflow-hidden"
+      style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
+      >
+        <div className="flex items-center gap-2">
+          <Trash2 className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+            Recently deleted ({entries.length})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+            Kept for 30 days
+          </span>
+          {open
+            ? <ChevronUp   className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+            : <ChevronDown className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
+          {entries.map((e) => {
+            const daysLeft = Math.ceil(
+              (new Date(e.deletedAt).getTime() + DELETED_RETENTION_DAYS * 86_400_000 - Date.now()) / 86_400_000,
+            );
+            return (
+              <div key={e.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink-2)" }}>
+                    {e.description || e.category}
+                  </p>
+                  <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                    {e.category} · {fmtDate(e.date)} · expires in {daysLeft}d
+                  </p>
+                </div>
+                <span className="text-[12.5px] tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink-2)" }}>
+                  {fmtGBP(e.amount)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRestore(e.id)}
+                  className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-semibold flex-shrink-0"
+                  style={{
+                    background:  "var(--zn-surface)",
+                    border:      "1px solid var(--zn-line)",
+                    color:       "var(--zn-ink-2)",
+                  }}
+                >
+                  <RotateCcw className="size-3" />
+                  Restore
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ExpensePageClient() {
@@ -777,10 +888,12 @@ export function ExpensePageClient() {
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState<number | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null);
+  const [deletedEntries, setDeletedEntries]   = useState<DeletedEntry[]>([]);
 
   useEffect(() => {
     const loaded = loadFromStorage();
     setEntries(loaded);
+    setDeletedEntries(loadDeletedFromStorage());
     const debits = loadBankDebits();
     setImportableCount(countImportable(debits, loaded));
     setHydrated(true);
@@ -801,7 +914,8 @@ export function ExpensePageClient() {
     setPendingDeletion((prev) => {
       if (prev) {
         clearTimeout(prev.timerId);
-        deleteExpense(prev.entry.id).catch(() => {});
+        permanentlyDelete(prev.entry);
+        setDeletedEntries(loadDeletedFromStorage());
       }
       return null;
     });
@@ -811,7 +925,8 @@ export function ExpensePageClient() {
       if (!entry) return current;
 
       const timerId = setTimeout(() => {
-        deleteExpense(id).catch(() => {});
+        permanentlyDelete(entry);
+        setDeletedEntries(loadDeletedFromStorage());
         setPendingDeletion(null);
       }, 5000);
 
@@ -839,6 +954,16 @@ export function ExpensePageClient() {
       prev.map((e) => (e.id === id ? { ...e, allowability: value } : e)),
     );
   }, []);
+
+  function handleRestore(id: string) {
+    const entry = deletedEntries.find((d) => d.id === id);
+    if (!entry) return;
+    const { deletedAt: _deletedAt, ...restored } = entry;
+    setEntries((prev) => [restored, ...prev]);
+    const updated = deletedEntries.filter((d) => d.id !== id);
+    setDeletedEntries(updated);
+    saveDeletedToStorage(updated);
+  }
 
   function handleBankImport() {
     if (importing) return;
@@ -1038,6 +1163,11 @@ export function ExpensePageClient() {
           onAllowabilityChange={handleAllowabilityChange}
         />
       ))}
+
+      {/* ── Recently deleted ──────────────────────────────────────────────── */}
+      {hydrated && (
+        <RecentlyDeleted entries={deletedEntries} onRestore={handleRestore} />
+      )}
 
       {/* Fine print */}
       {entries.length > 0 && (
