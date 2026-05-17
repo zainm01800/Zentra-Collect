@@ -78,16 +78,14 @@ const overviewNav: NavItem[] = [
 const collectionsNav: NavItem[] = [
   { href: "/invoices",  label: "Invoices",  icon: Receipt },
   { href: "/customers", label: "Customers", icon: Users },
+  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
 ];
 
-// "Books" replaces "Finance" — the audit found "Finance" was too broad
-// and contained two pages with similar names (Tax estimate vs Tax
-// reserve). Both now route through the unified /tax page.
+// "Books" — light-touch accounting features that support the chase workflow.
 const financeNav: NavItem[] = [
   { href: "/banking",   label: "Bank feed", icon: Building2 },
   { href: "/expenses",  label: "Expenses",  icon: Receipt },
   { href: "/tax",       label: "Tax",       icon: PiggyBank },
-  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
 ];
 
 /**
