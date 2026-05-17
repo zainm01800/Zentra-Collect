@@ -470,6 +470,7 @@ export default function Home() {
                 <Link href="#how-it-works" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">How it works</Link>
                 <Link href="#bookkeepers"  className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">For bookkeepers</Link>
                 <Link href="#pricing"      className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Pricing</Link>
+                <Link href="/free-tools"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Free tools</Link>
                 <Link href="#faq"          className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">FAQ</Link>
               </div>
               <div className="flex flex-col gap-2">

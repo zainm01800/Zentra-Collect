@@ -1,0 +1,5 @@
+Customer Name,Invoice Number,Issue Date,Due Date,Amount Outstanding,Currency,Status
+BrightPath Media Ltd,INV-001,2026-04-01,2026-04-15,1840.00,GBP,Overdue
+Northline Creative,INV-002,2026-03-10,2026-03-24,6200.00,GBP,Overdue
+Atlas IT Support,INV-003,2026-04-18,2026-05-09,980.00,GBP,Due soon
+Greenstone Consulting,INV-004,2026-02-20,2026-03-06,3450.00,GBP,Overdue

@@ -48,6 +48,57 @@ export function ChaseQueue({
   const [expandedRankId, setExpandedRankId] = useState<string | null>(null);
   const review = useReview();
 
+  // Reply-received and bulk-action state, persisted to localStorage
+  const [replyReceived, setReplyReceived] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [chasedIds, setChasedIds] = useState<Set<string>>(new Set());
+  const [snoozedUntil, setSnoozedUntil] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    try {
+      const r = JSON.parse(window.localStorage.getItem("zentra.replies") ?? "[]") as string[];
+      setReplyReceived(new Set(r));
+      const c = JSON.parse(window.localStorage.getItem("zentra.bulk.chased") ?? "[]") as string[];
+      setChasedIds(new Set(c));
+      const s = JSON.parse(window.localStorage.getItem("zentra.bulk.snoozed") ?? "{}") as Record<string, number>;
+      setSnoozedUntil(s);
+    } catch {}
+  }, []);
+
+  function toggleReply(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setReplyReceived(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      try { window.localStorage.setItem("zentra.replies", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function markChased() {
+    const next = new Set([...chasedIds, ...selectedIds]);
+    setChasedIds(next);
+    try { window.localStorage.setItem("zentra.bulk.chased", JSON.stringify([...next])); } catch {}
+    setSelectedIds(new Set());
+  }
+
+  function snoozeSelected() {
+    const until = Date.now() + 7 * 86_400_000;
+    const next = { ...snoozedUntil };
+    selectedIds.forEach(id => { next[id] = until; });
+    setSnoozedUntil(next);
+    try { window.localStorage.setItem("zentra.bulk.snoozed", JSON.stringify(next)); } catch {}
+    setSelectedIds(new Set());
+  }
+
   // Hydrate waiting invoices from localStorage on mount and after any slot change
   const refreshWaiting = () => setWaitingInvoices(readWaitingInvoices());
 
@@ -185,8 +236,11 @@ export function ChaseQueue({
 
   const queue = useMemo(() => {
     if (filter === "waiting") return [];
+    const now = Date.now();
     return sortInvoicesByPriority(
       filterInvoices(invoices, filter).filter((invoice) => {
+        const snoozeExp = snoozedUntil[invoice.id];
+        if (snoozeExp && now < snoozeExp) return false;
         const matchesToday =
           onlyToday && filter === "today" ? invoiceNeedsActionToday(invoice) : true;
         const q = query.toLowerCase().trim();
@@ -197,7 +251,7 @@ export function ChaseQueue({
         return matchesToday && matchesQuery;
       }),
     );
-  }, [filter, invoices, onlyToday, query]);
+  }, [filter, invoices, onlyToday, query, snoozedUntil]);
 
   /**
    * Customer-level risk scores computed once across ALL invoices (not just the
@@ -320,6 +374,44 @@ export function ChaseQueue({
       {/* Card containing tabs (full-width header strip) + table */}
       <div className="zn-card p-0 overflow-hidden">
 
+        {/* Bulk action bar — visible when ≥1 row selected */}
+        {selectedIds.size > 0 && (
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-2.5"
+            style={{ background: "var(--zn-surface-2)", borderBottom: "1px solid var(--zn-line)" }}
+          >
+            <span className="text-[12.5px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={markChased}
+                className="zn-pill zn-pill-ghost"
+                style={{ height: 28, fontSize: 12, padding: "0 11px" }}
+              >
+                Mark as chased
+              </button>
+              <button
+                type="button"
+                onClick={snoozeSelected}
+                className="zn-pill zn-pill-ghost"
+                style={{ height: 28, fontSize: 12, padding: "0 11px" }}
+              >
+                Snooze 7 days
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-[12px]"
+                style={{ color: "var(--zn-ink-3)" }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Integrated tabs strip — scrolls horizontally on narrow viewports */}
         <div
           className="flex overflow-x-auto"
@@ -439,6 +531,18 @@ export function ChaseQueue({
                     >
                       Review →
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleReply(inv.id, e)}
+                      className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-full transition-colors"
+                      style={{
+                        background: replyReceived.has(inv.id) ? "var(--zn-safe-soft)" : "var(--zn-surface-2)",
+                        color: replyReceived.has(inv.id) ? "var(--zn-safe)" : "var(--zn-ink-3)",
+                        border: `1px solid ${replyReceived.has(inv.id) ? "var(--zn-safe)44" : "var(--zn-line)"}`,
+                      }}
+                    >
+                      {replyReceived.has(inv.id) ? "✓ Reply" : "Reply?"}
+                    </button>
                   </div>
                 </div>
               </button>
@@ -467,7 +571,18 @@ export function ChaseQueue({
           </colgroup>
           <thead>
             <tr>
-              <th className="zn-label text-left" style={{ padding: "12px 22px" }}></th>
+              <th className="zn-label text-left" style={{ padding: "12px 22px" }}>
+                <input
+                  type="checkbox"
+                  checked={queue.length > 0 && queue.every(i => selectedIds.has(i.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedIds(new Set(queue.map(i => i.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                  style={{ accentColor: "var(--zn-accent)", cursor: "pointer" }}
+                  title="Select all"
+                />
+              </th>
               <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Customer</th>
               <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Amount</th>
               <th className="zn-label text-left" style={{ padding: "12px 10px" }}>Due</th>
@@ -520,8 +635,15 @@ export function ChaseQueue({
                   >
                     <td
                       style={{ padding: "14px 22px", verticalAlign: "top" }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex flex-col items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(inv.id)}
+                          onChange={() => toggleSelect(inv.id)}
+                          style={{ accentColor: "var(--zn-accent)", cursor: "pointer" }}
+                        />
                         <span
                           className="text-[14px] italic"
                           style={{
@@ -598,7 +720,14 @@ export function ChaseQueue({
                     </td>
                     <td style={{ padding: "14px 10px" }}>
                       <div className="flex items-center gap-2">
-                        {(inv.status === "Promised payment" || inv.status === "Disputed") ? (
+                        {chasedIds.has(inv.id) ? (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold"
+                            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                          >
+                            Chased ✓
+                          </span>
+                        ) : (inv.status === "Promised payment" || inv.status === "Disputed") ? (
                           <span
                             className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide"
                             style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
@@ -657,17 +786,32 @@ export function ChaseQueue({
                       </span>
                     </td>
                     <td style={{ padding: "14px 22px" }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openInvoice(inv);
-                        }}
-                        className="zn-pill zn-pill-ghost"
-                        style={{ height: 26, fontSize: 12, padding: "0 11px" }}
-                      >
-                        Review
-                      </button>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openInvoice(inv);
+                          }}
+                          className="zn-pill zn-pill-ghost"
+                          style={{ height: 26, fontSize: 12, padding: "0 11px" }}
+                        >
+                          Review
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => toggleReply(inv.id, e)}
+                          className="text-[11px] font-medium px-2 py-0.5 rounded-full transition-colors whitespace-nowrap"
+                          style={{
+                            background: replyReceived.has(inv.id) ? "var(--zn-safe-soft)" : "var(--zn-surface-2)",
+                            color: replyReceived.has(inv.id) ? "var(--zn-safe)" : "var(--zn-ink-3)",
+                            border: `1px solid ${replyReceived.has(inv.id) ? "var(--zn-safe)44" : "var(--zn-line)"}`,
+                          }}
+                          title={replyReceived.has(inv.id) ? "Reply received — click to clear" : "Mark reply received"}
+                        >
+                          {replyReceived.has(inv.id) ? "✓ Reply" : "Reply?"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {expandedRankId === inv.id && (

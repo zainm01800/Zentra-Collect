@@ -221,7 +221,7 @@ export function PricingSection({
                   />
                 ) : (
                   <Link href="/request-access" className="zn-pill zn-pill-ghost w-full justify-center">
-                    Request access
+                    Join waitlist
                   </Link>
                 )}
               </div>
