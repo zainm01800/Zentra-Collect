@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
     const results = (data.items ?? []).map(simplify);
     return NextResponse.json({ results, total: data.total_results ?? 0 });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[companies-house]", err);
+    return NextResponse.json({ error: "Company lookup failed." }, { status: 500 });
   }
 }
