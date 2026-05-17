@@ -85,7 +85,7 @@ async function generateWithOpenAI(
   client: OpenAI,
 ) {
   const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     messages: [
       {
         role: "system",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Plug, FileText, Mail, Eye } from "lucide-react";
 import { SettingsForm } from "@/components/settings-form";
 import { AddonSuccessBanner } from "@/components/addon-success-banner";
+import { ReferralCard } from "@/components/referral-card";
 
 import type { Metadata } from "next";
 
@@ -145,6 +146,9 @@ export default async function SettingsPage({
           style={{ color: "var(--zn-ink-3)" }}
         />
       </Link>
+
+      {/* Referral flywheel — invite a colleague, earn +1 ledger slot */}
+      <ReferralCard />
 
       <SettingsForm defaultTab={params.tab} />
     </div>

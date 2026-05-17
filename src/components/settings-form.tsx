@@ -1,13 +1,11 @@
 "use client";
 
-import { Mail, Save, CheckCircle2, AlertTriangle, Zap, Eye, EyeOff } from "lucide-react";
+import { Mail, Save, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { NotificationToggle } from "@/components/push-permission";
 import { useEffect, useState } from "react";
 import { WorkspaceSetupCard } from "@/components/workspace-setup-card";
 import { UpgradePromptModal } from "@/components/billing-gates";
 import { AutoSendModal } from "@/components/auto-send-modal";
-import { EmailAddonUpgradeModal } from "@/components/email-addon-upgrade-modal";
-import { AutoSendDemoLog } from "@/components/auto-send-demo-log";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,13 +32,27 @@ import {
   disableDemoAutoSend,
 } from "@/lib/email/settings-store";
 import { getPlanConfig } from "@/lib/account/plans";
+import {
+  readBusinessSettings,
+  writeBusinessSettings,
+  type BusinessSettings,
+} from "@/lib/settings/business-settings";
 
 export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
   const { account } = useLocalAccount();
   const [upgradePrompt, setUpgradePrompt] = useState<string | null>(null);
+  const [bizSettings, setBizSettings] = useState<BusinessSettings>(() => readBusinessSettings());
+  const [saveState, setSaveState] = useState<"idle" | "saved">("idle");
 
   const validTabs = ["business", "workspace", "email", "system"];
   const initialTab = defaultTab && validTabs.includes(defaultTab) ? defaultTab : "business";
+
+  function saveBizSettings(e: React.FormEvent) {
+    e.preventDefault();
+    writeBusinessSettings(bizSettings);
+    setSaveState("saved");
+    setTimeout(() => setSaveState("idle"), 2500);
+  }
 
   function addClientLedger() {
     const access = requirePlanAccess(account, "add_client_ledger");
@@ -60,7 +72,7 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
   }
 
   return (
-    <form className="space-y-0">
+    <div className="space-y-0">
       <UpgradePromptModal
         open={Boolean(upgradePrompt)}
         title="Client ledger access"
@@ -83,78 +95,124 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
               <CardHeader className="pb-3">
                 <CardTitle>Business settings</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2">
-                <Field label="Business name"           defaultValue="Zentra Demo Studio" />
-                <Field label="Sender name"             defaultValue="Zain from Zentra Demo Studio" />
-                <Field label="Reply-to email"          defaultValue="accounts@yourbusiness.co.uk" />
-                <div className="space-y-1.5">
-                  <Label>Default tone</Label>
-                  <Select defaultValue="Neutral">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Friendly">Friendly</SelectItem>
-                      <SelectItem value="Neutral">Neutral</SelectItem>
-                      <SelectItem value="Firm">Firm</SelectItem>
-                      <SelectItem value="Final notice">Final notice</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Payment terms</Label>
-                  <Select defaultValue="14">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="14">14 days</SelectItem>
-                      <SelectItem value="21">21 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
-                      <SelectItem value="45">45 days</SelectItem>
-                      <SelectItem value="60">60 days</SelectItem>
-                      <SelectItem value="90">90 days</SelectItem>
-                      <SelectItem value="receipt">On receipt</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Reminder schedule</Label>
-                  <Select defaultValue="standard-extended">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gentle">Gentle — 7, 14, 30 days</SelectItem>
-                      <SelectItem value="standard">Standard — 3, 10, 24 days</SelectItem>
-                      <SelectItem value="standard-extended">Standard+ — 3, 10, 24, 45 days</SelectItem>
-                      <SelectItem value="firm">Firm — 1, 5, 10, 21 days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Brand voice notes</Label>
-                  <Textarea
-                    defaultValue="Professional, calm, clear, and relationship-preserving. Avoid legal language unless reviewed."
-                    className="min-h-20 resize-none"
-                  />
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
-                  <div>
-                    <p className="text-sm font-medium">Late fee language enabled</p>
-                    <p className="text-xs text-muted-foreground">
-                      Keep off until terms and statutory rules are confirmed.
-                    </p>
+              <CardContent>
+                <form onSubmit={saveBizSettings} className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="biz-name">Business name</Label>
+                    <Input
+                      id="biz-name"
+                      value={bizSettings.businessName}
+                      onChange={(e) => setBizSettings((s) => ({ ...s, businessName: e.target.value }))}
+                      placeholder="e.g. Acme Studio Ltd"
+                    />
                   </div>
-                  <Switch />
-                </div>
-                <div className="flex justify-end sm:col-span-2">
-                  <Button className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]">
-                    <Save className="size-4" />
-                    Save settings
-                  </Button>
-                </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sender-name">Sender name</Label>
+                    <Input
+                      id="sender-name"
+                      value={bizSettings.senderName}
+                      onChange={(e) => setBizSettings((s) => ({ ...s, senderName: e.target.value }))}
+                      placeholder="e.g. Alex from Acme Studio"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reply-email">Reply-to email</Label>
+                    <Input
+                      id="reply-email"
+                      type="email"
+                      value={bizSettings.replyToEmail}
+                      onChange={(e) => setBizSettings((s) => ({ ...s, replyToEmail: e.target.value }))}
+                      placeholder="accounts@yourbusiness.co.uk"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Default tone</Label>
+                    <Select
+                      value={bizSettings.defaultTone}
+                      onValueChange={(v) => setBizSettings((s) => ({ ...s, defaultTone: v as BusinessSettings["defaultTone"] }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Friendly">Friendly</SelectItem>
+                        <SelectItem value="Neutral">Neutral</SelectItem>
+                        <SelectItem value="Firm">Firm</SelectItem>
+                        <SelectItem value="Final notice">Final notice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Payment terms</Label>
+                    <Select
+                      value={bizSettings.paymentTermsDays}
+                      onValueChange={(v) => setBizSettings((s) => ({ ...s, paymentTermsDays: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7 days</SelectItem>
+                        <SelectItem value="14">14 days</SelectItem>
+                        <SelectItem value="21">21 days</SelectItem>
+                        <SelectItem value="30">30 days</SelectItem>
+                        <SelectItem value="45">45 days</SelectItem>
+                        <SelectItem value="60">60 days</SelectItem>
+                        <SelectItem value="90">90 days</SelectItem>
+                        <SelectItem value="receipt">On receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Reminder schedule</Label>
+                    <Select
+                      value={bizSettings.reminderSchedule}
+                      onValueChange={(v) => setBizSettings((s) => ({ ...s, reminderSchedule: v as BusinessSettings["reminderSchedule"] }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gentle">Gentle — 7, 14, 30 days</SelectItem>
+                        <SelectItem value="standard">Standard — 3, 10, 24 days</SelectItem>
+                        <SelectItem value="standard-extended">Standard+ — 3, 10, 24, 45 days</SelectItem>
+                        <SelectItem value="firm">Firm — 1, 5, 10, 21 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="brand-voice">Brand voice notes</Label>
+                    <Textarea
+                      id="brand-voice"
+                      value={bizSettings.brandVoiceNotes}
+                      onChange={(e) => setBizSettings((s) => ({ ...s, brandVoiceNotes: e.target.value }))}
+                      className="min-h-20 resize-none"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
+                    <div>
+                      <p className="text-sm font-medium">Late fee language enabled</p>
+                      <p className="text-xs text-muted-foreground">
+                        Keep off until terms and statutory rules are confirmed.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={bizSettings.lateFeeLanguageEnabled}
+                      onCheckedChange={(v) => setBizSettings((s) => ({ ...s, lateFeeLanguageEnabled: v }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-3 sm:col-span-2">
+                    {saveState === "saved" && (
+                      <span className="flex items-center gap-1.5 text-sm text-emerald-600">
+                        <CheckCircle2 className="size-4" /> Saved
+                      </span>
+                    )}
+                    <Button type="submit" className="rounded-full bg-[#1d1813] px-5 text-white hover:bg-[#3d3428]">
+                      <Save className="size-4" />
+                      Save settings
+                    </Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
 
@@ -256,14 +314,13 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
           </div>
         </TabsContent>
       </Tabs>
-    </form>
+    </div>
   );
 }
 
 function EmailSettingsCard() {
-  const { account, user } = useLocalAccount();
+  const { account } = useLocalAccount();
   const [modalOpen, setModalOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [isArming, setIsArming] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
@@ -294,7 +351,7 @@ function EmailSettingsCard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoMode]);
 
-  type AccessTier = "none" | "addon-upgrade" | "full";
+  type AccessTier = "none" | "full";
   let accessTier: AccessTier = "none";
 
   if (isDemoMode) {
@@ -303,21 +360,12 @@ function EmailSettingsCard() {
     try {
       const state = toAccountState(account as Parameters<typeof toAccountState>[0]);
       const features = getPlanConfig(state.planId).features;
-      if (features.emailSending) {
+      if (features.autoSendEmail) {
         accessTier = "full";
-      } else if (features.emailSendingAddon) {
-        accessTier = user?.emailAddon ? "full" : "addon-upgrade";
       }
     } catch {
       accessTier = "none";
     }
-  }
-
-  let centralPlanId: Parameters<typeof EmailAddonUpgradeModal>[0]["planId"] | undefined;
-  if (account) {
-    try {
-      centralPlanId = toAccountState(account as Parameters<typeof toAccountState>[0]).planId;
-    } catch { /* */ }
   }
 
   const status = isEnabled ? "on" : isArming ? "arming" : connectedEmail ? "configured" : "off";
@@ -334,32 +382,12 @@ function EmailSettingsCard() {
         <CardContent className="space-y-3">
           {accessTier === "none" && (
             <p className="text-sm text-muted-foreground">
-              Auto-send email is included on all Bookkeeper plans and available as an add-on on
-              Starter and Business.{" "}
-              <a href="mailto:hello@zentracollect.co.uk" className="underline">
-                Contact us
+              Auto-send email is available on the Business plan and above.{" "}
+              <a href="/settings?tab=billing" className="underline">
+                Upgrade your plan
               </a>{" "}
-              to upgrade.
+              to enable it.
             </p>
-          )}
-
-          {accessTier === "addon-upgrade" && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Your plan supports email auto-send as an add-on. Add it to start sending
-                automated chase emails on a schedule.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-full gap-1.5"
-                onClick={() => setUpgradeOpen(true)}
-              >
-                <Zap className="size-3.5" />
-                Add email auto-send
-              </Button>
-            </div>
           )}
 
           {accessTier === "full" && (
@@ -434,7 +462,6 @@ function EmailSettingsCard() {
                 </Button>
               )}
 
-              <AutoSendDemoLog />
             </>
           )}
         </CardContent>
@@ -447,12 +474,6 @@ function EmailSettingsCard() {
           sync();
         }}
         isDemoMode={isDemoMode}
-      />
-
-      <EmailAddonUpgradeModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        planId={centralPlanId}
       />
     </>
   );

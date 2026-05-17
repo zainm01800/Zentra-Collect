@@ -10,12 +10,8 @@
 
 import { useEffect, useState } from "react";
 import { Download, ArrowUpDown, AlertTriangle } from "lucide-react";
-import { readLocalAccount } from "@/lib/demo-auth";
-import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
-import { demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { readInvoices, subscribeToInvoiceChanges } from "@/lib/invoice-store";
 import type { Invoice } from "@/types/zentra";
-
-const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
 
 // ── Buckets ───────────────────────────────────────────────────────────────────
 
@@ -72,21 +68,6 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ── Data loading ──────────────────────────────────────────────────────────────
-
-function loadInvoices(): Invoice[] {
-  if (typeof window === "undefined") return [];
-  const local = readLocalAccount();
-  const isDemo = local?.planId === "demo";
-  const key = isDemo ? demoInvoiceStateStorageKey : importedInvoicesStorageKey;
-  const fallback = isDemo ? demoInvoices : [];
-  const stored = window.localStorage.getItem(key);
-  if (!stored) return fallback;
-  try {
-    const parsed = JSON.parse(stored) as Invoice[];
-    return Array.isArray(parsed) ? parsed : fallback;
-  } catch { return fallback; }
-}
 
 // ── CSV export ────────────────────────────────────────────────────────────────
 
@@ -139,7 +120,8 @@ export function AgedDebtReport() {
   const [sortAsc, setSortAsc]   = useState(false);
 
   useEffect(() => {
-    setInvoices(loadInvoices());
+    setInvoices(readInvoices());
+    return subscribeToInvoiceChanges(() => setInvoices(readInvoices()));
   }, []);
 
   // Only unpaid invoices in the report — handle both "paid" (zentra) and "Paid" (cashpilot demo data)

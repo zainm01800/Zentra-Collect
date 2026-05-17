@@ -26,7 +26,7 @@ import { formatCurrency } from "@/lib/formatters";
 import type { Invoice } from "@/types/cashpilot";
 
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 interface ClientReportViewProps {
   /** Optional client ID — overrides workspace active client. Defaults to active workspace. */

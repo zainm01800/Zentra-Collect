@@ -54,7 +54,7 @@ function getAction(inv: Invoice): ActionMeta {
     case "missed_promise":
       return {
         label: "Follow up missed promise",
-        reason: `Payment was promised for ${fmtDate(inv.promisedDate)} and hasn't arrived. Ask for a revised date.`,
+        reason: `Payment was promised for ${fmtDate(inv.promisedPaymentDate)} and hasn't arrived. Ask for a revised date.`,
         urgency: "high",
       };
     case "disputed":
@@ -72,10 +72,10 @@ function getAction(inv: Invoice): ActionMeta {
         urgency: "high",
       };
     case "overdue":
-      return inv.chaseCount >= 2
+      return inv.previousChaseCount >= 2
         ? {
             label: "Send firm reminder",
-            reason: `${inv.daysOverdue} days overdue with ${inv.chaseCount} prior chases. A firmer tone is appropriate.`,
+            reason: `${inv.daysOverdue} days overdue with ${inv.previousChaseCount} prior chases. A firmer tone is appropriate.`,
             urgency: "high",
           }
         : {
@@ -98,7 +98,7 @@ function getAction(inv: Invoice): ActionMeta {
     case "promised":
       return {
         label: "Monitor — promise pending",
-        reason: `Payment promised for ${fmtDate(inv.promisedDate)}. Chase only if the date passes.`,
+        reason: `Payment promised for ${fmtDate(inv.promisedPaymentDate)}. Chase only if the date passes.`,
         urgency: "low",
       };
     case "due_soon":
@@ -147,7 +147,7 @@ Hi ${contact},
 
 I'm following up on invoice ${inv.invoiceNumber} for ${amount}, due ${due}.
 
-We had noted a payment commitment for ${fmtDate(inv.promisedDate)}, but we haven't yet received the funds or remittance advice.
+We had noted a payment commitment${inv.promisedPaymentDate ? ` for ${fmtDate(inv.promisedPaymentDate)}` : " you previously confirmed"}, but we haven't yet received the funds or remittance advice.
 
 Could you let me know if there's been a delay, or share a revised payment date? I want to make sure we can get this resolved promptly.
 
@@ -156,7 +156,7 @@ ${sender}
 ${demoSingleBusiness.name}`;
 
     case "overdue":
-      if (inv.chaseCount >= 2) {
+      if (inv.previousChaseCount >= 2) {
         return `Subject: Invoice ${inv.invoiceNumber} — ${inv.daysOverdue} Days Overdue
 
 Hi ${contact},
@@ -402,8 +402,8 @@ export default function DemoChasePlanPage() {
                           {action.reason}
                         </p>
                         <div className="flex flex-wrap gap-3 mt-3 text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
-                          {inv.chaseCount > 0 && (
-                            <span>{inv.chaseCount} prior chase{inv.chaseCount > 1 ? "s" : ""}</span>
+                          {inv.previousChaseCount > 0 && (
+                            <span>{inv.previousChaseCount} prior chase{inv.previousChaseCount > 1 ? "s" : ""}</span>
                           )}
                           {inv.daysOverdue > 0 && (
                             <span>{inv.daysOverdue} days overdue</span>
@@ -411,8 +411,8 @@ export default function DemoChasePlanPage() {
                           {customer?.apContactName && (
                             <span>Contact: {customer.apContactName}</span>
                           )}
-                          {customer?.apContactEmail && (
-                            <span>{customer.apContactEmail}</span>
+                          {customer?.apEmail && (
+                            <span>{customer.apEmail}</span>
                           )}
                         </div>
                       </div>

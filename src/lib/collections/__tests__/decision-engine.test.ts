@@ -140,8 +140,8 @@ describe("detectScenario", () => {
   });
 
   it("returns ASK_FOR_AP_CONTACT when no email on invoice or customer", () => {
-    const inv = makeInvoice({ customerEmail: null });
-    const ctx = makeContext(inv, { customer: makeCustomer({ apEmail: null }) });
+    const inv = makeInvoice({ customerEmail: undefined });
+    const ctx = makeContext(inv, { customer: makeCustomer({ apEmail: undefined }) });
     expect(detectScenario(inv, ctx)).toBe("ASK_FOR_AP_CONTACT");
   });
 

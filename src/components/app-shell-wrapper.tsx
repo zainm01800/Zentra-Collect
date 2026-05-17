@@ -16,6 +16,13 @@ const PUBLIC_PREFIXES = [
   "/terms",
   "/admin",
   "/auth",
+  "/free-tools",
+  "/tools",
+  "/pay",
+  "/trust",
+  "/help",
+  "/trader-waitlist",
+  "/reset-password",
 ];
 
 export function AppShellWrapper({ children }: { children: React.ReactNode }) {

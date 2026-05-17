@@ -41,9 +41,9 @@ export type PlanAccessResult = {
 const legacyPlanMap: Record<LegacyPlanId, PlanId> = {
   demo: "DEMO",
   trial: "TRIAL",
+  trader: "TRADER",
+  freelance: "FREELANCE",
   starter_solo: "STARTER_SOLO",
-  founding_single_business: "FOUNDING_SINGLE",
-  founding_bookkeeper: "FOUNDING_BOOKKEEPER",
   single_business: "SINGLE_BUSINESS",
   bookkeeper_starter: "BOOKKEEPER_STARTER",
   bookkeeper_pro: "BOOKKEEPER_PRO",
@@ -132,11 +132,9 @@ export function toAccountState(
         ? "trialing"
         : legacyAccount.subscriptionStatus === "demo"
           ? "demo"
-          : legacyAccount.accountType === "founding"
-            ? "beta"
-            : legacyAccount.subscriptionStatus === "expired"
-              ? "expired"
-              : "active",
+          : legacyAccount.subscriptionStatus === "expired"
+            ? "expired"
+            : "active",
     createdAt,
     trialStartedAt: legacyAccount.trialStartedAt,
     trialEndsAt: legacyAccount.trialEndsAt,
@@ -243,8 +241,9 @@ function isCentralPlanId(planId: string): planId is PlanId {
   return [
     "DEMO",
     "TRIAL",
-    "FOUNDING_SINGLE",
-    "FOUNDING_BOOKKEEPER",
+    "TRADER",
+    "FREELANCE",
+    "STARTER_SOLO",
     "SINGLE_BUSINESS",
     "BOOKKEEPER_STARTER",
     "BOOKKEEPER_PRO",

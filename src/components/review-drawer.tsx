@@ -10,17 +10,27 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Copy,
+  ExternalLink,
+  FileText,
   Flag,
+  Link2,
   Mail,
   Maximize2,
   Minimize2,
   ShieldCheck,
   Sparkles,
+  User,
   X,
 } from "lucide-react";
+import { PaymentLinkButton } from "@/components/payment-link-button";
+import { checkAndCelebrate } from "@/components/celebration";
+import { playSuccess, playTick } from "@/lib/sounds";
+import { recordPayment } from "@/lib/invoice-store";
+import type { PaymentRecord } from "@/lib/invoice-store";
 import { useReview } from "@/components/review-context";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
@@ -186,10 +196,10 @@ function templateFor(
     }
     case "statement": {
       const opener =
-        tone === "Friendly" ? `Thought it'd be useful to share a statement of your account — currently showing ${amount} outstanding across open invoices.` :
-        tone === "Neutral"  ? `Please find attached a statement of account for ${customer} showing ${amount} outstanding.` :
-        tone === "Firm"     ? `Attached is the statement of account showing ${amount} outstanding. Please review and confirm payment plans for each open item.` :
-                              `Attached is the statement of account showing ${amount} outstanding. Please confirm immediate payment for all overdue items.`;
+        tone === "Friendly" ? `I've put together a statement of your account — currently showing ${amount} outstanding across open invoices. I've linked it below for you to review.` :
+        tone === "Neutral"  ? `Please find the current statement of account for ${customer} linked below, showing ${amount} outstanding.` :
+        tone === "Firm"     ? `I'm sharing the statement of account linked below, showing ${amount} outstanding. Please review and confirm payment plans for each open item.` :
+                              `The statement of account is linked below, showing ${amount} outstanding. Please confirm immediate payment for all overdue items.`;
       return {
         subject: `Statement of account — ${customer}`,
         body:    `${greet}\n\n${opener}\n\nLet me know if anything looks unexpected.\n\n${signoff}`,
@@ -335,6 +345,11 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
   const [body, setBody] = useState("");
   const [copied, setCopied] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  // Payment capture — shown inline when "Marked paid" is selected
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentRecord["paidMethod"]>("bank_transfer");
+  const [paymentRef, setPaymentRef] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
 
   // When a new invoice is opened, reset and seed scenario from suggestion
   useEffect(() => {
@@ -349,6 +364,10 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
     setScenario(inferredScenario);
     setTone(getRecommendedTone(current));
     setOutcome(null);
+    setPaymentRef("");
+    setPaymentMethod("bank_transfer");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    checkAndCelebrate("review");
   }, [current?.id]);
 
   // Esc to close
@@ -390,13 +409,39 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
   const handleCopy = () => {
     if (!subject && !body) return;
     navigator.clipboard?.writeText(`Subject: ${subject}\n\n${body}`).catch(() => {});
+    playTick();
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
 
   const handleOutcome = (k: Outcome) => {
     setOutcome(k);
-    recordOutcome(k);
+    if (k === "paid") {
+      // Pre-fill amount from the invoice; user can adjust before confirming
+      if (current) setPaymentAmount(String(current.amount ?? ""));
+      setPaymentDate(new Date().toISOString().slice(0, 10));
+      // Don't fire celebration yet — wait for confirmPayment()
+    } else {
+      recordOutcome(k);
+      playTick();
+      if (k === "sent") checkAndCelebrate("chase");
+      if (k === "promised") checkAndCelebrate("chase");
+    }
+  };
+
+  const confirmPayment = () => {
+    if (!current) return;
+    const amount = parseFloat(paymentAmount) || current.amount;
+    const payment: PaymentRecord = {
+      paidAt: paymentDate,
+      paidAmount: amount,
+      paidMethod: paymentMethod,
+      paidReference: paymentRef.trim() || undefined,
+    };
+    recordPayment(current.id, payment);
+    recordOutcome("paid");
+    playSuccess();
+    checkAndCelebrate("paid");
   };
 
   // Width strategy:
@@ -437,9 +482,26 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               <div className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate mt-0.5">
                 {current.customerName}
               </div>
-              <div className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                {current.invoiceNumber} · {formatCurrency(current.amount)}
-                {current.daysOverdue > 0 ? ` · ${current.daysOverdue}d overdue` : ""}
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
+                  {current.invoiceNumber} · {formatCurrency(current.amount)}
+                  {current.daysOverdue > 0 ? ` · ${current.daysOverdue}d overdue` : ""}
+                </span>
+                {current.customerId && (
+                  <Link
+                    href={`/customers/${current.customerId}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
+                    style={{
+                      background: "var(--zn-surface-2)",
+                      border: "1px solid var(--zn-line-soft)",
+                      color: "var(--zn-ink-2)",
+                    }}
+                    title="View customer profile"
+                  >
+                    <User className="size-2.5" />
+                    Customer
+                  </Link>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -606,6 +668,31 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               </div>
             </div>
 
+            {/* Statement link — shown only when statement scenario is active */}
+            {scenario === "statement" && current.customerId && (
+              <Link
+                href={`/customers/${current.customerId}/statement`}
+                className="flex items-center justify-between gap-3 rounded-[10px] px-3.5 py-3 transition-opacity hover:opacity-80"
+                style={{
+                  background: "var(--zn-surface-2)",
+                  border: "1px solid var(--zn-line)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="size-4 flex-shrink-0" style={{ color: "var(--zn-ink-2)" }} />
+                  <div>
+                    <p className="text-[13px] font-medium" style={{ color: "var(--zn-ink)" }}>
+                      View &amp; print statement
+                    </p>
+                    <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                      Open the printable statement — copy the link or save as PDF to attach
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-ink-3)" }} />
+              </Link>
+            )}
+
             {/* Draft message */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -652,36 +739,72 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                 </div>
               )}
               {scenario !== "hold" ? (
-                <div className="flex items-center gap-2 mt-2.5">
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="zn-pill flex-1 justify-center"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="size-3.5" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" /> Copy message
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="zn-pill zn-pill-ghost"
-                    onClick={() => {
-                      if (!current) return;
-                      const t = templateFor(scenario, current, tone);
-                      setSubject(t.subject);
-                      setBody(t.body);
-                    }}
-                  >
-                    <Sparkles className="size-3.5" /> Regenerate
-                  </button>
+                <div className="flex flex-col gap-2 mt-2.5">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="zn-pill flex-1 justify-center"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="size-3.5" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" /> Copy message
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="zn-pill zn-pill-ghost"
+                      onClick={() => {
+                        if (!current) return;
+                        const t = templateFor(scenario, current, tone);
+                        setSubject(t.subject);
+                        setBody(t.body);
+                      }}
+                    >
+                      <Sparkles className="size-3.5" /> Regenerate
+                    </button>
+                  </div>
+                  {/* Open draft in email client */}
+                  {(subject || body) && (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`mailto:${current?.customerEmail ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="zn-pill zn-pill-ghost flex-1 justify-center text-[12px]"
+                        title="Opens your default mail app with this draft pre-filled"
+                      >
+                        <Mail className="size-3.5" /> Open in mail app
+                      </a>
+                      <a
+                        href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(current?.customerEmail ?? "")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="zn-pill zn-pill-ghost flex-1 justify-center text-[12px]"
+                        title="Opens Gmail in a new tab with this draft pre-filled"
+                      >
+                        <ExternalLink className="size-3.5" /> Open in Gmail
+                      </a>
+                    </div>
+                  )}
                 </div>
               ) : null}
+
+              {/* Payment link — inject a Stripe pay-now URL into the draft */}
+              {current && ["reminder", "ask_date", "pre_action"].includes(scenario) && (
+                <PaymentLinkButton
+                  invoiceRef={current.invoiceNumber ?? "INV"}
+                  clientName={current.customerName}
+                  amountOutstanding={(current as unknown as { amountOutstanding?: number }).amountOutstanding ?? current.amount ?? 0}
+                  currency="gbp"
+                  onInsert={(url) => setBody((b) => `${b}\n\nPay online: ${url}`)}
+                />
+              )}
             </div>
 
             {/* Outcome */}
@@ -695,7 +818,7 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                       key={k}
                       type="button"
                       onClick={() => handleOutcome(k)}
-                      className="zn-pill"
+                      className="zn-pill active:scale-95 transition-transform"
                       style={{
                         height: 28,
                         fontSize: 12,
@@ -710,9 +833,78 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                   );
                 })}
               </div>
-              {outcome ? (
+              {outcome === "paid" ? (
+                <div
+                  className="mt-3 rounded-xl p-3 flex flex-col gap-2"
+                  style={{ background: "var(--zn-safe-soft)", border: "1px solid var(--zn-safe)" }}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--zn-safe)" }}>
+                    Confirm payment details
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[10.5px] font-medium block mb-1" style={{ color: "var(--zn-ink-3)" }}>Date received</span>
+                      <input
+                        type="date"
+                        value={paymentDate}
+                        onChange={(e) => setPaymentDate(e.target.value)}
+                        className="w-full rounded-lg border px-2 py-1.5 text-[12.5px] outline-none"
+                        style={{ background: "var(--zn-surface)", borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10.5px] font-medium block mb-1" style={{ color: "var(--zn-ink-3)" }}>Amount received</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        className="w-full rounded-lg border px-2 py-1.5 text-[12.5px] outline-none"
+                        style={{ background: "var(--zn-surface)", borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[10.5px] font-medium block mb-1" style={{ color: "var(--zn-ink-3)" }}>Method</span>
+                      <select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value as PaymentRecord["paidMethod"])}
+                        className="w-full rounded-lg border px-2 py-1.5 text-[12.5px] outline-none"
+                        style={{ background: "var(--zn-surface)", borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
+                      >
+                        <option value="bank_transfer">Bank transfer</option>
+                        <option value="card">Card</option>
+                        <option value="direct_debit">Direct debit</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="cash">Cash</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-[10.5px] font-medium block mb-1" style={{ color: "var(--zn-ink-3)" }}>Reference (optional)</span>
+                      <input
+                        type="text"
+                        value={paymentRef}
+                        onChange={(e) => setPaymentRef(e.target.value)}
+                        placeholder="e.g. BACS ref"
+                        className="w-full rounded-lg border px-2 py-1.5 text-[12.5px] outline-none"
+                        style={{ background: "var(--zn-surface)", borderColor: "var(--zn-line)", color: "var(--zn-ink)" }}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={confirmPayment}
+                    className="zn-pill w-full justify-center active:scale-95 transition-transform"
+                    style={{ background: "var(--zn-safe)", color: "#fff" }}
+                  >
+                    <Check className="size-3.5" /> Confirm payment received
+                  </button>
+                </div>
+              ) : outcome ? (
                 <div className="text-[11.5px] mt-2" style={{ color: "var(--zn-ink-3)" }}>
-                  Logged · would appear in activity timeline (demo)
+                  Outcome logged
                 </div>
               ) : null}
             </div>

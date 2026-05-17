@@ -27,7 +27,7 @@ export function PortfolioGate() {
     return <DemoPortfolio />;
   }
 
-  const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+  const bookkeeperPlanIds = ["bookkeeper_starter", "bookkeeper_pro"];
   if (bookkeeperPlanIds.includes(account.planId)) {
     return <LiveBookkeeperPortfolio />;
   }
@@ -157,7 +157,7 @@ function LivePortfolio() {
   ];
 
   const planId = account?.planId ?? "TRIAL";
-  const bookkeeperPlans = ["FOUNDING_BOOKKEEPER", "BOOKKEEPER_STARTER", "BOOKKEEPER_PRO"] as const;
+  const bookkeeperPlans = ["BOOKKEEPER_STARTER", "BOOKKEEPER_PRO"] as const;
   const isBookkeeper = (bookkeeperPlans as readonly string[]).includes(planId);
 
   return (

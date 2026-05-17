@@ -18,13 +18,13 @@ import { Button } from "@/components/ui/button";
 // ── CTA definitions ───────────────────────────────────────────────────────────
 
 const TRIAL_CTA = {
-  href: "/request-access",
+  href: "/onboarding",
   label: "Start 14-day trial",
 };
 
 const BOOKKEEPER_CTA = {
-  href: "/request-access?type=bookkeeper",
-  label: "Request bookkeeper beta",
+  href: "/pricing#bookkeeper",
+  label: "Bookkeeper plans",
 };
 
 const PRICING_CTA = {

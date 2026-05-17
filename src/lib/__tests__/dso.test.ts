@@ -171,8 +171,7 @@ describe("computeDSO — defensiveness", () => {
   it("ignores invoices with no date", () => {
     const r = computeDSO(
       [
-        // @ts-expect-error — testing defensive behaviour
-        { amount: 1000, amountOutstanding: 1000, status: "Overdue" },
+        { amount: 1000, amountOutstanding: 1000, status: "Overdue" } as never,
       ],
       NOW,
     );

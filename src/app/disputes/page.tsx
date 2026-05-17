@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { ShieldAlert } from "lucide-react";
-import { DisputeActions } from "@/components/dispute-actions";
+import { DisputeWorkflow } from "@/components/dispute-workflow";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { getDisputes, type DisputeRow } from "@/lib/api/db";
 import { formatCurrency } from "@/lib/formatters";
@@ -95,7 +95,7 @@ export default async function DisputesPage() {
                 {d.note || "No notes recorded."}
               </div>
 
-              <DisputeActions
+              <DisputeWorkflow
                 disputeId={d.id}
                 customerName={d.customerName}
                 invoiceRef={d.invoiceNumber}

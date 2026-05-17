@@ -9,12 +9,17 @@ import {
   readActiveClientId,
   clientInvoicesKey,
 } from "@/lib/bookkeeper-clients";
+import {
+  INVOICE_CHANGE_EVENT,
+  patchInvoice,
+  outcomeToCollectionStatus,
+} from "@/lib/invoice-store";
 import type { Invoice } from "@/types/cashpilot";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 
 /** Returns the correct invoice storage key for the current user/workspace. */
 function resolveInvoiceKey(planId: string): string {
@@ -73,10 +78,12 @@ function cashpilotStatusToZentra(status: string | null): string {
 }
 
 /**
- * Persist a status change triggered by the review drawer back to localStorage.
+ * Persist a status change triggered by the review drawer back to localStorage,
+ * then dispatch INVOICE_CHANGE_EVENT so P&L, Tax, Aged Debt update instantly.
+ *
  * Demo users → write cashpilot Invoice[] to demoInvoiceStateStorageKey.
- * Real users → update zentra Invoice status in the correct key (client-specific
- *              for bookkeeper users with an active client selected).
+ * Real users → patchInvoice() from the unified store (handles key resolution
+ *              and event dispatch automatically).
  */
 function persistStatusChange(invoiceId: string, nextStatus: string | null) {
   if (typeof window === "undefined") return;
@@ -84,7 +91,7 @@ function persistStatusChange(invoiceId: string, nextStatus: string | null) {
   const isDemo = localAccount?.planId === "demo";
 
   if (isDemo) {
-    // Demo: persist the full cashpilot array (status is already cashpilot format)
+    // Demo: persist cashpilot status format, then notify other areas
     const key = demoInvoiceStateStorageKey;
     const stored = localStorage.getItem(key);
     const invoices = stored
@@ -95,22 +102,16 @@ function persistStatusChange(invoiceId: string, nextStatus: string | null) {
         ? { ...inv, status: nextStatus as Invoice["status"] }
         : inv,
     );
-    try { localStorage.setItem(key, JSON.stringify(updated)); } catch { /* quota */ }
-  } else {
-    // Real user: update zentra Invoice status in the correct key
-    const key = resolveInvoiceKey(localAccount?.planId ?? "");
-    const stored = localStorage.getItem(key);
-    if (!stored) return;
     try {
-      const invoices = JSON.parse(stored) as ZentraInvoice[];
-      const zentraStatus = cashpilotStatusToZentra(nextStatus);
-      const updated = invoices.map((inv) =>
-        inv.id === invoiceId
-          ? { ...inv, status: zentraStatus as ZentraInvoice["status"] }
-          : inv,
-      );
       localStorage.setItem(key, JSON.stringify(updated));
-    } catch { /* quota or parse */ }
+      window.dispatchEvent(new CustomEvent(INVOICE_CHANGE_EVENT));
+    } catch { /* quota */ }
+  } else {
+    // Real user: go through the store so the event fires automatically
+    const zentraStatus = outcomeToCollectionStatus(
+      cashpilotStatusToZentra(nextStatus),
+    ) ?? (cashpilotStatusToZentra(nextStatus) as ZentraInvoice["status"]);
+    patchInvoice(invoiceId, { status: zentraStatus as ZentraInvoice["status"] });
   }
 }
 

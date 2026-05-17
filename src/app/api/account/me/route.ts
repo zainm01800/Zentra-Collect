@@ -7,9 +7,12 @@ import type { PlanId, AccountType, SubscriptionStatus } from "@/lib/billing/plan
 const centralToLegacyPlan: Record<string, PlanId> = {
   DEMO: "demo",
   TRIAL: "trial",
+  TRADER: "trader",
+  FREELANCE: "freelance",
   STARTER_SOLO: "starter_solo",
-  FOUNDING_SINGLE: "founding_single_business",
-  FOUNDING_BOOKKEEPER: "founding_bookkeeper",
+  // Legacy founding plans — map to their equivalent non-founding plans
+  FOUNDING_SINGLE: "single_business",
+  FOUNDING_BOOKKEEPER: "bookkeeper_starter",
   SINGLE_BUSINESS: "single_business",
   BOOKKEEPER_STARTER: "bookkeeper_starter",
   BOOKKEEPER_PRO: "bookkeeper_pro",
@@ -18,9 +21,11 @@ const centralToLegacyPlan: Record<string, PlanId> = {
 const centralToAccountType: Record<string, AccountType> = {
   DEMO: "demo",
   TRIAL: "trial",
+  TRADER: "paid",
+  FREELANCE: "paid",
   STARTER_SOLO: "paid",
-  FOUNDING_SINGLE: "founding",
-  FOUNDING_BOOKKEEPER: "founding",
+  FOUNDING_SINGLE: "paid",
+  FOUNDING_BOOKKEEPER: "paid",
   SINGLE_BUSINESS: "paid",
   BOOKKEEPER_STARTER: "paid",
   BOOKKEEPER_PRO: "paid",

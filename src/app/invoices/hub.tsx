@@ -18,44 +18,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpFromLine, Plus, Search } from "lucide-react";
+import { ArrowUpFromLine, Plus, Search, Landmark } from "lucide-react";
 import { NewInvoiceForm } from "@/app/invoices/new/form";
-import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
-import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients";
-import { readLocalAccount } from "@/lib/demo-auth";
-import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
+import { readInvoices, subscribeToInvoiceChanges } from "@/lib/invoice-store";
+import { RecurringInvoices } from "@/components/recurring-invoices";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
-
 type Tab = "open" | "paid" | "drafts";
-
-function resolveInvoiceKey(planId: string): string {
-  if (BOOKKEEPER_PLAN_IDS.includes(planId)) {
-    const id = readActiveClientId();
-    if (id && id !== "all") return clientInvoicesKey(id);
-  }
-  return importedInvoicesStorageKey;
-}
-
-function readInvoices(): ZentraInvoice[] {
-  if (typeof window === "undefined") return [];
-  const account = readLocalAccount();
-  const isDemo = account?.planId === "demo";
-  const key = resolveInvoiceKey(account?.planId ?? "");
-  const raw = window.localStorage.getItem(key);
-  if (!raw) {
-    return isDemo ? (demoInvoices as unknown as ZentraInvoice[]) : [];
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length
-      ? parsed
-      : (isDemo ? (demoInvoices as unknown as ZentraInvoice[]) : []);
-  } catch {
-    return [];
-  }
-}
 
 function fmtGBP(n: number): string {
   return new Intl.NumberFormat("en-GB", {
@@ -95,7 +64,8 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
   const [creating, setCreating] = useState(Boolean(openCreate));
 
   useEffect(() => {
-    setInvoices(readInvoices());
+    setInvoices(readInvoices() as ZentraInvoice[]);
+    return subscribeToInvoiceChanges(() => setInvoices(readInvoices() as ZentraInvoice[]));
   }, []);
 
   const groups = useMemo(() => {
@@ -213,6 +183,34 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
           );
         })}
       </div>
+
+      {/* Recurring invoice templates */}
+      <RecurringInvoices />
+
+      {/* Bank matching prompt — shown on open tab when overdue invoices exist */}
+      {tab === "open" && groups.open.some((inv) => (inv.daysOverdue ?? 0) > 0) && (
+        <Link
+          href="/banking"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 transition-colors hover:opacity-90"
+          style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+        >
+          <div
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: "var(--zn-surface)", color: "var(--zn-ink-2)" }}
+          >
+            <Landmark className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              Match bank payments to invoices
+            </p>
+            <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+              Connect your bank or upload a statement CSV to auto-identify which invoices have been paid.
+            </p>
+          </div>
+          <span className="text-[12px] shrink-0" style={{ color: "var(--zn-ink-3)" }}>Go →</span>
+        </Link>
+      )}
 
       {/* List */}
       {filtered.length === 0 ? (

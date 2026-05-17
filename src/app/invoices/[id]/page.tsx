@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, Mail, User } from "lucide-react";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { getInvoiceUrgency, getSuggestedAction } from "@/lib/invoice-logic";
+import { InvoiceTeamPanel } from "@/components/invoice-team-panel";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Invoice" };
@@ -244,6 +245,9 @@ export default async function InvoicePage({
             )}
           </div>
         </div>
+
+        {/* Team panel */}
+        <InvoiceTeamPanel invoiceId={invoice.id} />
 
         {/* Customer link */}
         <div className="flex justify-start">

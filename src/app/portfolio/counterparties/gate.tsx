@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { CounterpartyGraphView } from "@/components/counterparty-graph";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro", "demo"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro", "demo"];
 
 export function CounterpartiesGate() {
   const { account } = useLocalAccount();

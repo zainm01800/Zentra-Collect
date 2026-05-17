@@ -5,7 +5,7 @@
  * modules they care about — sidebar nav and dashboard widgets configure
  * themselves from the enabled set. Some modules are gated to higher plan tiers.
  *
- * Collections is the core product and cannot be disabled.
+ * Collections is the core product and cannot be disabled on plans that include it.
  */
 
 import type { PlanId } from "@/lib/billing/plans";
@@ -39,7 +39,7 @@ export const MODULES: Record<ModuleKey, ModuleConfig> = {
     label: "Collections",
     description: "Chase overdue invoices, manage promises and disputes.",
     navHrefs: ["/chase-today", "/customers", "/promises", "/disputes"],
-    requiredPlan: null,
+    requiredPlan: "freelance",  // Trader plan cannot access collections
     alwaysOn: false,
   },
   cashflow: {
@@ -53,9 +53,9 @@ export const MODULES: Record<ModuleKey, ModuleConfig> = {
   expenses: {
     key: "expenses",
     label: "Expenses",
-    description: "Track and categorise business expenses.",
-    navHrefs: ["/expenses"],
-    requiredPlan: "single_business",
+    description: "Track and categorise business expenses. Includes Bills and P&L.",
+    navHrefs: ["/expenses", "/bills", "/pl"],
+    requiredPlan: "trader",  // Available from Trader plan upwards
     alwaysOn: false,
   },
   tax: {
@@ -63,15 +63,15 @@ export const MODULES: Record<ModuleKey, ModuleConfig> = {
     label: "Tax & MTD",
     description: "Tax reserve, MTD compliance, and aged debt tracking.",
     navHrefs: ["/tax", "/mtd", "/aged-debt"],
-    requiredPlan: "single_business",
+    requiredPlan: "trader",  // Available from Trader plan upwards
     alwaysOn: false,
   },
   reports: {
     key: "reports",
     label: "Reports",
     description: "Monthly snapshots and year-end summaries.",
-    navHrefs: [], // /reports is now part of the core collections nav
-    requiredPlan: "bookkeeper_starter",
+    navHrefs: ["/reports"],
+    requiredPlan: null,
     alwaysOn: false,
   },
 };
@@ -136,16 +136,20 @@ export const PERSONAS: Persona[] = [
 
 /**
  * Plan rank for tier comparisons. Higher = more capability.
+ * Trader (£5) is the entry paid tier; it gets books but not collections.
+ * Freelance (£14) adds collections (template, no AI).
+ * Solo (£29) adds AI drafts.
+ * Business (£59) adds auto-send + integrations.
  */
 const PLAN_RANK: Record<PlanId, number> = {
   demo:                       0,
   trial:                      1,
-  starter_solo:               1,
-  founding_single_business:   2,
-  single_business:            2,
-  founding_bookkeeper:        3,
-  bookkeeper_starter:         3,
-  bookkeeper_pro:             4,
+  trader:                     2,
+  freelance:                  3,
+  starter_solo:               4,
+  single_business:            5,
+  bookkeeper_starter:         6,
+  bookkeeper_pro:             7,
 };
 
 /**
@@ -167,11 +171,17 @@ export function planUnlocksModule(planId: PlanId | undefined, key: ModuleKey): b
  */
 export function defaultModulesForPlan(planId: PlanId | undefined): Record<ModuleKey, boolean> {
   if (!planId) return moduleSet("collections");
-  if (planId.startsWith("bookkeeper") || planId === "founding_bookkeeper") {
-    return PERSONAS[4].modules; // Everything (collections + cashflow + expenses + tax + reports)
+  if (planId === "trader") {
+    return moduleSet("cashflow", "expenses", "tax");
   }
-  if (planId === "single_business" || planId === "founding_single_business") {
-    return PERSONAS[3].modules; // Solo (collections + cashflow + tax)
+  if (planId === "freelance") {
+    return moduleSet("collections", "cashflow", "expenses", "tax");
   }
-  return moduleSet("collections"); // Collections only for demo/trial/starter
+  if (planId === "starter_solo") {
+    return moduleSet("collections", "cashflow", "expenses", "tax");
+  }
+  if (planId.startsWith("bookkeeper") || planId === "single_business") {
+    return PERSONAS[4].modules; // Everything
+  }
+  return moduleSet("collections"); // Demo/trial: collections only
 }

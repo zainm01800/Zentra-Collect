@@ -11,15 +11,13 @@ export type PlanId =
   | "trader"
   | "freelance"
   | "starter_solo"
-  | "founding_single_business"
-  | "founding_bookkeeper"
   | "single_business"
   | "bookkeeper_starter"
   | "bookkeeper_pro";
 
 export type PlanTier = "free" | "trial" | "paid";
 
-export type AccountType = "demo" | "trial" | "founding" | "paid";
+export type AccountType = "demo" | "trial" | "paid";
 
 export type SubscriptionStatus =
   | "demo"
@@ -100,8 +98,6 @@ const centralPlanMap: Record<PlanId, CentralPlanId> = {
   trader: "TRADER",
   freelance: "FREELANCE",
   starter_solo: "STARTER_SOLO",
-  founding_single_business: "FOUNDING_SINGLE",
-  founding_bookkeeper: "FOUNDING_BOOKKEEPER",
   single_business: "SINGLE_BUSINESS",
   bookkeeper_starter: "BOOKKEEPER_STARTER",
   bookkeeper_pro: "BOOKKEEPER_PRO",
@@ -119,9 +115,7 @@ export function getPlan(planId: PlanId): Plan {
       ? "demo"
       : planId === "trial"
         ? "trial"
-        : planId.startsWith("founding")
-          ? "founding"
-          : "paid";
+        : "paid";
 
   const price = central.priceMonthlyGbp;
   const priceDisplay = price === 0 ? "£0" : `£${price}`;
@@ -145,24 +139,20 @@ export function getPlan(planId: PlanId): Plan {
     trader: "For UK sole traders under £90k — cheaper than Sage.",
     freelance: "For freelancers sending 5–15 invoices a month.",
     starter_solo: "For sole traders with a small invoice book.",
-    founding_single_business: "Founding price for a single business.",
-    founding_bookkeeper: "Founding price for bookkeepers.",
     single_business: "Standard plan for one business.",
     bookkeeper_starter: "Manage up to 5 client ledgers.",
     bookkeeper_pro: "Advanced features for large portfolios.",
   };
 
   const featuresMap: Record<PlanId, string[]> = {
-    demo: ["Sample invoices only", "3 AI drafts included", "Ranked chase plan"],
-    trial: ["Real invoice exports", "25 AI actions", "Full decision engine"],
-    trader: ["15 active invoices", "Customer payment portal", "Statutory interest auto-applied", "Tax estimate (coming soon)"],
-    freelance: ["20 active invoices", "30 AI actions/mo", "Customer payment portal", "Pairs with Sage/FreeAgent/Xero"],
-    starter_solo: ["50 active invoices", "75 AI actions/mo", "5 imports/month"],
-    founding_single_business: ["500 active invoices", "150 AI actions/mo", "Price locked for 12mo"],
-    founding_bookkeeper: ["1,500 active invoices", "300 AI actions/mo", "Up to 5 client ledgers"],
-    single_business: ["500 active invoices", "200 AI actions/mo", "Saved import templates"],
-    bookkeeper_starter: ["2,000 active invoices", "500 AI actions/mo", "Up to 5 client ledgers"],
-    bookkeeper_pro: ["7,500 active invoices", "1,500 AI actions/mo", "Up to 20 client ledgers"],
+    demo: ["Sample data only", "3 AI draft previews", "Full UI exploration"],
+    trial: ["Real invoice imports", "25 AI actions", "Full feature access for 14 days"],
+    trader: ["Bank statement import", "Expense categorisation", "Tax estimate", "No invoice chasing", "No AI drafts"],
+    freelance: ["Invoice chasing", "Template chase emails", "Bank feed + expenses + tax", "No AI drafts"],
+    starter_solo: ["Full collections workflow", "AI draft emails", "Dispute & promise tracking", "50 AI actions/mo"],
+    single_business: ["Everything in Solo", "Auto-send emails", "Xero / QuickBooks / GoCardless", "200 AI actions/mo"],
+    bookkeeper_starter: ["Up to 5 client ledgers", "Auto-send emails", "Accounting integrations", "500 AI actions/mo"],
+    bookkeeper_pro: ["Up to 20 client ledgers", "Auto-send emails", "Accounting integrations", "1,500 AI actions/mo"],
   };
 
   return {
@@ -216,11 +206,9 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: "Unlimited (sample)",
       trial: "100",
-      trader: "15",
-      freelance: "20",
-      starter_solo: "50",
-      founding_single_business: "500",
-      founding_bookkeeper: "1,500",
+      trader: "50",
+      freelance: "100",
+      starter_solo: "200",
       single_business: "500",
       bookkeeper_starter: "2,000",
       bookkeeper_pro: "7,500",
@@ -234,8 +222,6 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       trader: 1,
       freelance: 1,
       starter_solo: 1,
-      founding_single_business: 1,
-      founding_bookkeeper: 5,
       single_business: 1,
       bookkeeper_starter: 5,
       bookkeeper_pro: 20,
@@ -246,14 +232,64 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 3,
       trial: 25,
-      trader: 15,
-      freelance: 30,
-      starter_solo: 75,
-      founding_single_business: 150,
-      founding_bookkeeper: 300,
+      trader: 0,
+      freelance: 0,
+      starter_solo: 50,
       single_business: 200,
       bookkeeper_starter: 500,
       bookkeeper_pro: "1,500",
+    },
+  },
+  {
+    label: "Invoice chasing",
+    values: {
+      demo: false,
+      trial: true,
+      trader: false,
+      freelance: true,
+      starter_solo: true,
+      single_business: true,
+      bookkeeper_starter: true,
+      bookkeeper_pro: true,
+    },
+  },
+  {
+    label: "AI draft emails",
+    values: {
+      demo: false,
+      trial: true,
+      trader: false,
+      freelance: false,
+      starter_solo: true,
+      single_business: true,
+      bookkeeper_starter: true,
+      bookkeeper_pro: true,
+    },
+  },
+  {
+    label: "Auto-send emails",
+    values: {
+      demo: false,
+      trial: false,
+      trader: false,
+      freelance: false,
+      starter_solo: false,
+      single_business: true,
+      bookkeeper_starter: true,
+      bookkeeper_pro: true,
+    },
+  },
+  {
+    label: "Accounting integrations",
+    values: {
+      demo: false,
+      trial: false,
+      trader: false,
+      freelance: false,
+      starter_solo: false,
+      single_business: true,
+      bookkeeper_starter: true,
+      bookkeeper_pro: true,
     },
   },
   {
@@ -263,9 +299,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       trial: false,
       trader: false,
       freelance: false,
-      starter_solo: false,
-      founding_single_business: true,
-      founding_bookkeeper: true,
+      starter_solo: true,
       single_business: true,
       bookkeeper_starter: true,
       bookkeeper_pro: true,
@@ -276,11 +310,9 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
 export const EVERY_PAID_PLAN_INCLUDES = [
   "Ranked collections plan",
   "Decision-engine explanations",
-  "AI follow-up drafts",
-  "Promise & dispute tracking",
-  "Weekly digest previews",
-  "Custom import mapping",
-  "Historical import comparison",
+  "Bank statement import",
+  "Expense categorisation",
+  "Tax estimate",
   "Human-approval workflow",
 ];
 

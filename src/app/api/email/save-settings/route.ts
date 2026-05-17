@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  createSupabaseServerClient,
+  hasSupabaseServerConfig,
+} from "@/lib/supabase/server";
 import { inferSmtpHost } from "@/lib/email/smtp";
 import { encryptPassword } from "@/lib/email/crypto";
 
@@ -31,6 +35,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Auth check + account resolution ───────────────────────────────────────
+    let resolvedAccountId = accountId; // may be overridden by server-side lookup
+    if (hasSupabaseServerConfig()) {
+      const supabase = await createSupabaseServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+      }
+
+      // Derive the account ID from the authenticated session — don't trust the
+      // client-sent value (which may be the placeholder "local").
+      const { data: membership } = await supabase
+        .from("zentra_account_members")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!membership) {
+        return NextResponse.json({ ok: false, error: "No account found for this user." }, { status: 403 });
+      }
+
+      resolvedAccountId = membership.account_id;
+    }
+
     const { host, port } = inferSmtpHost(email);
     const encryptedPassword = encryptPassword(password);
 
@@ -41,7 +70,7 @@ export async function POST(req: NextRequest) {
         .from("zentra_email_settings")
         .upsert(
           {
-            account_id: accountId,
+            account_id: resolvedAccountId,
             smtp_host: host,
             smtp_port: port,
             smtp_user: email,
@@ -57,7 +86,6 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("[save-settings] upsert failed:", error.message);
-        // Don't fail the request — return ok so client state is still updated
       }
     }
 

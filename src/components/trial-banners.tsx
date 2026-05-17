@@ -99,7 +99,7 @@ export function TrialExpiredBanner({
           size="sm"
           className="rounded-full bg-[#1d1813] text-[#faf5e8] hover:bg-[#3d3428]"
         >
-          <Link href="/request-access">
+          <Link href="/#pricing">
             Upgrade now
             <ArrowRight className="size-3.5" />
           </Link>
@@ -151,7 +151,7 @@ export function GracePeriodExpiredBanner() {
           size="sm"
           className="rounded-full bg-[#1d1813] text-[#faf5e8] hover:bg-[#3d3428]"
         >
-          <Link href="/request-access">
+          <Link href="/#pricing">
             Upgrade to keep data
             <ArrowRight className="size-3.5" />
           </Link>

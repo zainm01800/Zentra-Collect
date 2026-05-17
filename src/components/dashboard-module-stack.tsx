@@ -26,7 +26,6 @@ import { ReportsSnapshot }    from "@/components/snapshots/reports-snapshot";
 import { readWorkspacePrefs, type WorkspacePrefs } from "@/lib/prefs";
 
 import type { FinancialSettings }    from "@/actions/financial-settings";
-import type { SafeToSpendResult }    from "@/lib/finance/safe-to-spend";
 import type { Invoice }              from "@/types/zentra";
 import type {
   TaxSnapshotData,
@@ -37,7 +36,6 @@ import type {
 interface DashboardModuleStackProps {
   // Cash flow data
   financialSettings: FinancialSettings | null;
-  safeToSpendResult?: SafeToSpendResult;
   invoices: Invoice[];
   monthlyIncome: {
     totalThisMonth: number;
@@ -101,7 +99,6 @@ export function DashboardModuleStack(props: DashboardModuleStackProps) {
           <SectionDivider label="Financial position" />
           <FinancialHeader
             financialSettings={props.financialSettings}
-            safeToSpendResult={props.safeToSpendResult}
             invoices={props.invoices}
             monthlyIncome={props.monthlyIncome}
             autoOpenInvoiceForm={props.autoOpenInvoiceForm}

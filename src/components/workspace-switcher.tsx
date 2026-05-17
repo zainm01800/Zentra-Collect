@@ -70,7 +70,7 @@ export function WorkspaceSwitcher() {
     // Check if account has bookkeeper feature
     // We import canAccessBookkeeperMode which takes a BillingAccount
     // For simplicity, check planId directly
-    const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+    const bookkeeperPlanIds = ["bookkeeper_starter", "bookkeeper_pro"];
     if (bookkeeperPlanIds.includes(local.planId)) {
       setMode("live");
       setActiveId(readActiveId());

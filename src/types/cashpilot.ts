@@ -51,6 +51,7 @@ export type LineItem = {
 
 export type Invoice = {
   id: string;
+  customerId?: string;
   customerName: string;
   customerEmail: string;
   invoiceNumber: string;

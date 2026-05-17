@@ -9,7 +9,7 @@
  * 5. Handle notification clicks (notificationclick event)
  */
 
-const CACHE_NAME = "zentra-shell-v3";
+const CACHE_NAME = "zentra-shell-v4";
 
 // App shell — pages that should be available offline or on slow connections.
 // These are the minimal set needed to show the UI; data is always fetched live.
@@ -19,7 +19,6 @@ const SHELL_URLS = [
   "/chase-today",
   "/import",
   "/customers",
-  "/settings",
   "/offline",
   "/manifest.json",
   "/favicon.svg",

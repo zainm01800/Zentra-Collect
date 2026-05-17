@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { checkAndCelebrate } from "@/components/celebration";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -144,7 +145,7 @@ export function ZentraImportFlow() {
       validation.preview.map((p) => ({
         invoiceNumber: p.invoiceNumber ?? "",
         customerName:  p.customerName ?? "",
-        amount:        p.amount ?? 0,
+        amount:        p.amountOutstanding ?? 0,
         invoiceDate:   p.invoiceDate ?? undefined,
       })),
       previous.map((inv: { invoiceNumber: string; customerName: string; amount: number; invoiceDate?: string }) => ({
@@ -348,7 +349,7 @@ export function ZentraImportFlow() {
 
     // If in bookkeeper mode with an active client, also save to that client's
     // dedicated storage keys so the portfolio view can show per-client data.
-    const bookkeeperPlanIds = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+    const bookkeeperPlanIds = ["bookkeeper_starter", "bookkeeper_pro"];
     if (account && bookkeeperPlanIds.includes(account.planId)) {
       const activeClientId = readActiveClientId();
       if (activeClientId && activeClientId !== "all") {
@@ -398,6 +399,7 @@ export function ZentraImportFlow() {
 
     setIsImporting(false);
     setStep("complete");
+    checkAndCelebrate("import");
     router.push(syncFailed ? "/dashboard?import_sync_failed=1" : "/dashboard");
   }
 

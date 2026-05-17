@@ -17,12 +17,14 @@ import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients"
 import { readLocalAccount } from "@/lib/demo-auth";
 import type { Invoice } from "@/types/zentra";
 
-const BOOKKEEPER_PLAN_IDS = ["founding_bookkeeper", "bookkeeper_starter", "bookkeeper_pro"];
+const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
 const EXPENSES_KEY = "zentra.expenses.v1";
 
 interface SimpleExpense {
-  date:   string;
-  amount: number;
+  date:         string;
+  amount:       number;
+  category?:    string;
+  allowability?: string; // "allowable" | "not-allowable" | "review" | undefined
 }
 
 function readInvoicesForCurrentContext(): Invoice[] {
@@ -54,7 +56,8 @@ function readExpenses(): SimpleExpense[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((e) => e && typeof e.date === "string" && typeof e.amount === "number")
-      .map((e) => ({ date: e.date, amount: e.amount }));
+      .filter((e) => e.allowability !== "not-allowable" && e.allowability !== "review")
+      .map((e) => ({ date: e.date, amount: e.amount, category: e.category, allowability: e.allowability }));
   } catch {
     return [];
   }

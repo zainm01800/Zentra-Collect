@@ -75,8 +75,6 @@ const pricingDescriptions: Record<PlanId, string> = {
   TRADER:              "For UK sole traders under £90k — cheaper than Sage, with invoicing, payment portal, and tax estimate.",
   FREELANCE:           "For freelancers sending 5–15 invoices a month — pairs with your accounting tool.",
   STARTER_SOLO:        "For sole traders and micro businesses with a small invoice book.",
-  FOUNDING_SINGLE:     "For one business running a practical chase process.",
-  FOUNDING_BOOKKEEPER: "For bookkeepers managing client ledgers.",
   SINGLE_BUSINESS:     "For one small business running a practical chase process.",
   BOOKKEEPER_STARTER:  "For bookkeepers managing a handful of client ledgers.",
   BOOKKEEPER_PRO:      "For larger client portfolios that need more capacity.",

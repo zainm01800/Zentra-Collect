@@ -258,8 +258,8 @@ export function getRedirectOrUpgradePrompt(
             "No contract — cancel anytime",
           ],
           upgradeTarget: null,
-          ctaPrimary: { text: "Request founding access", href: "/request-access" },
-          ctaSecondary: { text: "View all plans", href: "/pricing" },
+          ctaPrimary: { text: "Upgrade plan", href: "/#pricing" },
+          ctaSecondary: { text: "View all plans", href: "/#pricing" },
         };
       }
       // Demo mode
@@ -274,7 +274,7 @@ export function getRedirectOrUpgradePrompt(
           "Ranked chase plan generated immediately",
         ],
         upgradeTarget: "trial",
-        ctaPrimary: { text: "Start free trial", href: "/request-access" },
+        ctaPrimary: { text: "Start free trial", href: "/#pricing" },
         ctaSecondary: { text: "Learn more", href: "/pricing" },
       };
 
@@ -291,7 +291,7 @@ export function getRedirectOrUpgradePrompt(
           "Ready to share with the business owner",
         ],
         upgradeTarget: "single_business",
-        ctaPrimary: { text: "Request founding access", href: "/request-access" },
+        ctaPrimary: { text: "Upgrade plan", href: "/#pricing" },
         ctaSecondary: { text: "See all plans", href: "/pricing" },
       };
 
@@ -309,7 +309,7 @@ export function getRedirectOrUpgradePrompt(
             "Up to 5 clients on Starter, 20 on Pro",
           ],
           upgradeTarget: "bookkeeper_starter",
-          ctaPrimary: { text: "Request founding access", href: "/request-access" },
+          ctaPrimary: { text: "Upgrade plan", href: "/#pricing" },
           ctaSecondary: { text: "Compare plans", href: "/pricing" },
         };
       }
@@ -326,8 +326,8 @@ export function getRedirectOrUpgradePrompt(
         ],
         upgradeTarget: "bookkeeper_starter",
         ctaPrimary: {
-          text: tier === "free" ? "Start free trial" : "Request founding access",
-          href: "/request-access",
+          text: tier === "free" ? "Start free trial" : "Upgrade plan",
+          href: tier === "free" ? "/onboarding" : "/#pricing",
         },
         ctaSecondary: { text: "See all plans", href: "/pricing" },
       };

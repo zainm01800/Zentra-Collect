@@ -102,10 +102,10 @@ export default function DemoCustomersPage() {
                   {customer.apContactName && (
                     <p className="text-[11.5px] mt-0.5 truncate" style={{ color: "var(--zn-ink-3)" }}>
                       {customer.apContactName}
-                      {customer.apContactEmail && ` · ${customer.apContactEmail}`}
+                      {customer.apEmail && ` · ${customer.apEmail}`}
                     </p>
                   )}
-                  {!customer.apContactEmail && (
+                  {!customer.apEmail && (
                     <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-risk)" }}>
                       No email on file
                     </p>

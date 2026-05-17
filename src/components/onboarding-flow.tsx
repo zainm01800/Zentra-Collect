@@ -5,22 +5,19 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
 import {
   ArrowRight,
+  BookOpen,
+  Briefcase,
   Building2,
   CheckCircle2,
   Clock3,
   FileSpreadsheet,
+  Users2,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   createLocalAccount,
   readPendingIdentity,
@@ -30,6 +27,18 @@ import {
   type PendingIdentity,
 } from "@/lib/demo-auth";
 import type { PlanId } from "@/lib/billing/plans";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type Persona = "freelancer" | "agency" | "bookkeeper" | "sole_trader";
+
+type PersonaOption = {
+  id: Persona;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  suggestedPlan: string;
+};
 
 type Option = {
   type: OnboardingAccountType;
@@ -44,6 +53,10 @@ type Option = {
   points: string[];
 };
 
+type Step = "persona" | "account_type" | "otp";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const fallbackIdentity: PendingIdentity = {
   name: "Alex Chen",
   email: "alex@acmestudio.co.uk",
@@ -51,18 +64,49 @@ const fallbackIdentity: PendingIdentity = {
   createdAt: new Date().toISOString(),
 };
 
+const PERSONA_OPTIONS: PersonaOption[] = [
+  {
+    id: "freelancer",
+    title: "Freelancer / Consultant",
+    subtitle: "I invoice clients directly for my own work",
+    icon: <User className="size-5" />,
+    suggestedPlan: "Starter Solo",
+  },
+  {
+    id: "agency",
+    title: "Agency / Studio",
+    subtitle: "We invoice project clients as a team",
+    icon: <Briefcase className="size-5" />,
+    suggestedPlan: "Business",
+  },
+  {
+    id: "bookkeeper",
+    title: "Bookkeeper",
+    subtitle: "I manage AR for multiple business clients",
+    icon: <BookOpen className="size-5" />,
+    suggestedPlan: "Practice",
+  },
+  {
+    id: "sole_trader",
+    title: "Sole trader",
+    subtitle: "I sell products or services and chase my own invoices",
+    icon: <Users2 className="size-5" />,
+    suggestedPlan: "Freelance",
+  },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function OnboardingFlow() {
   const router = useRouter();
   const initialIdentity =
     typeof window === "undefined" ? fallbackIdentity : readPendingIdentity() ?? fallbackIdentity;
   const [identity] = useState<PendingIdentity>(initialIdentity);
   const [businessName, setBusinessName] = useState(initialIdentity.businessName);
-  const [accountingSoftware] = useState("Xero");
-  const [monthlyInvoiceVolume] = useState("51-100");
-  const [mainArPainPoint] = useState("overdue invoices");
+  const [step, setStep] = useState<Step>("persona");
+  const [persona, setPersona] = useState<Persona | null>(null);
   const [selectedType, setSelectedType] = useState<OnboardingAccountType>("trial");
   const [error, setError] = useState("");
-  const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpEmail, setOtpEmail] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
@@ -75,8 +119,7 @@ export function OnboardingFlow() {
         planId: "demo",
         title: "Explore demo",
         eyebrow: "Sample data",
-        description:
-          "Sample data only, immediate access.",
+        description: "Sample data only, immediate access.",
         cta: "Explore demo",
         icon: <Clock3 className="size-5" />,
         points: [
@@ -90,8 +133,7 @@ export function OnboardingFlow() {
         planId: "trial",
         title: "Start 14-day trial",
         eyebrow: "No card required",
-        description:
-          "No card required. Upload your own AR ageing file.",
+        description: "No card required. Upload your own AR ageing file.",
         cta: "Start 14-day trial",
         icon: <FileSpreadsheet className="size-5" />,
         points: [
@@ -102,11 +144,11 @@ export function OnboardingFlow() {
         ],
       },
       {
-        type: "founding_single_business",
-        planId: "founding_single_business",
+        type: "trial",
+        planId: "single_business",
         title: "Paid plans",
-        eyebrow: "From \u00A324/mo",
-        description: "Starter Solo, Business, and Bookkeeper plans \u2014 pick what fits.",
+        eyebrow: "From £29/mo",
+        description: "Starter Solo, Business, and Bookkeeper plans — pick what fits.",
         cta: "See pricing",
         icon: <Building2 className="size-5" />,
         points: [
@@ -127,13 +169,12 @@ export function OnboardingFlow() {
       selectedPlan: option.planId,
       trialStartedAt: option.type === "trial" ? now : undefined,
       businessName: businessName.trim() || identity.businessName,
-      isBookkeeper: false,
-      accountingSoftware,
-      monthlyInvoiceVolume,
-      mainArPainPoint,
+      isBookkeeper: persona === "bookkeeper",
+      accountingSoftware: "Xero",
+      monthlyInvoiceVolume: "51-100",
+      mainArPainPoint: "overdue invoices",
     });
   }
-
 
   async function chooseOption(option: Option) {
     setError("");
@@ -149,13 +190,12 @@ export function OnboardingFlow() {
       return;
     }
 
-    if (option.type === "founding_single_business") {
+    if (option.cta === "See pricing") {
       router.push("/#pricing");
       return;
     }
 
     if (option.type === "trial") {
-      // If Supabase is configured, send OTP to verify email and create a real account.
       if (hasSupabaseBrowserConfig()) {
         setOtpLoading(true);
         setPendingOption(option);
@@ -167,9 +207,8 @@ export function OnboardingFlow() {
           });
           if (otpError) throw otpError;
           setOtpEmail(identity.email);
-          setOtpStep(true);
+          setStep("otp");
         } catch {
-          // Fall back to localStorage-only trial if OTP fails
           const account = createLocalAccount({ name: identity.name, email: identity.email, businessName, planId: option.planId });
           writeLocalAccount(account);
           router.push("/import");
@@ -178,7 +217,6 @@ export function OnboardingFlow() {
         }
         return;
       }
-      // No Supabase — localStorage-only trial
       const account = createLocalAccount({
         name: identity.name,
         email: identity.email,
@@ -205,7 +243,17 @@ export function OnboardingFlow() {
         type: "email",
       });
       if (verifyError) throw verifyError;
-      // Create localStorage account so existing UI works immediately
+
+      // Create Supabase account rows (idempotent — safe on re-login)
+      await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: businessName.trim() || identity.businessName,
+          planId: pendingOption.planId,
+        }),
+      }).catch(() => {}); // non-fatal — app still works without Supabase rows
+
       const account = createLocalAccount({
         name: identity.name,
         email: identity.email,
@@ -221,8 +269,8 @@ export function OnboardingFlow() {
     }
   }
 
-  // ── OTP verification screen ──────────────────────────────────────────────
-  if (otpStep) {
+  // ── OTP verification screen ────────────────────────────────────────────────
+  if (step === "otp") {
     return (
       <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] flex items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6">
@@ -251,7 +299,7 @@ export function OnboardingFlow() {
               {otpLoading ? "Verifying…" : "Verify & start trial"}
             </Button>
             <button
-              className="w-full text-sm text-[#6b6253] dark:text-[#8a7d69] hover:text-[#1d1813] dark:text-[#f0e8d5]"
+              className="w-full text-sm text-[#6b6253] dark:text-[#8a7d69] hover:text-[#1d1813]"
               onClick={async () => {
                 const supabase = createSupabaseBrowserClient();
                 await supabase.auth.signInWithOtp({ email: otpEmail, options: { shouldCreateUser: true } });
@@ -265,14 +313,87 @@ export function OnboardingFlow() {
     );
   }
 
+  // ── Persona selection ──────────────────────────────────────────────────────
+  if (step === "persona") {
+    return (
+      <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] px-4 py-10 text-neutral-950 dark:text-[#f0e8d5]">
+        <div className="mx-auto max-w-2xl">
+          {/* Header */}
+          <div className="mb-8 space-y-2">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
+              Step 1 of 2
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight">
+              What describes you best?
+            </h1>
+            <p className="text-base text-neutral-600 dark:text-[#8a7d69]">
+              This helps us tailor your experience — no impact on features.
+            </p>
+          </div>
+
+          {/* Persona cards */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PERSONA_OPTIONS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setPersona(p.id);
+                  setStep("account_type");
+                }}
+                className={`group flex items-start gap-4 rounded-2xl border p-5 text-left transition-all hover:border-neutral-400 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${
+                  persona === p.id
+                    ? "border-neutral-950 bg-white dark:bg-[#28231c] shadow-sm"
+                    : "border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#28231c]"
+                }`}
+              >
+                <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#fbf8f1] dark:bg-[#211d17] text-neutral-700 dark:text-[#d8ccb5] group-hover:bg-neutral-100">
+                  {p.icon}
+                </div>
+                <div>
+                  <p className="font-semibold text-neutral-950 dark:text-[#f0e8d5]">{p.title}</p>
+                  <p className="mt-0.5 text-sm text-neutral-500 dark:text-[#8a7d69]">{p.subtitle}</p>
+                  <p className="mt-2 text-xs text-neutral-400 dark:text-[#6b6259]">
+                    Suggested: {p.suggestedPlan}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-neutral-400 dark:text-[#6b6259]">
+            Not sure?{" "}
+            <button
+              className="underline underline-offset-2 hover:text-neutral-600"
+              onClick={() => {
+                setPersona(null);
+                setStep("account_type");
+              }}
+            >
+              Skip this step
+            </button>
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Account type selection ─────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#fbf8f1] dark:bg-[#211d17] px-4 py-10 text-neutral-950 dark:text-[#f0e8d5]">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-6 rounded-[2rem] border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#28231c] p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
-              Account setup
-            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setStep("persona")}
+                className="text-sm text-neutral-500 hover:text-neutral-700 dark:text-[#8a7d69] underline underline-offset-2"
+              >
+                ← Back
+              </button>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-[#8a7d69]">
+                Step 2 of 2
+              </p>
+            </div>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight lg:text-5xl">
               How do you want to start?
             </h1>
@@ -293,17 +414,6 @@ export function OnboardingFlow() {
                 className="rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]"
               />
             </div>
-            <div className="space-y-2 hidden">
-              <Label>Placeholder</Label>
-              <Select value={accountingSoftware}>
-                <SelectTrigger className="rounded-2xl border-black/10 dark:border-white/10 bg-[#fbf8f1] dark:bg-[#211d17]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Xero">Xero</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
 
@@ -316,7 +426,7 @@ export function OnboardingFlow() {
         <div className="mt-6 grid gap-4 lg:grid-cols-4">
           {options.map((option) => (
             <Card
-              key={option.type}
+              key={option.type + option.planId}
               className={`rounded-[1.75rem] border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#28231c] shadow-sm transition ${
                 selectedType === option.type ? "ring-2 ring-neutral-950" : ""
               }`}
@@ -359,8 +469,9 @@ export function OnboardingFlow() {
                 <Button
                   className="mt-auto w-full rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
                   onClick={() => chooseOption(option)}
+                  disabled={otpLoading}
                 >
-                  {option.cta}
+                  {otpLoading && pendingOption?.planId === option.planId ? "Sending…" : option.cta}
                   <ArrowRight className="size-4" />
                 </Button>
               </CardContent>

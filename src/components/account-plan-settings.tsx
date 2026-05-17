@@ -102,18 +102,6 @@ export function AccountPlanSettings() {
                   <TrialCountdownBadge account={account} />
                 </div>
               </div>
-              {plan.priceLockMonths ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2 lg:col-span-4">
-                  <p className="text-sm font-semibold text-emerald-950">
-                    Founding price lock
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-emerald-900">
-                    This plan is marked as a founding plan with a{" "}
-                    {plan.priceLockMonths}-month price lock in internal plan
-                    state.
-                  </p>
-                </div>
-              ) : null}
             </CardContent>
           </Card>
 
@@ -277,9 +265,6 @@ function formatStatus(account: AccountState) {
   if (account.planId === "DEMO") return "demo";
   if (account.planId === "TRIAL") {
     return getTrialState(account) === "active" ? "trial" : "expired";
-  }
-  if (account.planId === "FOUNDING_SINGLE" || account.planId === "FOUNDING_BOOKKEEPER") {
-    return "founding";
   }
   return account.status === "expired" ? "expired" : "active";
 }

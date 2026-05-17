@@ -90,9 +90,7 @@ export async function createServerAccountForUser(input: {
           ? "demo"
           : input.planId === "TRIAL"
             ? "trialing"
-            : plan.priceLockMonths
-              ? "beta"
-              : "active",
+            : "active",
       trial_started_at: input.planId === "TRIAL" ? now.toISOString() : null,
       trial_ends_at: trialEndsAt,
       grace_period_ends_at: gracePeriodEndsAt,

@@ -36,7 +36,7 @@ function actionFor(inv: Invoice): { label: string; color: string; bg: string } {
     case "needs_ap_contact":
       return { label: "Find AP contact", color: "var(--zn-risk)", bg: "var(--zn-risk-soft)" };
     case "overdue":
-      return inv.chaseCount >= 2
+      return inv.previousChaseCount >= 2
         ? { label: "Send firm reminder", color: "var(--zn-risk)", bg: "var(--zn-risk-soft)" }
         : { label: "Send first reminder", color: "var(--zn-warn)", bg: "var(--zn-warn-soft)" };
     case "awaiting_remittance":
