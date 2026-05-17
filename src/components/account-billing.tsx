@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
+  CreditCard,
   Download,
   Loader2,
   Lock,
@@ -415,6 +416,198 @@ function DevPlanSwitcher({ user }: { user: DemoUser }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Stripe portal button ──────────────────────────────────────────────────────
+
+function StripePortalButton() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openPortal() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Could not open billing portal.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Could not open billing portal. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openPortal}
+        disabled={loading}
+        className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
+      >
+        {loading ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <CreditCard className="size-3.5" />
+        )}
+        Manage billing
+        <ArrowRight className="size-3.5 ml-auto" />
+      </Button>
+      {error && (
+        <p className="text-xs text-red-600">{error}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Email add-on checkout button ──────────────────────────────────────────────
+
+function EmailAddonCheckoutButton() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleCheckout() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addonType: "email" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error === "Unauthorized") {
+        window.location.href = "/login?redirect=/settings";
+      } else {
+        setError(data.error ?? "Could not start checkout. Try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleCheckout}
+        disabled={loading}
+        className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
+      >
+        {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Mail className="size-3.5" />}
+        Add email auto-send
+        <ArrowRight className="size-3.5 ml-auto" />
+      </Button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+// ── Account deletion button with confirmation dialog ──────────────────────────
+
+function DeleteAccountButton() {
+  const [phase, setPhase] = useState<"idle" | "confirm" | "deleting" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setPhase("deleting");
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error ?? "Deletion failed. Contact support.");
+        setPhase("error");
+        return;
+      }
+      setPhase("done");
+      // Clear localStorage and redirect after a moment
+      try { localStorage.clear(); } catch { /* ignore */ }
+      setTimeout(() => { window.location.href = "/"; }, 2000);
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+      setPhase("error");
+    }
+  }
+
+  if (phase === "done") {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+        Account deleted. Redirecting…
+      </div>
+    );
+  }
+
+  if (phase === "confirm" || phase === "deleting" || phase === "error") {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 space-y-3">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />
+          <div>
+            <p className="text-sm font-semibold text-red-700">Delete account &amp; all data?</p>
+            <p className="mt-0.5 text-xs leading-5 text-red-600">
+              This permanently deletes your account, invoices, chase history, and email
+              settings. Any active Stripe subscription will be cancelled. This cannot
+              be undone.
+            </p>
+          </div>
+        </div>
+        {errorMsg && (
+          <p className="text-xs font-medium text-red-700">{errorMsg}</p>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setPhase("idle"); setErrorMsg(null); }}
+            disabled={phase === "deleting"}
+            className="flex-1 rounded-lg"
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleDelete}
+            disabled={phase === "deleting"}
+            className="flex-1 rounded-lg bg-red-600 text-white hover:bg-red-700"
+          >
+            {phase === "deleting" ? (
+              <><Loader2 className="size-3.5 animate-spin" /> Deleting…</>
+            ) : (
+              "Yes, delete everything"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setPhase("confirm")}
+      className="w-full justify-start gap-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+    >
+      <Trash2 className="size-3.5" />
+      Delete account &amp; data
+    </Button>
   );
 }
 
@@ -864,7 +1057,7 @@ export function AccountBilling() {
             <p className="text-sm text-neutral-600 dark:text-[#8a7d69]">
               Managing invoices for multiple clients?{" "}
               <Link
-                href="/request-access"
+                href="/#pricing"
                 className="font-medium text-neutral-950 dark:text-[#f0e8d5] underline underline-offset-2 hover:text-neutral-700"
               >
                 Practice — £119/mo
@@ -968,7 +1161,7 @@ export function AccountBilling() {
               </p>
             )}
 
-            {/* Export / delete placeholders */}
+            {/* Export / delete */}
             <div className="border-t border-black/6 pt-3 space-y-2">
               <p className="text-xs font-medium text-neutral-500 dark:text-[#8a7d69]">Account actions</p>
               <Button
@@ -980,18 +1173,7 @@ export function AccountBilling() {
                 <Download className="size-3.5" />
                 Export all data (CSV)
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="w-full justify-start gap-2 rounded-lg text-neutral-400 disabled:opacity-60"
-              >
-                <Trash2 className="size-3.5" />
-                Delete account &amp; data
-                <span className="ml-auto rounded bg-neutral-100 dark:bg-[#28231c] px-1.5 py-0.5 text-[0.65rem] font-medium text-neutral-400">
-                  Coming soon
-                </span>
-              </Button>
+              <DeleteAccountButton />
             </div>
           </CardContent>
         </Card>
@@ -1058,17 +1240,7 @@ export function AccountBilling() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="w-full rounded-full border-black/15 hover:bg-neutral-50 dark:bg-[#211d17]"
-                  >
-                    <Link href="/request-access">
-                      Add email auto-send
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-                  </Button>
+                  <EmailAddonCheckoutButton />
                 </>
               )}
             </CardContent>
@@ -1099,21 +1271,11 @@ export function AccountBilling() {
               </Button>
             )}
 
-            {/* Paid — managed note */}
+            {/* Paid — Stripe portal for self-serve billing management */}
             {snapshot.tier === "paid" && (
-              <div className="flex items-center gap-2.5 rounded-lg bg-neutral-50 dark:bg-[#211d17] px-3.5 py-2.5">
-                <Lock className="size-3.5 shrink-0 text-neutral-400" />
-                <p className="text-xs text-neutral-600 dark:text-[#8a7d69]">
-                  Your billing is managed directly.{" "}
-                  <a href="mailto:hello@zentracollect.co.uk" className="underline underline-offset-2 hover:text-neutral-900">
-                    Email us
-                  </a>{" "}
-                  to make changes to your plan.
-                </p>
-              </div>
+              <StripePortalButton />
             )}
 
-            {/* TODO: Replace with <StripePortalButton accountId={...} /> when Stripe is live */}
             <p className="text-xs text-neutral-400">
               VAT included where applicable · No contract · Cancel anytime
             </p>

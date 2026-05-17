@@ -327,7 +327,7 @@ export function getRedirectOrUpgradePrompt(
         upgradeTarget: "bookkeeper_starter",
         ctaPrimary: {
           text: tier === "free" ? "Start free trial" : "Upgrade plan",
-          href: "/request-access",
+          href: tier === "free" ? "/onboarding" : "/#pricing",
         },
         ctaSecondary: { text: "See all plans", href: "/pricing" },
       };

@@ -10,10 +10,12 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Copy,
   ExternalLink,
+  FileText,
   Flag,
   Link2,
   Mail,
@@ -21,6 +23,7 @@ import {
   Minimize2,
   ShieldCheck,
   Sparkles,
+  User,
   X,
 } from "lucide-react";
 import { PaymentLinkButton } from "@/components/payment-link-button";
@@ -193,10 +196,10 @@ function templateFor(
     }
     case "statement": {
       const opener =
-        tone === "Friendly" ? `Thought it'd be useful to share a statement of your account — currently showing ${amount} outstanding across open invoices.` :
-        tone === "Neutral"  ? `Please find attached a statement of account for ${customer} showing ${amount} outstanding.` :
-        tone === "Firm"     ? `Attached is the statement of account showing ${amount} outstanding. Please review and confirm payment plans for each open item.` :
-                              `Attached is the statement of account showing ${amount} outstanding. Please confirm immediate payment for all overdue items.`;
+        tone === "Friendly" ? `I've put together a statement of your account — currently showing ${amount} outstanding across open invoices. I've linked it below for you to review.` :
+        tone === "Neutral"  ? `Please find the current statement of account for ${customer} linked below, showing ${amount} outstanding.` :
+        tone === "Firm"     ? `I'm sharing the statement of account linked below, showing ${amount} outstanding. Please review and confirm payment plans for each open item.` :
+                              `The statement of account is linked below, showing ${amount} outstanding. Please confirm immediate payment for all overdue items.`;
       return {
         subject: `Statement of account — ${customer}`,
         body:    `${greet}\n\n${opener}\n\nLet me know if anything looks unexpected.\n\n${signoff}`,
@@ -479,9 +482,26 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
               <div className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5] truncate mt-0.5">
                 {current.customerName}
               </div>
-              <div className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                {current.invoiceNumber} · {formatCurrency(current.amount)}
-                {current.daysOverdue > 0 ? ` · ${current.daysOverdue}d overdue` : ""}
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
+                  {current.invoiceNumber} · {formatCurrency(current.amount)}
+                  {current.daysOverdue > 0 ? ` · ${current.daysOverdue}d overdue` : ""}
+                </span>
+                {current.customerId && (
+                  <Link
+                    href={`/customers/${current.customerId}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
+                    style={{
+                      background: "var(--zn-surface-2)",
+                      border: "1px solid var(--zn-line-soft)",
+                      color: "var(--zn-ink-2)",
+                    }}
+                    title="View customer profile"
+                  >
+                    <User className="size-2.5" />
+                    Customer
+                  </Link>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -647,6 +667,31 @@ export function ReviewDrawer({ allInvoices }: { allInvoices: Invoice[] }) {
                 })}
               </div>
             </div>
+
+            {/* Statement link — shown only when statement scenario is active */}
+            {scenario === "statement" && current.customerId && (
+              <Link
+                href={`/customers/${current.customerId}/statement`}
+                className="flex items-center justify-between gap-3 rounded-[10px] px-3.5 py-3 transition-opacity hover:opacity-80"
+                style={{
+                  background: "var(--zn-surface-2)",
+                  border: "1px solid var(--zn-line)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="size-4 flex-shrink-0" style={{ color: "var(--zn-ink-2)" }} />
+                  <div>
+                    <p className="text-[13px] font-medium" style={{ color: "var(--zn-ink)" }}>
+                      View &amp; print statement
+                    </p>
+                    <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                      Open the printable statement — copy the link or save as PDF to attach
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-ink-3)" }} />
+              </Link>
+            )}
 
             {/* Draft message */}
             <div>

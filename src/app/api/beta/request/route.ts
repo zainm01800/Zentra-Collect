@@ -15,6 +15,7 @@ import {
   type WouldPay,
 } from "@/lib/beta/store";
 import { createSupabaseServerClient, hasSupabaseServerConfig } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 
 type RequestBody = Omit<BetaRequest, "id" | "submittedAt">;
 
@@ -57,6 +58,19 @@ const LEDGER_VALUES = [
 ];
 
 export async function POST(request: Request) {
+  // ── IP-based rate limit: 5 requests per hour per IP ──────────────────────
+  const ipLimit = checkRateLimit(request, {
+    namespace: "beta-request-ip",
+    limit: 5,
+    windowMs: 60 * 60_000,
+  });
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   let body: RequestBody;
 
   try {
@@ -147,6 +161,33 @@ export async function POST(request: Request) {
     );
   }
 
+  // ── Email deduplication (1 submission per email per 24 h) ────────────────
+
+  const normalisedEmail = body.email.trim().toLowerCase();
+
+  if (hasSupabaseServerConfig()) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabase
+        .from("zentra_beta_access_requests")
+        .select("id")
+        .eq("email", normalisedEmail)
+        .gte("created_at", since)
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        return NextResponse.json(
+          { success: true, duplicate: true, message: "We already have your details — we'll be in touch soon." },
+          { status: 200 },
+        );
+      }
+    } catch {
+      // Non-fatal — proceed without dedup if the check fails
+    }
+  }
+
   // ── Store ─────────────────────────────────────────────────────────────────
 
   let entryId = `beta-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -208,10 +249,27 @@ export async function POST(request: Request) {
     entryId = entry.id;
   }
 
-  // Server-side log for ops visibility
-  // TODO: Replace with structured observability logging.
+  // ── Ops notification ──────────────────────────────────────────────────────
+  // Structured log — easy to intercept with a log drain (Datadog, Axiom, etc.)
+  // or replace with a Resend call: https://resend.com/docs/send-email
   console.log(
-    `[beta-request] #${entryId} — ${body.name} <${body.email}> | ${body.businessName} | bookkeeper: ${body.isBookkeeper}`,
+    JSON.stringify({
+      event: "beta_request_submitted",
+      id: entryId,
+      name: body.name.trim(),
+      email: normalisedEmail,
+      businessName: body.businessName.trim(),
+      isBookkeeper: body.isBookkeeper,
+      accountingSoftware: body.accountingSoftware,
+      wouldPay: body.wouldPayFoundingPricing,
+      // To add Resend notification:
+      // await resend.emails.send({
+      //   from: "ops@zentracollect.co.uk",
+      //   to: "hello@zentracollect.co.uk",
+      //   subject: `New beta request: ${body.name} — ${body.businessName}`,
+      //   text: `...`,
+      // });
+    }),
   );
 
   return NextResponse.json({ success: true, id: entryId }, { status: 201 });
