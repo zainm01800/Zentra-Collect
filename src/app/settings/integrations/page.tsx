@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { IntegrationCard } from "@/components/integrations/integration-card";
+import { InboundEmailSettings } from "@/components/settings/inbound-email-settings";
 import {
   syncFromXeroAction,
   syncFromQuickBooksAction,
@@ -193,6 +194,17 @@ export default async function IntegrationsPage({
         nothing else. We never modify, void, or send anything back to your accounting system.
         Tokens are encrypted at rest and stored in your Zentra account.
       </p>
+
+      {/* Inbound reply classification */}
+      <div>
+        <p
+          className="text-[10.5px] font-semibold uppercase tracking-[0.16em] mb-3"
+          style={{ color: "var(--zn-ink-3)" }}
+        >
+          Inbound replies
+        </p>
+        <InboundEmailSettings />
+      </div>
     </div>
   );
 }
