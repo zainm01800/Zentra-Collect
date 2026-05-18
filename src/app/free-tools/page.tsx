@@ -4,7 +4,7 @@ import { MarketingNav } from "@/components/marketing-nav";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Free tools for UK businesses — Zentra Collect",
+  title: "Free tools for UK businesses",
   description:
     "Free calculators and letter generators for UK businesses chasing overdue invoices. Statutory interest, late-payment letter, chase email, and DSO calculator. No signup required.",
   alternates: { canonical: "/free-tools" },

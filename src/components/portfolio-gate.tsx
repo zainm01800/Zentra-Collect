@@ -556,7 +556,7 @@ function LiveBookkeeperPortfolio() {
                   <Upload className="size-3.5" /> Import data
                 </Link>
               ) : (
-                <Link href="/chase-plan" className="zn-pill zn-pill-ghost w-full justify-center">
+                <Link href="/chase-today" className="zn-pill zn-pill-ghost w-full justify-center">
                   Open chase plan <ArrowRight className="size-3.5" />
                 </Link>
               )}

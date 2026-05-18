@@ -22,6 +22,15 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      // CB-1: Legacy route renamed to /chase-today. Several internal
+      // links (push notifications, portfolio quick actions) still
+      // pointed at /chase-plan, which 404'd. Keep this until every
+      // surface is migrated, then remove.
+      { source: "/chase-plan", destination: "/chase-today", permanent: true },
+    ];
+  },
 };
 
 // Wrap with Sentry. When SENTRY env vars are absent, this is a no-op

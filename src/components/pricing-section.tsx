@@ -52,13 +52,20 @@ function getPricingBullets(planId: PlanId) {
     ];
   }
 
+  // UX-6/pricing: "0 AI actions / month" made plans look broken.
+  // Replace with a positive, accurate description.
+  const aiLabel =
+    aiActions === 0
+      ? "Template chases — no AI drafts"
+      : `${formatLimit(aiActions as number | "unlimited")} AI actions / month`;
+
   return [
     plan.features.bookkeeperMode
       ? `Up to ${formatLimit(clientLedgers as number | "unlimited")} client ledgers`
       : `1 business`,
     `${activeInvoices} active invoices`,
     `${formatLimit(imports as number | "unlimited")} imports / month`,
-    `${formatLimit(aiActions as number | "unlimited")} AI actions / month`,
+    aiLabel,
     "Weekly digest preview",
   ];
 }

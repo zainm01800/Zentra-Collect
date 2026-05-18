@@ -106,6 +106,7 @@ const faqs = [
 export default function Home() {
   return (
     <main
+      id="main-content"
       className="min-h-screen relative z-[1]"
       style={{ background: "var(--zn-bg)", color: "var(--zn-ink)" }}
     >

@@ -49,9 +49,11 @@ import {
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import type { Invoice } from "@/types/zentra";
 
-const ADMIN_EMAILS = [
-  process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL,
-].filter(Boolean) as string[];
+// CB-9: support comma-separated list, lower-cased, trimmed.
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ZENTRA_ADMIN_EMAIL ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /** Set this key in localStorage to pause AccountSync and keep a local plan override. */
 const DEV_PLAN_OVERRIDE_KEY = "zentra.devPlanOverride.v1";
@@ -293,9 +295,25 @@ function DevPlanSwitcher({ user }: { user: DemoUser }) {
   const [open, setOpen] = useState(false);
   const [applied, setApplied] = useState<string | null>(null);
 
+  // UX-10: warn when switching to a lower-tier plan with stricter limits.
+  // No-op for upgrades or same-tier moves.
+  const PLAN_ORDER: PlanId[] = [
+    "demo", "trial", "trader", "freelance",
+    "starter_solo", "single_business", "bookkeeper_starter", "bookkeeper_pro",
+  ];
   function switchToPlan(planId: PlanId) {
     const plan = getPlan(planId);
     const now = new Date();
+
+    const currentIdx = PLAN_ORDER.indexOf(user.planId);
+    const targetIdx  = PLAN_ORDER.indexOf(planId);
+    if (currentIdx >= 0 && targetIdx >= 0 && targetIdx < currentIdx) {
+      const ok = window.confirm(
+        `Downgrade to ${plan.name}?\n\n` +
+        `You'll lose access to features and capacity that the higher plan included — including any client ledgers above the new cap. Existing data isn't deleted, but it may be hidden until you upgrade again.`
+      );
+      if (!ok) return;
+    }
 
     const isTrial = plan.tier === "trial";
     const isDemo  = plan.tier === "free";
@@ -1286,7 +1304,7 @@ export function AccountBilling() {
       </div>
 
       {/* ── Dev plan switcher — admin only ───────────────────────────────────── */}
-      {user && ADMIN_EMAILS.includes(user.email) && (
+      {user && ADMIN_EMAILS.includes((user.email ?? "").toLowerCase()) && (
         <div className="lg:col-span-2">
           <DevPlanSwitcher user={user} />
         </div>

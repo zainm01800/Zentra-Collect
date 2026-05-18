@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, FileUp, Plug, Plus } from "lucide-react";
+import { saveOnboardingBusinessNameAction } from "@/actions/account";
 
 const WORKSPACE_KEY = "zn:workspace:v1";
 const LEGACY_KEY    = "zn:onboarded:v1";
@@ -44,13 +45,18 @@ export function FirstRunOnboarding() {
     setShow(true);
   }, []);
 
-  function advanceToStep2() {
+  async function advanceToStep2() {
     if (!businessName.trim()) {
       setNameError(true);
       return;
     }
     setNameError(false);
-    window.localStorage.setItem("zentra.businessName", businessName.trim());
+    const trimmed = businessName.trim();
+    window.localStorage.setItem("zentra.businessName", trimmed);
+    // CB-6: persist to DB so Settings + chase emails see the name immediately.
+    // Fire-and-forget — the modal proceeds even if the network is slow; the
+    // localStorage value still pre-fills the Settings form on next visit.
+    void saveOnboardingBusinessNameAction(trimmed).catch(() => undefined);
     setStep(2);
   }
 

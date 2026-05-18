@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { requireActiveAccount } from "@/lib/server/account-guard";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 
 let _openai: OpenAI | null = null;
 function getOpenAI() {
@@ -70,6 +72,14 @@ async function extractWithOpenAI(text: string, filename: string, client: OpenAI)
 
 export async function POST(req: NextRequest) {
   try {
+    // CB-4: previously unauth'd — anyone could drain the AI key.
+    const rate = checkRateLimit(req, { namespace: "extract-pdf", limit: 10, windowMs: 60_000 });
+    if (!rate.allowed) {
+      return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+    }
+    const guard = await requireActiveAccount();
+    if (guard.error) return guard.error;
+
     const { text, filename } = (await req.json()) as { text: string; filename?: string };
 
     if (!text?.trim()) {

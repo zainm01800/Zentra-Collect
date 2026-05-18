@@ -236,6 +236,34 @@
   }
   .zn-pill:hover { opacity: 0.88; }
   .zn-pill:active { transform: translateY(1px); }
+  /* A11y: visible focus ring for keyboard users. (Audit §8) */
+  .zn-pill:focus-visible,
+  .zn-pill-ghost:focus-visible,
+  .zn-pill-accent:focus-visible {
+    outline: 2px solid var(--zn-accent, #c97a39);
+    outline-offset: 2px;
+  }
+  /* Same for native interactive controls — keeps things consistent. */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--zn-accent, #c97a39);
+    outline-offset: 2px;
+  }
+  /* Skip-to-content link — invisible until tabbed to. */
+  .skip-to-content {
+    position: absolute;
+    left: -9999px;
+    top: 8px;
+    padding: 8px 14px;
+    background: var(--zn-ink);
+    color: var(--zn-surface);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+  }
+  .skip-to-content:focus { left: 8px; outline: 2px solid var(--zn-accent); outline-offset: 2px; }
 
   .zn-pill-ghost {
     background: transparent;

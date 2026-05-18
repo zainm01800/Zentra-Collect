@@ -26,19 +26,26 @@ export interface WorkspacePrefs {
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
-
+//
+// UX-1: previously defaulted every module on, so first-time visitors saw
+// Expenses / P&L / Bills / Tax in the sidebar of what is marketed as a
+// collections decisioning tool. Now defaults to collections + reports
+// only; books/cashflow are opt-in via Settings → Workspace.
+//
+// Bookkeeper plans flip the rest on after onboarding via the
+// `defaultModulesForPlan` helper in lib/modules.ts.
 const DEFAULTS: WorkspacePrefs = {
   modules: {
     collections: true,
-    cashflow:    true,
-    expenses:    true,
-    tax:         true,
+    cashflow:    false,
+    expenses:    false,
+    tax:         false,
     reports:     true,
   },
   widgets: {
     weeklyBrief:    true,
     riskInsights:   true,
-    financialPanel: true,
+    financialPanel: false,
   },
   setupCompleted: false,
 };

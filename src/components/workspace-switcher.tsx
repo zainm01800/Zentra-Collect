@@ -146,7 +146,13 @@ export function WorkspaceSwitcher() {
   function addClient() {
     const name  = newName.trim();
     const label = newLabel.trim() || "Client ledger";
-    if (!name) return;
+    // UX-5: minimal validation so users don't end up with placeholders
+    // like "test" / "a" / "."  permanently in their sidebar.
+    if (name.length < 2) return;
+    if (/^[._-]+$/.test(name)) return;
+    // Reject duplicate names (case-insensitive).
+    const dup = clients.some((c) => c.name.trim().toLowerCase() === name.toLowerCase());
+    if (dup) return;
     const newClient: BookkeeperClient = {
       id: generateClientId(),
       name,
@@ -236,15 +242,38 @@ export function WorkspaceSwitcher() {
                   color: "var(--zn-ink)",
                 }}
               />
-              <button
-                type="button"
-                onClick={addClient}
-                disabled={!newName.trim()}
-                className="zn-pill text-[11.5px] w-full justify-center"
-                style={{ height: 30, opacity: newName.trim() ? 1 : 0.45 }}
-              >
-                Add client
-              </button>
+              {(() => {
+                const trimmed = newName.trim();
+                const tooShort = trimmed.length > 0 && trimmed.length < 2;
+                const dup = trimmed.length >= 2 && clients.some(
+                  (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
+                );
+                const invalidShape = trimmed.length > 0 && /^[._-]+$/.test(trimmed);
+                const blocked = !trimmed || tooShort || dup || invalidShape;
+                const error =
+                  tooShort      ? "Name needs at least 2 characters."
+                  : dup         ? "A client with that name already exists."
+                  : invalidShape ? "Use letters or numbers."
+                  : null;
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={addClient}
+                      disabled={blocked}
+                      className="zn-pill text-[11.5px] w-full justify-center"
+                      style={{ height: 30, opacity: blocked ? 0.45 : 1 }}
+                    >
+                      Add client
+                    </button>
+                    {error && (
+                      <p className="text-[11px]" style={{ color: "var(--zn-risk)" }}>
+                        {error}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </WorkspaceDropdown>

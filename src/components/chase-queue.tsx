@@ -276,18 +276,22 @@ export function ChaseQueue({
     );
   }, [waitingInvoices, query]);
 
-  const tabs: { label: string; value: QueueFilter | "waiting"; count: number }[] = [
-    { label: "Today",     value: "today",    count: filterInvoices(invoices, "today").length },
-    { label: "All open",  value: "all",      count: filterInvoices(invoices, "all").length },
+  // UX-3: Hide tabs that have zero matching invoices to keep the empty
+  // state calm. Today + All open + Paid always render so users can find
+  // their bearings even at zero state.
+  const allTabs: { label: string; value: QueueFilter | "waiting"; count: number; alwaysShow?: boolean }[] = [
+    { label: "Today",     value: "today",    count: filterInvoices(invoices, "today").length, alwaysShow: true },
+    { label: "All open",  value: "all",      count: filterInvoices(invoices, "all").length,    alwaysShow: true },
     { label: "Calls",     value: "calls",    count: filterInvoices(invoices, "calls").length },
     { label: "Promises",  value: "promises", count: filterInvoices(invoices, "promises").length },
     { label: "Disputes",  value: "disputes", count: filterInvoices(invoices, "disputes").length },
     { label: "Final",     value: "final",    count: filterInvoices(invoices, "final").length },
-    { label: "Paid",      value: "paid",     count: filterInvoices(invoices, "paid").length },
+    { label: "Paid",      value: "paid",     count: filterInvoices(invoices, "paid").length, alwaysShow: true },
     ...(waitingInvoices.length > 0
       ? [{ label: "Waiting", value: "waiting" as const, count: waitingInvoices.length }]
       : []),
   ];
+  const tabs = allTabs.filter((t) => t.alwaysShow || t.count > 0);
 
   const totalAmount = queue.reduce((s, i) => s + i.amount, 0);
 
