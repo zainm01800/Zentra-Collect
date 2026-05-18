@@ -16,6 +16,7 @@ import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { readTaggedIncome } from "@/lib/banking/direct-income";
+import { totalMileageAllowance } from "@/lib/mileage";
 import type { Invoice } from "@/types/zentra";
 
 const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
@@ -124,6 +125,14 @@ export function totalsForTaxYear(taxYear: string): TaxYearTotals {
     exp += e.amount;
     expenseCount += 1;
   }
+
+  // Mileage allowance — HMRC AMAP rate × business miles in the tax year.
+  // Counts as an allowable expense for self-employment.
+  const mileageAllowance = totalMileageAllowance({
+    from: new Date(start),
+    to:   new Date(end),
+  });
+  exp += mileageAllowance;
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
   return {

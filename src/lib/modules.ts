@@ -53,8 +53,8 @@ export const MODULES: Record<ModuleKey, ModuleConfig> = {
   expenses: {
     key: "expenses",
     label: "Expenses",
-    description: "Track and categorise business expenses. Includes Bills and P&L.",
-    navHrefs: ["/expenses", "/bills", "/pl"],
+    description: "Track and categorise business expenses. Includes Mileage, Bills and P&L.",
+    navHrefs: ["/expenses", "/mileage", "/bills", "/pl"],
     requiredPlan: "trader",  // Available from Trader plan upwards
     alwaysOn: false,
   },

@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarClock,
   Calculator,
+  Car,
   Check,
   ChevronRight,
   CreditCard,
@@ -100,9 +101,10 @@ const bankingNav: NavItem[] = [
   { href: "/banking", label: "Bank feed", icon: Building2 },
 ];
 
-// Books — user-customisable section (Expenses, P&L, Bills, Tax & VAT).
+// Books — user-customisable section (Expenses, Mileage, P&L, Bills, Tax & VAT).
 const financeNav: NavItem[] = [
   { href: "/expenses", label: "Expenses",  icon: Receipt    },
+  { href: "/mileage",  label: "Mileage",   icon: Car        },
   { href: "/pl",       label: "P&L",       icon: TrendingUp },
   { href: "/bills",    label: "Bills",     icon: FileText   },
   { href: "/tax",      label: "Tax & VAT", icon: PiggyBank  },
