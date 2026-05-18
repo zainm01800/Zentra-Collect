@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowDownLeft, ArrowUpRight, CheckCircle2, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowDownLeft, ArrowUpRight, CheckCircle2, PiggyBank, RefreshCw, X } from "lucide-react";
 import {
   matchTransactionsToInvoices,
   type TransactionMatch,
@@ -27,6 +27,14 @@ import { writeBackFromBankFeedAction } from "@/actions/banking-write-back";
 import {
   demoCashpilotInvoices as demoInvoices,
 } from "@/lib/demo-data/zentra-demo-data";
+import {
+  isTagged,
+  readTaggedIncome,
+  tagAsIncome,
+  totalTaggedIncome,
+  untagIncome,
+  type TaggedIncome,
+} from "@/lib/banking/direct-income";
 import type { TLTransaction } from "@/lib/truelayer/client";
 import type { Invoice } from "@/types/zentra";
 
@@ -110,10 +118,17 @@ export function BankTransactionsList({
     | { kind: "err"; message: string }
     | undefined
   >>({});
+  // Tagged direct-income — bank credits the user has marked as taxable
+  // income without an invoice (driving instructor, dog walker, etc).
+  const [tagged, setTagged] = useState<TaggedIncome[]>([]);
 
-  // Load invoices from localStorage after hydration
+  // Load invoices + tagged income from localStorage after hydration
   useEffect(() => {
     setInvoices(readStoredInvoices());
+    setTagged(readTaggedIncome());
+    function onChange() { setTagged(readTaggedIncome()); }
+    window.addEventListener("zentra:direct-income-change", onChange);
+    return () => window.removeEventListener("zentra:direct-income-change", onChange);
   }, []);
 
   // Run matching
@@ -132,6 +147,41 @@ export function BankTransactionsList({
         })),
     );
   }, [invoices, transactions]);
+
+  // ── Direct-income helpers ──────────────────────────────────────────────────
+  // A credit is "matched" if it's already in the matches list above —
+  // those go through the invoice flow. Everything else is eligible
+  // for direct-income tagging.
+  const matchedTxIds = useMemo(
+    () => new Set(matches.map((m) => m.transaction.transaction_id)),
+    [matches],
+  );
+  const taggedTxIds = useMemo(
+    () => new Set(tagged.map((t) => t.transactionId)),
+    [tagged],
+  );
+  const taggedTotalThisTaxYear = useMemo(
+    () => totalTaggedIncome(),
+    // recompute when tagged set changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tagged],
+  );
+
+  function handleTagAsIncome(tx: TLTransaction) {
+    tagAsIncome({
+      transactionId: tx.transaction_id,
+      amount:        tx.amount,
+      date:          tx.timestamp,
+      description:   (tx.description ?? "").slice(0, 200),
+      category:      "services",  // default — UI for changing comes later
+    });
+    setTagged(readTaggedIncome());
+  }
+
+  function handleUntag(transactionId: string) {
+    untagIncome(transactionId);
+    setTagged(readTaggedIncome());
+  }
 
   async function handleMarkPaid(match: TransactionMatch) {
     // 1. Local mark-paid for immediate UI feedback
@@ -327,6 +377,32 @@ export function BankTransactionsList({
         </section>
       )}
 
+      {/* ── Direct income totals strip ─────────────────────────────────── */}
+      {taggedTotalThisTaxYear > 0 && (
+        <section
+          className="flex items-center justify-between gap-3 rounded-[12px] px-4 py-3"
+          style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <PiggyBank className="size-4 flex-shrink-0" style={{ color: "var(--zn-accent)" }} />
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                Direct income this tax year
+              </p>
+              <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                Tagged credits counted toward your Self-Assessment estimate.
+              </p>
+            </div>
+          </div>
+          <p
+            className="text-[16px] font-semibold tabular-nums flex-shrink-0"
+            style={{ color: "var(--zn-accent)" }}
+          >
+            {fmtGBP(taggedTotalThisTaxYear)}
+          </p>
+        </section>
+      )}
+
       {/* ── All transactions ──────────────────────────────────────────────── */}
       <section>
         <p
@@ -340,7 +416,12 @@ export function BankTransactionsList({
           style={{ border: "1px solid var(--zn-line-soft)" }}
         >
           {transactions.map((tx, idx) => {
-            const isCredit = tx.transaction_type === "CREDIT";
+            const isCredit  = tx.transaction_type === "CREDIT";
+            const isMatched = matchedTxIds.has(tx.transaction_id);
+            const isThisTagged = taggedTxIds.has(tx.transaction_id);
+            // Eligible: it's an inbound credit, not already matched to an
+            // open invoice (those have their own flow).
+            const canTagAsIncome = isCredit && !isMatched;
             return (
               <div
                 key={tx.transaction_id}
@@ -375,9 +456,43 @@ export function BankTransactionsList({
                   </p>
                 </div>
 
+                {/* Direct-income tag action / badge */}
+                {canTagAsIncome && (
+                  isThisTagged ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold flex-shrink-0"
+                      style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                    >
+                      <PiggyBank className="size-3" /> Income
+                      <button
+                        type="button"
+                        aria-label="Untag this transaction"
+                        onClick={() => handleUntag(tx.transaction_id)}
+                        className="ml-1 rounded-full hover:bg-black/10"
+                        style={{ color: "var(--zn-safe)" }}
+                      >
+                        <X className="size-2.5" />
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTagAsIncome(tx)}
+                      className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 transition-colors hover:bg-[var(--zn-surface-2)]"
+                      style={{
+                        color: "var(--zn-ink-3)",
+                        border: "1px solid var(--zn-line-soft)",
+                      }}
+                      title="Count this credit toward your Self-Assessment income"
+                    >
+                      Tag as income
+                    </button>
+                  )
+                )}
+
                 {/* Amount */}
                 <p
-                  className="text-[13px] font-semibold tabular-nums flex-shrink-0"
+                  className="text-[13px] font-semibold tabular-nums flex-shrink-0 w-20 text-right"
                   style={{
                     color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)",
                   }}
