@@ -46,35 +46,38 @@ const answers = [
   "What changed since last week?",
 ];
 
+// Features are written for the smallest sole-trader user first ("you
+// only send a handful of invoices a month") and scale up. Every line
+// answers "why does this matter if I'm one person billing 5 clients?"
 const features = [
   {
-    label: "Invoicing",
-    sub:   "Send branded invoices in 30 seconds. Customer portal built in.",
+    label: "Send a professional invoice in 30 seconds",
+    sub:   "Branded invoices, payment portal built in. Works whether you send 3 a month or 300.",
     Icon:  Receipt,
   },
   {
-    label: "Bank feed reconciliation",
-    sub:   "Payments auto-match to open invoices. Marks them paid, stops the chase.",
+    label: "Bank feed does the boring bit",
+    sub:   "Payment hits your account → invoice marked paid, chase stops, tax estimate updates. No spreadsheets at month-end.",
     Icon:  Banknote,
   },
   {
-    label: "Expense tracking",
-    sub:   "Categorise from the bank feed. HMRC-aligned categories out of the box.",
+    label: "Expenses tagged from the bank feed",
+    sub:   "Click-categorise straight from real transactions. HMRC categories preset. Mileage on the roadmap.",
     Icon:  FileText,
   },
   {
     label: "Self-Assessment estimate",
-    sub:   "Tax estimate updates as cash lands — so the number reflects reality.",
+    sub:   "Updates as cash actually lands — not when invoices fire. January 31st becomes a 15-minute job.",
     Icon:  PiggyBank,
   },
   {
-    label: "VAT (MTD-ready)",
-    sub:   "VAT estimate, quarterly returns, MTD filing on the roadmap.",
+    label: "VAT estimate (and MTD when you're ready)",
+    sub:   "Even if you're under the £90k threshold today. Quarterly view, ready for MTD filing when we ship it.",
     Icon:  TrendingUp,
   },
   {
-    label: "Chase plan",
-    sub:   "Ranked chase queue with action + reason + draft. You approve every send.",
+    label: "Chase one customer or chase fifty",
+    sub:   "Ranked queue with action + reason + draft. Drafts the awkward email for you — you approve every send.",
     Icon:  Mail,
   },
 ];
@@ -86,7 +89,12 @@ const trustItems = [
   { label: "No legal or accounting advice",     Icon: CheckCircle2 },
 ];
 
+// Public pricing plans. FREE is the permanent low-volume tier for sole
+// traders billing only a handful of invoices. TRIAL is the no-card
+// "try it at full power for 14 days" entry point. TRADER stays as an
+// internal SKU only (was confusing publicly).
 const pricingPlanIds: PlanId[] = [
+  "FREE",
   "TRIAL",
   "FREELANCE",
   "STARTER_SOLO",
@@ -97,10 +105,11 @@ const pricingPlanIds: PlanId[] = [
 
 const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
-  TRIAL:               "14 days, no card required. Real bank feed, real invoices, real chase plan.",
+  FREE:                "For very small sole traders. 3 active invoices, real bank feed, real tax estimate — forever free.",
+  TRIAL:               "14 days, no card required. Real bank feed, real invoices, real chase plan — at full power.",
   TRADER:              "For UK sole traders under £90k — invoicing, payment portal, tax estimate.",
-  FREELANCE:           "Freelancers sending 5–15 invoices a month. Templates, no AI.",
-  STARTER_SOLO:        "Sole traders and micro-businesses with a growing invoice book.",
+  FREELANCE:           "For sole traders billing 5–15 invoices a month. Templates, customer portal, full books.",
+  STARTER_SOLO:        "For sole traders ready for AI-drafted chases. Up to 200 active invoices.",
   SINGLE_BUSINESS:     "Small businesses running a practical chase process every week.",
   BOOKKEEPER_STARTER:  "Bookkeepers managing a handful of client ledgers.",
   BOOKKEEPER_PRO:      "Larger client portfolios that need more capacity.",
@@ -163,8 +172,10 @@ export default function Home() {
                 fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
                 color: "var(--zn-ink)",
               }}
-            >actually collect the cash</em>. Zentra is the only UK books tool that ranks
-            who to chase today, drafts the message, and updates your tax estimate the moment a payment lands.
+            >actually collect the cash</em>. The only UK books tool that ranks
+            who to chase today, drafts the message, and updates your tax
+            estimate the moment a payment lands. Works at 3 invoices a month
+            or 300.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-2">
             <Link href="/login?mode=signup" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
@@ -361,6 +372,22 @@ export default function Home() {
         eyebrow="Pricing"
         title="Clear plans for sole traders, small businesses, and bookkeepers."
       >
+        <div
+          className="mb-6 inline-flex items-start gap-3 rounded-2xl p-4 max-w-3xl"
+          style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+        >
+          <PiggyBank className="size-4 mt-0.5 flex-shrink-0" style={{ color: "var(--zn-accent)" }} />
+          <div>
+            <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              Just send a handful of invoices a month?
+            </p>
+            <p className="mt-1 text-[12.5px] leading-[1.55]" style={{ color: "var(--zn-ink-3)" }}>
+              Start on <strong style={{ color: "var(--zn-ink)" }}>Free</strong> forever — 3 active invoices,
+              real bank feed, real Self-Assessment estimate. No card. Upgrade only
+              when you outgrow it.
+            </p>
+          </div>
+        </div>
         <PricingSection
           plans={pricingPlanIds.map((planId) => ({
             planId,

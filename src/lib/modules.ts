@@ -144,6 +144,7 @@ export const PERSONAS: Persona[] = [
 const PLAN_RANK: Record<PlanId, number> = {
   demo:                       0,
   trial:                      1,
+  free:                       1,  // same rank as trial — entry tier
   trader:                     2,
   freelance:                  3,
   starter_solo:               4,
@@ -171,6 +172,11 @@ export function planUnlocksModule(planId: PlanId | undefined, key: ModuleKey): b
  */
 export function defaultModulesForPlan(planId: PlanId | undefined): Record<ModuleKey, boolean> {
   if (!planId) return moduleSet("collections");
+  if (planId === "free") {
+    // Free is the sole-trader entry tier — give them collections + books
+    // out of the box so they see the value immediately.
+    return moduleSet("collections", "cashflow", "expenses", "tax");
+  }
   if (planId === "trader") {
     return moduleSet("cashflow", "expenses", "tax");
   }

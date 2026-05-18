@@ -1,6 +1,7 @@
 export type PlanId =
   | "DEMO"
   | "TRIAL"
+  | "FREE"
   | "TRADER"
   | "FREELANCE"
   | "STARTER_SOLO"
@@ -158,6 +159,35 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
       aiDrafts: true,
       booksAndTax: true,
       viewExistingDataAfterTrial: true,
+    },
+  },
+
+  // FREE — the "forever" tier for sole traders billing only a handful of
+  // invoices a month. Real bank feed + real invoices + real tax estimate,
+  // but no AI and a hard cap of 3 active invoices. The point is: if you
+  // invoice rarely, you can run your whole books here for £0; the moment
+  // you scale, you bump the cap and upgrade.
+  FREE: {
+    id: "FREE",
+    name: "Free",
+    priceMonthlyGbp: 0,
+    description: "Forever-free tier for very small sole traders. 3 active invoices, real bank feed, real tax estimate.",
+    limits: {
+      ...defaultLimits,
+      importsUsedThisMonth: 1,
+      trialImportsUsed: "unlimited",
+      aiActionsUsedThisMonth: 0,
+      trialAiActionsUsed: 0,
+      activeInvoiceCount: 3,
+      clientLedgerCount: 1,
+      weeklyDigestCountThisMonth: 1,
+    },
+    features: {
+      ...defaultFeatures,
+      realData: true,
+      persistentRealImports: true,
+      collections: true,    // template chases only
+      booksAndTax: true,
     },
   },
 
@@ -434,6 +464,7 @@ export function getRecommendedUpgrade(account: AccountState, blockedAction: Bloc
   }
   if (account.planId === "DEMO") return "TRIAL";
   if (account.planId === "TRIAL") return "STARTER_SOLO";
+  if (account.planId === "FREE") return "FREELANCE";
   if (account.planId === "TRADER") return "FREELANCE";
   if (account.planId === "FREELANCE") return "STARTER_SOLO";
   if (account.planId === "STARTER_SOLO") return "SINGLE_BUSINESS";

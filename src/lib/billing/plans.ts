@@ -8,6 +8,7 @@ import {
 export type PlanId =
   | "demo"
   | "trial"
+  | "free"
   | "trader"
   | "freelance"
   | "starter_solo"
@@ -95,6 +96,7 @@ export interface ComparisonRow {
 const centralPlanMap: Record<PlanId, CentralPlanId> = {
   demo: "DEMO",
   trial: "TRIAL",
+  free: "FREE",
   trader: "TRADER",
   freelance: "FREELANCE",
   starter_solo: "STARTER_SOLO",
@@ -107,15 +109,18 @@ export function getPlan(planId: PlanId): Plan {
   const centralId = centralPlanMap[planId];
   const central = getCentralPlanConfig(centralId);
 
-  const tier: PlanTier = 
-    planId === "demo" ? "free" : 
+  const tier: PlanTier =
+    planId === "demo" ? "free" :
+    planId === "free" ? "free" :
     planId === "trial" ? "trial" : "paid";
   const accountType: AccountType =
     planId === "demo"
       ? "demo"
       : planId === "trial"
         ? "trial"
-        : "paid";
+        : planId === "free"
+          ? "paid"  // free still counts as a "paid" account record; just price 0
+          : "paid";
 
   const price = central.priceMonthlyGbp;
   const priceDisplay = price === 0 ? "£0" : `£${price}`;
@@ -136,10 +141,11 @@ export function getPlan(planId: PlanId): Plan {
   const taglineMap: Record<PlanId, string> = {
     demo: "Explore the product with sample data.",
     trial: "14-day free trial with your own data.",
+    free: "For very small sole traders. Real books and chasing — limited to 3 active invoices.",
     trader: "For UK sole traders under £90k — cheaper than Sage.",
-    freelance: "For freelancers sending 5–15 invoices a month.",
-    starter_solo: "For sole traders with a small invoice book.",
-    single_business: "Standard plan for one business.",
+    freelance: "For sole traders and freelancers — invoices, expenses, tax estimate, and a chase plan.",
+    starter_solo: "For sole traders ready for AI-drafted chases and a fuller workflow.",
+    single_business: "Standard plan for one small business.",
     bookkeeper_starter: "Manage up to 5 client ledgers.",
     bookkeeper_pro: "Advanced features for large portfolios.",
   };
@@ -147,9 +153,27 @@ export function getPlan(planId: PlanId): Plan {
   const featuresMap: Record<PlanId, string[]> = {
     demo: ["Sample data only", "3 AI draft previews", "Full UI exploration"],
     trial: ["Real invoice imports", "25 AI actions", "Full feature access for 14 days"],
+    free: [
+      "3 active invoices",
+      "Bank feed + auto-reconciliation",
+      "Expenses + Self-Assessment estimate",
+      "Template chase emails",
+      "Forever free, no card",
+    ],
     trader: ["Bank statement import", "Expense categorisation", "Tax estimate", "No invoice chasing", "No AI drafts"],
-    freelance: ["Invoice chasing", "Template chase emails", "Bank feed + expenses + tax", "No AI drafts"],
-    starter_solo: ["Full collections workflow", "AI draft emails", "Dispute & promise tracking", "50 AI actions/mo"],
+    freelance: [
+      "100 active invoices",
+      "Bank feed + expenses + tax",
+      "Template chase emails (no AI)",
+      "Customer payment portal",
+    ],
+    starter_solo: [
+      "200 active invoices",
+      "Everything in Freelance",
+      "AI-drafted chases (50/mo)",
+      "Reply classification",
+      "Dispute & promise tracking",
+    ],
     single_business: ["Everything in Solo", "Auto-send emails", "Xero / QuickBooks / GoCardless", "200 AI actions/mo"],
     bookkeeper_starter: ["Up to 5 client ledgers", "Auto-send emails", "Accounting integrations", "500 AI actions/mo"],
     bookkeeper_pro: ["Up to 20 client ledgers", "Auto-send emails", "Accounting integrations", "1,500 AI actions/mo"],
@@ -169,11 +193,13 @@ export function getPlan(planId: PlanId): Plan {
     cta:
       planId === "demo" ? "Try demo" :
       planId === "trial" ? "Start trial" :
+      planId === "free" ? "Start free" :
       planId === "trader" ? "Get started" :
       "Request access",
     href:
       planId === "demo" ? "/demo" :
       planId === "trial" ? "/login" :
+      planId === "free" ? "/login?mode=signup&plan=free" :
       planId === "trader" ? "/login?plan=trader" :
       "/request-access",
     highlight:
@@ -192,6 +218,7 @@ export function getPlan(planId: PlanId): Plan {
 export const PLANS: Plan[] = [
   getPlan("demo"),
   getPlan("trial"),
+  getPlan("free"),
   getPlan("trader"),
   getPlan("freelance"),
   getPlan("starter_solo"),
