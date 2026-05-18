@@ -90,11 +90,12 @@ const overviewNav: NavItem[] = [
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/invoices",  label: "Invoices",  icon: Receipt },
-  { href: "/quotes",    label: "Quotes",    icon: FileText },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
-  { href: "/reports",   label: "Reports",   icon: BarChart3 },
+  { href: "/invoices",     label: "Invoices",     icon: Receipt },
+  { href: "/quotes",       label: "Quotes",       icon: FileText },
+  { href: "/credit-notes", label: "Credit notes", icon: Receipt },
+  { href: "/customers",    label: "Customers",    icon: Users },
+  { href: "/aged-debt",    label: "Aged debt",    icon: TableProperties },
+  { href: "/reports",      label: "Reports",      icon: BarChart3 },
 ];
 
 // Banking — fixed section, always its own heading.

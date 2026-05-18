@@ -17,6 +17,7 @@ import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients"
 import { readLocalAccount } from "@/lib/demo-auth";
 import { readTaggedIncome } from "@/lib/banking/direct-income";
 import { totalMileageAllowance } from "@/lib/mileage";
+import { totalCreditedNet, totalCreditedVat } from "@/lib/credit-notes";
 import type { Invoice } from "@/types/zentra";
 
 const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
@@ -133,6 +134,15 @@ export function totalsForTaxYear(taxYear: string): TaxYearTotals {
     to:   new Date(end),
   });
   exp += mileageAllowance;
+
+  // Credit notes — money the user has formally NOT collected this period.
+  // Net amount reduces taxable income; VAT amount reduces output VAT
+  // (so VAT charged is net of any refunds issued).
+  const range = { from: new Date(start), to: new Date(end) };
+  const creditedNet = totalCreditedNet(range);
+  const creditedVat = totalCreditedVat(range);
+  income     = Math.max(0, income - creditedNet);
+  vatCharged = Math.max(0, vatCharged - creditedVat);
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
   return {
