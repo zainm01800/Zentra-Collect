@@ -37,6 +37,7 @@ import {
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
 import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
+import { ReceiptScanButton } from "@/components/receipt-scan-button";
 import {
   classifyExpense,
   allowabilityColors,
@@ -296,17 +297,32 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
     setOpen(false);
   }
 
+  // Receipt OCR: snap a photo, AI extracts vendor/date/amount, then we
+  // pre-fill the manual form so the user can confirm/edit before saving.
+  function handleReceiptConfirmed(data: { vendor: string; date: string; amount: number; category?: string }) {
+    setOpen(true);
+    setAmount(String(data.amount));
+    setDate(data.date);
+    setDesc(data.vendor);
+    if (data.category && EXPENSE_CATEGORIES.includes(data.category as typeof EXPENSE_CATEGORIES[number])) {
+      setCategory(data.category);
+    }
+  }
+
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold"
-        style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
-      >
-        <PlusCircle className="size-4" />
-        Add expense
-      </button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold"
+          style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+        >
+          <PlusCircle className="size-4" />
+          Add expense
+        </button>
+        <ReceiptScanButton onConfirm={handleReceiptConfirmed} />
+      </div>
     );
   }
 
