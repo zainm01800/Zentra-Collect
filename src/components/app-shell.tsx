@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { PushPermission } from "@/components/push-permission";
-import { TrialStatusBanner } from "@/components/trial-banners";
+import { TrialStatusBanner, PastDueBanner } from "@/components/trial-banners";
 import { QueueStatusBar } from "@/components/queue-status-bar";
 import { InstallPrompt } from "@/components/install-prompt";
 import { MobileFab } from "@/components/mobile-fab";
@@ -852,6 +852,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             the bottom nav and iPhone home indicator never overlap content. */}
         <main className="zn-main-pb flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 md:pb-8">
           <div className="mx-auto w-full max-w-[1360px]">
+            <PastDueBanner />
             <TrialStatusBanner />
             <QueueStatusBar />
             {children}

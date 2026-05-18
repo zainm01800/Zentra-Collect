@@ -27,7 +27,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Clock, Download } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, CreditCard, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatGraceDate } from "@/lib/usage/tracker";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
@@ -56,6 +56,40 @@ function ExportDataButton() {
         Coming soon
       </span>
     </Button>
+  );
+}
+
+// ── Past-due (card declined) ──────────────────────────────────────────────────
+
+export function PastDueBanner() {
+  const { user } = useLocalAccount();
+
+  if (user?.subscriptionStatus !== "past_due") return null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#f5c6c6] dark:border-[#3d2020] bg-[#fef2f2]/80 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <CreditCard className="mt-0.5 size-4 shrink-0 text-[#9a3535]" />
+        <div>
+          <p className="text-sm font-semibold text-[#9a3535]">Payment failed — please update your card</p>
+          <p className="mt-0.5 text-xs leading-5 text-[#7a3535]">
+            We couldn&apos;t collect your subscription payment. Your account is still accessible while Stripe retries. Update your payment method to avoid any interruption.
+          </p>
+        </div>
+      </div>
+      <div className="shrink-0 pl-7 sm:pl-0">
+        <Button
+          asChild
+          size="sm"
+          className="rounded-full bg-[#9a3535] text-white hover:bg-[#7a2828]"
+        >
+          <Link href="/settings?tab=billing">
+            Update card
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </Button>
+      </div>
+    </div>
   );
 }
 

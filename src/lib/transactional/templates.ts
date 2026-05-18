@@ -63,6 +63,37 @@ Not ready? Explore the demo with sample data: ${SITE}/demo
   };
 }
 
+// ── Payment failed ────────────────────────────────────────────────────────────
+
+export function paymentFailedEmail(opts: { businessName: string }) {
+  const html = shell(`
+    <h1 style="font-size:26px;font-weight:700;margin:0 0 8px">Payment failed</h1>
+    <p style="font-size:15px;line-height:1.7;color:#4a4236;margin:0 0 20px">
+      We couldn't collect the subscription payment for <strong>${opts.businessName}</strong>. Your account is still accessible while we retry, but please update your card to avoid any interruption.
+    </p>
+    ${cta("Update payment method →", `${SITE}/settings?tab=billing`)}
+    <p style="font-size:13px;color:#8d8472;margin-top:20px">
+      If you've already updated your card, no action is needed — Stripe will retry automatically within a few days.
+    </p>
+  `);
+
+  const text = `Payment failed for ${opts.businessName}
+
+We couldn't collect your subscription payment. Your account is still accessible while we retry.
+
+Update your payment method: ${SITE}/settings?tab=billing
+
+If you've already updated your card, Stripe will retry automatically.
+
+— The Zentra Collect team`;
+
+  return {
+    subject: "Action needed: your Zentra Collect payment failed",
+    html,
+    text,
+  };
+}
+
 // ── Trial ending ──────────────────────────────────────────────────────────────
 
 export function trialEndingEmail(opts: { businessName: string; trialEndsAt: Date; daysLeft: number }) {

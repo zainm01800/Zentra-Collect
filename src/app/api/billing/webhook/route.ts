@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/client';
 import { getSupabaseAdminClient } from '@/lib/supabase/server';
+import { sendTransactionalEmail } from '@/lib/transactional/resend';
+import { paymentFailedEmail } from '@/lib/transactional/templates';
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
 
         const { data: account } = await supabase
           .from('zentra_accounts')
-          .select('id, status')
+          .select('id, status, owner_user_id, zentra_businesses(name)')
           .eq('stripe_customer_id', customerId)
           .single();
 
@@ -118,6 +120,19 @@ export async function POST(req: Request) {
             .from('zentra_accounts')
             .update({ status: 'past_due' })
             .eq('id', account.id);
+
+          // Email the account owner to update their card
+          if (account.owner_user_id) {
+            const { data: userData } = await supabase.auth.admin.getUserById(account.owner_user_id);
+            if (userData?.user?.email) {
+              const bizArr = Array.isArray(account.zentra_businesses)
+                ? account.zentra_businesses
+                : account.zentra_businesses ? [account.zentra_businesses] : [];
+              const businessName = (bizArr[0] as { name?: string } | undefined)?.name ?? 'your business';
+              const template = paymentFailedEmail({ businessName });
+              sendTransactionalEmail({ to: userData.user.email, ...template }).catch(() => {});
+            }
+          }
         }
         break;
       }
