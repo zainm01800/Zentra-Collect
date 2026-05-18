@@ -19,11 +19,14 @@ export function DemoAuthForm() {
   const searchParams = useSearchParams();
   const modeParam = searchParams?.get("mode");
   const errorParam = searchParams?.get("error");
+  // Audit §15: prefill email when the user comes from a forgot-password
+  // or invite/referral link that put ?email= in the URL.
+  const emailParam = searchParams?.get("email") ?? "";
   const initialMode: AuthMode = modeParam === "signup" ? "signup" : "signin";
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -1445,6 +1445,9 @@ export function ZentraDashboard({ initialInvoices, demoMode: _demoMode }: Zentra
         onMarkPaid={() => {
           updateInvoiceStatus("paid", "Marked paid");
           recordToneOutcomeForActive(selectedInvoice, selectedTone, "paid");
+          // Audit §12: confetti + first-paid milestone when an invoice
+          // flips to paid. Audit-driven retention loop.
+          import("@/components/celebration").then((m) => m.checkAndCelebrate("paid"));
         }}
         onSnooze={() => updateInvoiceStatus("overdue", "Snoozed for later")}
         onDoNotChase={() =>

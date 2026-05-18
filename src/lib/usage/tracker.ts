@@ -193,13 +193,26 @@ export function computeGracePeriodDaysRemaining(
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
-/** Format a date string as "30 May 2026" for display in banners. */
+/**
+ * Format a date string as "30 May 2026 (11pm London time)" for display
+ * in banners. Audit §10: previously rendered in the visitor's local
+ * timezone which confused UK users when the cutoff appeared the day
+ * before the actual end.
+ */
 export function formatGraceDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-GB", {
+  const d = new Date(dateStr);
+  const date = d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Europe/London",
   });
+  const time = d.toLocaleTimeString("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  });
+  return `${date} (${time} London time)`;
 }
 
 /** Build a UsageMeter value object from raw numbers. */

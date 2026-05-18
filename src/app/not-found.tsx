@@ -39,10 +39,18 @@ export default function NotFound() {
           been deleted, moved, or never created.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <Link href="/dashboard" className="zn-pill">
-            Back to dashboard <ArrowRight className="size-3.5" />
+          <Link
+            href="/dashboard"
+            className="zn-pill"
+            aria-label="Back to dashboard"
+          >
+            Back to dashboard <ArrowRight aria-hidden="true" className="size-3.5" />
           </Link>
-          <Link href="/" className="zn-pill zn-pill-ghost">
+          <Link
+            href="/"
+            className="zn-pill zn-pill-ghost"
+            aria-label="Go to homepage"
+          >
             Homepage
           </Link>
         </div>
