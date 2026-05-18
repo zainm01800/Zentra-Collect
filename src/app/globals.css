@@ -603,3 +603,18 @@ body::before {
     font-size: max(16px, 1em);
   }
 }
+
+/* ─── Default form-control theming — adapts to dark mode automatically ─────
+   Components using bg-white on inputs look broken in dark mode.
+   This base rule uses CSS variables so inputs always match the design system.
+   Tailwind bg-* utilities override this; strip bg-white from components. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]),
+textarea,
+select {
+  background-color: var(--zn-surface-2);
+  color: var(--zn-ink);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"])::placeholder,
+textarea::placeholder {
+  color: var(--zn-ink-3);
+}

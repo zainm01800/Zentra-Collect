@@ -63,7 +63,7 @@ export function StatutoryInterestCalculatorClient() {
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-lg px-3 py-2.5 text-[15px] border bg-white tabular-nums"
+            className="w-full rounded-lg px-3 py-2.5 text-[15px] border tabular-nums"
             style={{ borderColor: "var(--zn-line)" }}
           />
         </Field>
@@ -73,7 +73,7 @@ export function StatutoryInterestCalculatorClient() {
             value={dueDate}
             max={todayIso()}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-lg px-3 py-2.5 text-[15px] border bg-white"
+            className="w-full rounded-lg px-3 py-2.5 text-[15px] border"
             style={{ borderColor: "var(--zn-line)" }}
           />
         </Field>

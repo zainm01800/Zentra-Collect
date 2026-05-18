@@ -55,7 +55,7 @@ export function TraderWaitlistForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@yourbusiness.co.uk"
-        className="flex-1 rounded-full px-4 py-3 text-[14px] border bg-white"
+        className="flex-1 rounded-full px-4 py-3 text-[14px] border"
         style={{ borderColor: "var(--zn-line)" }}
         disabled={state === "submitting"}
       />

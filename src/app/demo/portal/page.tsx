@@ -64,7 +64,7 @@ export default function DemoPortalPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col items-center px-4 py-8">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex flex-col items-center px-4 py-8">
       {/* Demo banner */}
       <div className="w-full max-w-md mb-4">
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
@@ -83,24 +83,24 @@ export default function DemoPortalPage() {
       <div className="w-full max-w-md">
         {/* Creditor branding */}
         <div className="text-center mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400 mb-1">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400 dark:text-neutral-500 mb-1">
             Invoice from
           </div>
           <h1 className="text-[20px] font-semibold">{SAMPLE.businessName}</h1>
         </div>
 
         {/* Invoice card */}
-        <div className="rounded-xl border border-neutral-200 bg-white p-5 mb-4">
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-5 mb-4">
           <div className="flex items-baseline justify-between mb-3">
-            <span className="text-[12px] text-neutral-500">Invoice</span>
+            <span className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">Invoice</span>
             <span className="text-[13px] font-medium font-mono">{SAMPLE.invoiceNumber}</span>
           </div>
           <div className="flex items-baseline justify-between mb-3">
-            <span className="text-[12px] text-neutral-500">Customer</span>
+            <span className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">Customer</span>
             <span className="text-[13px] font-medium">{SAMPLE.customerName}</span>
           </div>
           <div className="flex items-baseline justify-between mb-4">
-            <span className="text-[12px] text-neutral-500">Due</span>
+            <span className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">Due</span>
             <span className="text-[13px] font-medium">
               {fmtDueDate}
               <span className="ml-1.5 text-red-600 font-semibold">· {daysOverdue}d overdue</span>
@@ -109,30 +109,30 @@ export default function DemoPortalPage() {
 
           {showStatutory && interestCalc ? (
             <>
-              <div className="border-t border-neutral-200 pt-3 space-y-1.5">
+              <div className="border-t border-neutral-200 dark:border-neutral-700 pt-3 space-y-1.5">
                 <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="text-neutral-500">Invoice amount</span>
+                  <span className="text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">Invoice amount</span>
                   <span className="tabular-nums">{fmtGBP(SAMPLE.amount)}</span>
                 </div>
                 <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="text-neutral-500">+ Statutory interest <span className="text-[11px] text-neutral-400">({daysOverdue}d × {interestCalc.annualRate}%)</span></span>
+                  <span className="text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">+ Statutory interest <span className="text-[11px] text-neutral-400 dark:text-neutral-500">({daysOverdue}d × {interestCalc.annualRate}%)</span></span>
                   <span className="tabular-nums">{fmtGBP(interestCalc.interest)}</span>
                 </div>
                 <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="text-neutral-500">+ Compensation</span>
+                  <span className="text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">+ Compensation</span>
                   <span className="tabular-nums">{fmtGBP(interestCalc.compensation)}</span>
                 </div>
               </div>
-              <div className="border-t border-neutral-200 mt-3 pt-3 flex items-baseline justify-between">
+              <div className="border-t border-neutral-200 dark:border-neutral-700 mt-3 pt-3 flex items-baseline justify-between">
                 <span className="text-[14px] font-semibold">Total recoverable</span>
                 <span className="text-[24px] font-semibold tabular-nums">{fmtGBP(interestCalc.totalRecoverable)}</span>
               </div>
-              <p className="text-[10.5px] text-neutral-400 leading-4 mt-2">
+              <p className="text-[10.5px] text-neutral-400 dark:text-neutral-500 leading-4 mt-2">
                 Statutory interest applies under the UK Late Payment of Commercial Debts (Interest) Act 1998.
               </p>
             </>
           ) : (
-            <div className="border-t border-neutral-200 pt-3 flex items-baseline justify-between">
+            <div className="border-t border-neutral-200 dark:border-neutral-700 pt-3 flex items-baseline justify-between">
               <span className="text-[14px] font-semibold">Amount due</span>
               <span className="text-[24px] font-semibold tabular-nums">{fmtGBP(SAMPLE.amount)}</span>
             </div>
@@ -153,7 +153,7 @@ export default function DemoPortalPage() {
             <button
               type="button"
               disabled
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13.5px] font-medium opacity-70 cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 dark:text-white px-5 py-3 text-[13.5px] font-medium opacity-70 cursor-not-allowed"
             >
               Pay invoice only ({fmtGBP(SAMPLE.amount)})
             </button>
@@ -171,26 +171,26 @@ export default function DemoPortalPage() {
 
         {/* Secondary options */}
         <div className="grid grid-cols-3 gap-2 mb-6">
-          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
+          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-600 dark:text-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
             <Calendar className="size-3.5" />
             Promise date
           </button>
-          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
+          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-600 dark:text-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
             <MessageSquare className="size-3.5" />
             Tell us why
           </button>
-          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
+          <button type="button" disabled className="inline-flex flex-col items-center justify-center gap-1 rounded-lg border border-neutral-600 dark:text-neutral-300 px-2 py-2.5 text-[11.5px] font-medium opacity-70 cursor-not-allowed text-center">
             <Forward className="size-3.5" />
             Forward to AP
           </button>
         </div>
 
         {/* Trust footer */}
-        <div className="flex items-center justify-center gap-2 text-[11.5px] text-neutral-500">
-          <ShieldCheck className="size-3 text-neutral-400" />
+        <div className="flex items-center justify-center gap-2 text-[11.5px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">
+          <ShieldCheck className="size-3 text-neutral-400 dark:text-neutral-500" />
           Secure payment via Stripe · Card / Apple Pay / Google Pay
         </div>
-        <div className="text-center text-[11px] text-neutral-400 mt-3">
+        <div className="text-center text-[11px] text-neutral-400 dark:text-neutral-500 mt-3">
           Questions? Email{" "}
           <a href={`mailto:${SAMPLE.businessEmail}`} className="underline">
             {SAMPLE.businessEmail}

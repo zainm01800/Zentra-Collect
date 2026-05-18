@@ -124,7 +124,7 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search customer or invoice number"
-              className="w-full pl-9 pr-3 py-2 text-[13.5px] rounded-lg border bg-white"
+              className="w-full pl-9 pr-3 py-2 text-[13.5px] rounded-lg border"
               style={{ borderColor: "var(--zn-line)" }}
             />
           </div>

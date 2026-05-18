@@ -132,7 +132,7 @@ export function FirstRunOnboarding() {
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="Your Business Ltd"
-                    className="w-full rounded-lg px-3 py-2.5 text-[14px] border bg-white"
+                    className="w-full rounded-lg px-3 py-2.5 text-[14px] border"
                     style={{ borderColor: "var(--zn-line)" }}
                   />
                 </Field>
@@ -142,7 +142,7 @@ export function FirstRunOnboarding() {
                     value={businessEmail}
                     onChange={(e) => setBusinessEmail(e.target.value)}
                     placeholder="billing@yourbusiness.co.uk"
-                    className="w-full rounded-lg px-3 py-2.5 text-[14px] border bg-white"
+                    className="w-full rounded-lg px-3 py-2.5 text-[14px] border"
                     style={{ borderColor: "var(--zn-line)" }}
                   />
                 </Field>

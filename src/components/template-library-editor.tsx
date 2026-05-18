@@ -169,16 +169,16 @@ export function TemplateLibraryEditor() {
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. 'Long-term client gentle nudge'"
-                className="w-full rounded-md px-3 py-2 text-[13px] border bg-white"
-                style={{ borderColor: "var(--zn-line)" }}
+                className="w-full rounded-md px-3 py-2 text-[13px] border"
+                style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface-2)", color: "var(--zn-ink)" }}
               />
             </Field>
             <Field label="Tone">
               <select
                 value={draft.tone}
                 onChange={(e) => setDraft({ ...draft, tone: e.target.value as ReminderTone })}
-                className="w-full rounded-md px-3 py-2 text-[13px] border bg-white"
-                style={{ borderColor: "var(--zn-line)" }}
+                className="w-full rounded-md px-3 py-2 text-[13px] border"
+                style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface-2)", color: "var(--zn-ink)" }}
               >
                 {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -188,8 +188,8 @@ export function TemplateLibraryEditor() {
                 type="text"
                 value={draft.subject}
                 onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                className="w-full rounded-md px-3 py-2 text-[13px] border bg-white font-mono"
-                style={{ borderColor: "var(--zn-line)" }}
+                className="w-full rounded-md px-3 py-2 text-[13px] border font-mono"
+                style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface-2)", color: "var(--zn-ink)" }}
               />
             </Field>
             <Field label="Body">
@@ -197,8 +197,8 @@ export function TemplateLibraryEditor() {
                 value={draft.body}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                 rows={10}
-                className="w-full rounded-md px-3 py-2 text-[13px] border bg-white font-mono"
-                style={{ borderColor: "var(--zn-line)" }}
+                className="w-full rounded-md px-3 py-2 text-[13px] border font-mono"
+                style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface-2)", color: "var(--zn-ink)" }}
               />
             </Field>
             <div>
@@ -206,7 +206,8 @@ export function TemplateLibraryEditor() {
                 type="button"
                 onClick={save}
                 disabled={!draft.name.trim() || !draft.body.trim()}
-                className="rounded-full bg-neutral-900 text-white text-[12.5px] font-medium px-4 py-2 hover:bg-neutral-800 disabled:opacity-40"
+                className="rounded-full text-[12.5px] font-medium px-4 py-2 disabled:opacity-40"
+                style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
               >
                 Save template
               </button>

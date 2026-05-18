@@ -62,7 +62,7 @@ export default async function ReasonPage({
       <PortalShell>
         <div className="text-center max-w-md mx-auto">
           <h1 className="text-[22px] font-semibold mb-3">Link unavailable</h1>
-          <p className="text-[14px] leading-6 text-neutral-600">
+          <p className="text-[14px] leading-6 text-neutral-600 dark:text-neutral-300">
             This link doesn&apos;t look valid. Please ask the sender to resend it.
           </p>
         </div>
@@ -82,15 +82,15 @@ export default async function ReasonPage({
             <CheckCircle2 className="size-6 text-emerald-600" />
           </div>
           <h1 className="text-[22px] font-semibold mb-2">Thanks for letting us know</h1>
-          <p className="text-[14px] leading-6 text-neutral-600 mb-2">
+          <p className="text-[14px] leading-6 text-neutral-600 dark:text-neutral-300 mb-2">
             {inv.businessName} now knows: <strong>{reason?.label ?? submittedReason}</strong>.
           </p>
-          <p className="text-[13px] text-neutral-500">
+          <p className="text-[13px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">
             They&apos;ll pause further chasing and reach out if they need anything from you.
           </p>
           <Link
             href={`/pay/${token}`}
-            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 hover:text-neutral-800 mt-6"
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 mt-6"
           >
             Or pay now anyway →
           </Link>
@@ -105,7 +105,7 @@ export default async function ReasonPage({
       <div className="max-w-md mx-auto">
         <Link
           href={`/pay/${token}`}
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 hover:text-neutral-800 mb-4"
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 mb-4"
         >
           <ArrowLeft className="size-3.5" />
           Back
@@ -113,22 +113,22 @@ export default async function ReasonPage({
 
         <div className="text-center mb-6">
           <div className="size-10 rounded-full bg-neutral-100 inline-flex items-center justify-center mb-3">
-            <Wrench className="size-5 text-neutral-600" />
+            <Wrench className="size-5 text-neutral-600 dark:text-neutral-300" />
           </div>
           <h1 className="text-[20px] font-semibold mb-1">What&apos;s holding things up?</h1>
-          <p className="text-[13.5px] text-neutral-600">
+          <p className="text-[13.5px] text-neutral-600 dark:text-neutral-300">
             Pick one — it stops the reminders and tells {inv.businessName} what&apos;s happening.
           </p>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 mb-4">
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4 mb-4">
           <div className="flex items-baseline justify-between">
             <span className="text-[13px] font-mono">{inv.invoiceNumber}</span>
             <span className="text-[14px] font-semibold tabular-nums">
               £{inv.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="text-[12px] text-neutral-500 mt-1">{inv.customerName}</div>
+          <div className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 mt-1">{inv.customerName}</div>
         </div>
 
         <form action="/api/customer-portal/reason" method="POST">
@@ -140,14 +140,14 @@ export default async function ReasonPage({
                 type="submit"
                 name="reason"
                 value={r.id}
-                className="flex items-start gap-3 rounded-lg border border-neutral-300 bg-white p-4 text-left hover:bg-neutral-50 transition-colors"
+                className="flex items-start gap-3 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 p-4 text-left hover:bg-neutral-50 dark:bg-neutral-900 transition-colors"
               >
                 <div className="size-8 rounded-lg bg-neutral-100 flex items-center justify-center shrink-0">
-                  <r.Icon className="size-4 text-neutral-600" />
+                  <r.Icon className="size-4 text-neutral-600 dark:text-neutral-300" />
                 </div>
                 <div>
                   <div className="text-[13.5px] font-semibold">{r.label}</div>
-                  <div className="text-[11.5px] text-neutral-500 mt-0.5">{r.sub}</div>
+                  <div className="text-[11.5px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 mt-0.5">{r.sub}</div>
                 </div>
               </button>
             ))}
@@ -160,7 +160,7 @@ export default async function ReasonPage({
 
 function PortalShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center px-4 py-12">
       <div className="w-full">{children}</div>
     </div>
   );
