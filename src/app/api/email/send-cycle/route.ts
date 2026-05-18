@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (settingsError) {
       console.error("[send-cycle] failed to load settings:", settingsError.message);
-      return NextResponse.json({ ok: false, error: settingsError.message }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "Failed to load email settings." }, { status: 500 });
     }
 
     if (!settingsRows?.length) {
@@ -196,9 +196,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, sent: totalSent, failed: totalFailed, skipped: totalSkipped, log: allLogs });
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "Send cycle failed" },
-      { status: 500 },
-    );
+    console.error("[send-cycle]", err);
+    return NextResponse.json({ ok: false, error: "Send cycle failed." }, { status: 500 });
   }
 }

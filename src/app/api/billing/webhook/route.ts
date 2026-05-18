@@ -2,6 +2,8 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/client';
 import { getSupabaseAdminClient } from '@/lib/supabase/server';
+import { sendTransactionalEmail } from '@/lib/transactional/resend';
+import { paymentFailedEmail } from '@/lib/transactional/templates';
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -86,15 +88,72 @@ export async function POST(req: Request) {
             .single();
 
           if (account) {
+            // past_due = payment failed but Stripe is still retrying — keep accessible
             const status = subscription.status === 'active' ? 'active' :
                            subscription.status === 'trialing' ? 'trialing' :
-                           subscription.status === 'past_due' ? 'expired' : 'cancelled';
+                           subscription.status === 'past_due' ? 'past_due' : 'cancelled';
 
             await supabase
               .from('zentra_accounts')
               .update({ status })
               .eq('id', account.id);
           }
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string | undefined;
+        if (!customerId) break;
+
+        console.warn(`[webhook] Payment failed for Stripe customer ${customerId} — invoice ${invoice.id}`);
+
+        const { data: account } = await supabase
+          .from('zentra_accounts')
+          .select('id, status, owner_user_id, zentra_businesses(name)')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (account && account.status === 'active') {
+          await supabase
+            .from('zentra_accounts')
+            .update({ status: 'past_due' })
+            .eq('id', account.id);
+
+          // Email the account owner to update their card
+          if (account.owner_user_id) {
+            const { data: userData } = await supabase.auth.admin.getUserById(account.owner_user_id);
+            if (userData?.user?.email) {
+              const bizArr = Array.isArray(account.zentra_businesses)
+                ? account.zentra_businesses
+                : account.zentra_businesses ? [account.zentra_businesses] : [];
+              const businessName = (bizArr[0] as { name?: string } | undefined)?.name ?? 'your business';
+              const template = paymentFailedEmail({ businessName });
+              sendTransactionalEmail({ to: userData.user.email, ...template }).catch(() => {});
+            }
+          }
+        }
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string | undefined;
+        if (!customerId) break;
+
+        const { data: account } = await supabase
+          .from('zentra_accounts')
+          .select('id, status')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        // Recover from past_due if payment eventually succeeded
+        if (account && account.status === 'past_due') {
+          await supabase
+            .from('zentra_accounts')
+            .update({ status: 'active' })
+            .eq('id', account.id);
         }
         break;
       }

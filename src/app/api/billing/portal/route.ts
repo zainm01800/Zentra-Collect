@@ -41,8 +41,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Portal session failed.";
     console.error("[billing/portal]", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Billing portal session could not be created." }, { status: 500 });
   }
 }

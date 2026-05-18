@@ -3,6 +3,8 @@ import {
   createSupabaseServerClient,
   hasSupabaseServerConfig,
 } from "@/lib/supabase/server";
+import { sendTransactionalEmail } from "@/lib/transactional/resend";
+import { welcomeEmail } from "@/lib/transactional/templates";
 
 /**
  * POST /api/auth/create-account
@@ -102,6 +104,12 @@ export async function POST(req: NextRequest) {
       name: businessName,
       business_type: "service_business",
     });
+
+    // Fire welcome email — non-blocking, never fails the response
+    if (user.email) {
+      const template = welcomeEmail({ businessName, trialEndsAt });
+      sendTransactionalEmail({ to: user.email, ...template }).catch(() => {});
+    }
 
     return NextResponse.json({ ok: true, accountId: account.id, created: true });
   } catch (err) {
