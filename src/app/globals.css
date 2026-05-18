@@ -129,7 +129,9 @@
   --zn-surface-sunken: #100e0a;
   --zn-ink:            #f0e8d5;
   --zn-ink-2:          #d8ccb5;
-  --zn-ink-3:          #8a7d69;
+  /* Audit §8: was #8a7d69, ~4.0:1 against #211d17 — borderline for AA
+     small-text. Bumped to #a89c84 for ~5.2:1. */
+  --zn-ink-3:          #a89c84;
   --zn-muted:          #6a5f4e;
   --zn-line:           #2d2820;
   --zn-line-soft:      #252019;

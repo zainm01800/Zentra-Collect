@@ -10,6 +10,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing-nav";
+import { LandingFocusCard } from "@/components/landing-focus-card";
 import type { PlanId } from "@/lib/account/plans";
 import { PricingSection } from "@/components/pricing-section";
 
@@ -55,6 +56,7 @@ const trustItems = [
   { label: "Human approval before every send", Icon: ShieldCheck },
   { label: "Activity history per invoice",      Icon: FileText },
   { label: "Plain-English safety checks",       Icon: CheckCircle2 },
+  { label: "UK-hosted data, encrypted at rest", Icon: ShieldCheck },
   { label: "No legal or accounting advice",     Icon: ShieldCheck },
 ];
 
@@ -151,73 +153,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hero "screenshot" — recreates the dashboard onboarding card */}
+        {/* Hero "screenshot" — animated client component (audit §3 UX-9). */}
         <div className="min-w-0">
-          <div className="zn-card p-3 sm:p-4">
-            <div
-              className="rounded-[12px] p-5"
-              style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
-            >
-              <div className="zn-label !p-0 opacity-55">
-                Today&apos;s focus
-              </div>
-              <p
-                className="mt-1.5 text-[17px] leading-[1.4] italic"
-                style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif" }}
-              >
-                Recover £105,940 sitting overdue. Two calls likely move the needle most.
-              </p>
-            </div>
-            <div className="mt-3 grid gap-2.5">
-              {[
-                { rank: 1, name: "Ashford Digital",    amount: "£12,750", sub: "54d overdue · Send payment reminder" },
-                { rank: 2, name: "BluePeak Design",    amount: "£8,900",  sub: "77d overdue · Call customer"        },
-                { rank: 3, name: "Northline Creative", amount: "£6,400",  sub: "63d overdue · Send final reminder"  },
-                { rank: 4, name: "Redfern Architecture", amount: "£11,200", sub: "61d overdue · Escalation candidate" },
-              ].map((row) => (
-                <div
-                  key={row.rank}
-                  className="flex items-center gap-3 rounded-[10px] p-3"
-                  style={{
-                    background: "var(--zn-surface)",
-                    border: "1px solid var(--zn-line-soft)",
-                  }}
-                >
-                  <span
-                    className="text-[16px] italic flex-shrink-0 w-5 text-center"
-                    style={{
-                      fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
-                      color: "var(--zn-ink-3)",
-                    }}
-                  >
-                    {row.rank}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold truncate text-[#1d1813] dark:text-[#f0e8d5]">{row.name}</div>
-                    <div className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
-                      {row.sub}
-                    </div>
-                  </div>
-                  <div className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-[#1d1813] dark:text-[#f0e8d5]">
-                    {row.amount}
-                  </div>
-                  <span
-                    className="zn-pill flex-shrink-0"
-                    style={{ height: 24, fontSize: 11, padding: "0 10px" }}
-                  >
-                    Review
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div
-              className="mt-3 flex items-center justify-between rounded-[10px] px-3 py-2"
-              style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
-            >
-              <span className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>29 more in queue</span>
-              <span className="text-[11.5px] font-medium" style={{ color: "var(--zn-safe)" }}>↑ £39,450 likely this week</span>
-            </div>
-          </div>
+          <LandingFocusCard />
         </div>
       </section>
 
@@ -481,11 +419,16 @@ export default function Home() {
                 <Link href="/demo"              className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Try the demo</Link>
               </div>
               <div className="flex flex-col gap-2">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Company</span>
+                <Link href="/about"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">About</Link>
+                <Link href="/trust"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Trust &amp; security</Link>
+                <Link href="/help"    className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Help</Link>
+              </div>
+              <div className="flex flex-col gap-2">
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Legal</span>
                 <Link href="/terms"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Terms</Link>
                 <Link href="/privacy" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Privacy</Link>
                 <Link href="/cookies" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Cookies</Link>
-                <Link href="/help"    className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Help</Link>
               </div>
             </div>
           </div>

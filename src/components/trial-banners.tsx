@@ -216,6 +216,36 @@ export function GracePeriodExpiredBanner() {
  * TODO (production): Replace DEMO_ACCOUNT_ID with the authenticated
  *   session user's account ID.
  */
+/**
+ * Audit §14: friendly nudge in the final 3 days of trial.
+ * Replaces the "no banner during trial" gap so users aren't surprised
+ * by abrupt access changes.
+ */
+function TrialEndingSoonBanner({ daysLeft }: { daysLeft: number }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#d4c9ae] dark:border-[#3d3428] bg-[#fdf6e3]/70 dark:bg-[#28231c] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <Clock className="mt-0.5 size-4 shrink-0 text-[#a07522]" />
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "var(--zn-ink)" }}>
+            {daysLeft <= 1 ? "Trial ends today." : `Trial ends in ${daysLeft} days.`}
+          </p>
+          <p className="mt-0.5 text-xs leading-5" style={{ color: "var(--zn-ink-3)" }}>
+            Pick a plan to keep your imports, drafts and history flowing. You can
+            still view existing data for 30 days after the trial ends.
+          </p>
+        </div>
+      </div>
+      <div className="shrink-0 pl-7 sm:pl-0 flex gap-2">
+        <Button asChild size="sm" className="rounded-full">
+          <Link href="/settings/account">Choose a plan <ArrowRight className="size-3.5" /></Link>
+        </Button>
+        <ExportDataButton />
+      </div>
+    </div>
+  );
+}
+
 export function TrialStatusBanner() {
   const { user } = useLocalAccount();
 
@@ -226,8 +256,16 @@ export function TrialStatusBanner() {
   const graceEndsMs = user.graceEndsAt ? new Date(user.graceEndsAt).getTime() : 0;
   const now = Date.now();
 
-  // Trial still active — no banner (sidebar pill carries the countdown)
-  if (trialEndsMs > now) return null;
+  // Trial still active. The sidebar pill shows the day-count; the banner
+  // only appears in the LAST 3 DAYS so we don't yell at new users.
+  // Audit §14: previously had no in-app countdown banner; this adds
+  // one without being spammy.
+  if (trialEndsMs > now) {
+    const msLeft = trialEndsMs - now;
+    const daysLeft = Math.ceil(msLeft / 86_400_000);
+    if (daysLeft > 3) return null;
+    return <TrialEndingSoonBanner daysLeft={daysLeft} />;
+  }
 
   // Within grace period: trial ended, data still safe
   if (graceEndsMs > now) {

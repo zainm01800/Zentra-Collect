@@ -103,10 +103,20 @@ export function PricingSection({
 
   return (
     <div>
-      <p className="-mt-2 mb-5 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
+      <p className="-mt-2 mb-3 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
         Start with the demo. Move to a 14-day trial when you&apos;re ready to
         import your own data. Upgrade to a paid plan to keep going.
       </p>
+
+      {/* Audit §15: short positioning row above the plan cards. */}
+      <div
+        className="mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px]"
+        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)", color: "var(--zn-ink-2)" }}
+      >
+        <span className="font-semibold">Compare:</span>
+        <span>Chaser ~£40/mo · Satago ~£25/mo · Zentra Practice £119/mo —</span>
+        <span className="font-medium">includes counterparty exposure, stop-chasing AI, and bookkeeper portfolio.</span>
+      </div>
 
       {/* Billing toggle — hidden when no annual price IDs are configured */}
       {annualAvailable && (
@@ -166,7 +176,13 @@ export function PricingSection({
           return (
             <div
               key={plan.id}
-              className="zn-card p-5 flex flex-col"
+              // Audit §7: on mobile (single column), the "Recommended"
+              // plan should sit at the top of the stack, not buried mid-list.
+              // order-first on mobile, restored at sm: via order-none.
+              className={
+                "zn-card p-5 flex flex-col" +
+                (isFeatured ? " order-first sm:order-none" : "")
+              }
               style={
                 isFeatured
                   ? { borderColor: "var(--zn-ink)", boxShadow: "0 1px 0 rgba(29,24,19,0.04), 0 4px 18px -8px rgba(29,24,19,0.18)" }

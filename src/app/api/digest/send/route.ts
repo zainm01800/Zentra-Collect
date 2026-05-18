@@ -65,6 +65,14 @@ export async function POST(request: Request) {
     );
   }
 
+  // Audit §10 #1: sanitise the email subject so caller-supplied HTML
+  // can't end up in the rendered Subject: header (esp. via SMTP servers
+  // that pass it on unescaped). Strip CR/LF (header-injection) too.
+  body.narrated.subject = String(body.narrated.subject)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/<[^>]*>/g, "")
+    .slice(0, 200);
+
   // ── Resolve authenticated account ─────────────────────────────────────────
   let accountId: string | null = null;
   if (hasSupabaseServerConfig()) {
