@@ -89,19 +89,13 @@ const trustItems = [
   { label: "No legal or accounting advice",     Icon: CheckCircle2 },
 ];
 
-// Public pricing plans. FREE is the permanent low-volume tier for sole
-// traders billing only a handful of invoices. TRIAL is the no-card
-// "try it at full power for 14 days" entry point. TRADER stays as an
-// internal SKU only (was confusing publicly).
-const pricingPlanIds: PlanId[] = [
-  "FREE",
-  "TRIAL",
-  "FREELANCE",
-  "STARTER_SOLO",
-  "SINGLE_BUSINESS",
-  "BOOKKEEPER_STARTER",
-  "BOOKKEEPER_PRO",
-];
+// Public pricing — grouped into three segments on the page (rendered
+// in three <PricingSection /> calls below). FREE is no longer publicly
+// listed; the £5/mo Starter (TRADER in legacy code) is the entry tier
+// and includes books + template chasing.
+const segmentSoleTraderIds:   PlanId[] = ["TRADER",             "FREELANCE"];
+const segmentGrowingIds:      PlanId[] = ["STARTER_SOLO",       "SINGLE_BUSINESS"];
+const segmentBookkeeperIds:   PlanId[] = ["BOOKKEEPER_STARTER", "BOOKKEEPER_PRO"];
 
 const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
@@ -206,6 +200,48 @@ export default function Home() {
           <LandingFocusCard />
         </div>
       </section>
+
+      {/* ─── Who is this for? Three doors right under the hero ─── */}
+      <Section eyebrow="Who is this for?" title="Three doors. Pick the one that fits.">
+        <div className="grid gap-3 md:grid-cols-3">
+          {[
+            {
+              title: "Sole traders",
+              body:  "Run your books, file Self-Assessment, occasionally chase a late client. Starter from £5/mo.",
+              href:  "#pricing",
+              cta:   "See sole-trader plans",
+            },
+            {
+              title: "Growing businesses",
+              body:  "Books AND chasing every week. AI-drafted emails, reply classification, integrations. From £29/mo.",
+              href:  "#pricing",
+              cta:   "See business plans",
+            },
+            {
+              title: "Bookkeepers",
+              body:  "Manage multiple client ledgers in one workspace. Counterparty exposure included. From £119/mo.",
+              href:  "#pricing",
+              cta:   "See practice plans",
+            },
+          ].map((door) => (
+            <Link
+              key={door.title}
+              href={door.href}
+              className="zn-card p-5 flex flex-col gap-2 transition-colors hover:bg-[var(--zn-surface-2)]"
+            >
+              <p className="text-[15px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">
+                {door.title}
+              </p>
+              <p className="text-[13px] leading-[1.55] flex-1" style={{ color: "var(--zn-ink-3)" }}>
+                {door.body}
+              </p>
+              <span className="text-[12.5px] font-medium mt-1 inline-flex items-center gap-1" style={{ color: "var(--zn-accent)" }}>
+                {door.cta} <ArrowRight className="size-3" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </Section>
 
       {/* ─── Answers ─── */}
       <Section eyebrow="What it answers every morning" title="One workspace. Five questions.">
@@ -372,34 +408,55 @@ export default function Home() {
         eyebrow="Pricing"
         title="Clear plans for sole traders, small businesses, and bookkeepers."
       >
-        <div
-          className="mb-6 inline-flex items-start gap-3 rounded-2xl p-4 max-w-3xl"
-          style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
-        >
-          <PiggyBank className="size-4 mt-0.5 flex-shrink-0" style={{ color: "var(--zn-accent)" }} />
-          <div>
-            <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-              Just send a handful of invoices a month?
-            </p>
-            <p className="mt-1 text-[12.5px] leading-[1.55]" style={{ color: "var(--zn-ink-3)" }}>
-              Start on <strong style={{ color: "var(--zn-ink)" }}>Free</strong> forever — 3 active invoices,
-              real bank feed, real Self-Assessment estimate. No card. Upgrade only
-              when you outgrow it.
-            </p>
-          </div>
-        </div>
+        <p className="mb-6 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
+          Pick the segment that fits. Every plan includes a 14-day free
+          trial at full power — no card required.
+        </p>
+
+        {/* Segment 1: Sole traders */}
+        <SegmentHeader
+          title="For sole traders"
+          sub="Books-first. Light chasing if you need it. Driving instructors, freelancers, tradespeople, anyone billing a handful of clients a month."
+        />
         <PricingSection
-          plans={pricingPlanIds.map((planId) => ({
+          plans={segmentSoleTraderIds.map((planId) => ({
             planId,
             priceId:        PLAN_PRICE_IDS[planId] || undefined,
             priceIdAnnual:  PLAN_PRICE_IDS_ANNUAL[planId] || undefined,
           }))}
         />
-        <p className="mt-4 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-          {pricingDescriptions.FREELANCE && (
-            <>All plans include a 14-day free trial. No card required to start.</>
-          )}
-        </p>
+
+        {/* Segment 2: Growing businesses */}
+        <div className="mt-10">
+          <SegmentHeader
+            title="For growing businesses"
+            sub="Books AND active chasing. AI-drafted emails, reply classification, auto-send and accounting integrations on Business."
+          />
+          <PricingSection
+            compact
+            plans={segmentGrowingIds.map((planId) => ({
+              planId,
+              priceId:        PLAN_PRICE_IDS[planId] || undefined,
+              priceIdAnnual:  PLAN_PRICE_IDS_ANNUAL[planId] || undefined,
+            }))}
+          />
+        </div>
+
+        {/* Segment 3: Bookkeepers */}
+        <div className="mt-10">
+          <SegmentHeader
+            title="For bookkeepers"
+            sub="Multi-client portfolios. One workspace across every ledger. Counterparty exposure and weekly client briefs included."
+          />
+          <PricingSection
+            compact
+            plans={segmentBookkeeperIds.map((planId) => ({
+              planId,
+              priceId:        PLAN_PRICE_IDS[planId] || undefined,
+              priceIdAnnual:  PLAN_PRICE_IDS_ANNUAL[planId] || undefined,
+            }))}
+          />
+        </div>
       </Section>
 
       {/* ─── FAQ ─── */}
@@ -548,5 +605,21 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function SegmentHeader({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="mb-4 mt-2 max-w-2xl">
+      <h3
+        className="text-[18px] sm:text-[20px] tracking-[-0.01em] leading-[1.15] text-[#1d1813] dark:text-[#f0e8d5]"
+        style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
+      >
+        {title}
+      </h3>
+      <p className="mt-1 text-[12.5px] leading-[1.55]" style={{ color: "var(--zn-ink-3)" }}>
+        {sub}
+      </p>
+    </div>
   );
 }

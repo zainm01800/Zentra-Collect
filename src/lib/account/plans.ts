@@ -191,24 +191,29 @@ export const planConfigs: Record<PlanId, PlanConfig> = {
     },
   },
 
+  // Repurposed: was the "books-only £5" tier with no chasing. Now it's
+  // the proper £5 entry — full books AND light template chasing —
+  // for the smallest sole traders (driving instructors, tutors,
+  // hairdressers, etc). Renamed to "Starter" in marketing.
   TRADER: {
     id: "TRADER",
-    name: "Trader",
+    name: "Starter",
     priceMonthlyGbp: 5,
-    description: "Upload a bank statement, categorise expenses, estimate your tax. No invoice chasing.",
+    description: "Full books for the smallest sole traders. Up to 25 active invoices, template chase emails included.",
     limits: {
       ...defaultLimits,
       importsUsedThisMonth: 5,
       trialImportsUsed: "unlimited",
       aiActionsUsedThisMonth: 0,
       trialAiActionsUsed: 0,
-      activeInvoiceCount: 50,
+      activeInvoiceCount: 25,
       clientLedgerCount: 1,
     },
     features: {
       ...defaultFeatures,
       realData: true,
       persistentRealImports: true,
+      collections: true,   // template chasing now included
       booksAndTax: true,
     },
   },

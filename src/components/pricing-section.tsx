@@ -103,8 +103,10 @@ const COMPARISON_ROWS: { feature: string; starter: string; single: string; bookk
 // ── Main component ─────────────────────────────────────────────────────────────
 export function PricingSection({
   plans,
+  compact = false,  // hide intro paragraph + comparison strip (use when stacking multiple segments on one page)
 }: {
   plans: PricingPlanDef[];
+  compact?: boolean;
 }) {
   const [annual, setAnnual] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
@@ -115,20 +117,24 @@ export function PricingSection({
 
   return (
     <div>
-      <p className="-mt-2 mb-3 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-        Start with the demo. Move to a 14-day trial when you&apos;re ready to
-        import your own data. Upgrade to a paid plan to keep going.
-      </p>
+      {!compact && (
+        <>
+          <p className="-mt-2 mb-3 max-w-2xl text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            Start with the demo. Move to a 14-day trial when you&apos;re ready to
+            import your own data. Upgrade to a paid plan to keep going.
+          </p>
 
-      {/* Audit §15: short positioning row above the plan cards. */}
-      <div
-        className="mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px]"
-        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)", color: "var(--zn-ink-2)" }}
-      >
-        <span className="font-semibold">Compare:</span>
-        <span>Chaser ~£40/mo · Satago ~£25/mo · Zentra Practice £119/mo —</span>
-        <span className="font-medium">includes counterparty exposure, stop-chasing AI, and bookkeeper portfolio.</span>
-      </div>
+          {/* Audit §15: short positioning row above the plan cards. */}
+          <div
+            className="mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px]"
+            style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)", color: "var(--zn-ink-2)" }}
+          >
+            <span className="font-semibold">Compare:</span>
+            <span>Chaser ~£40/mo · Satago ~£25/mo · Zentra Practice £119/mo —</span>
+            <span className="font-medium">includes counterparty exposure, stop-chasing AI, and bookkeeper portfolio.</span>
+          </div>
+        </>
+      )}
 
       {/* Billing toggle — hidden when no annual price IDs are configured */}
       {annualAvailable && (
@@ -278,14 +284,16 @@ export function PricingSection({
         })}
       </div>
 
-      <p className="mt-6 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
-        All plans include a 14-day free trial. No card required to start.{" "}
-        <Link href="/request-access" className="underline underline-offset-2">Contact us</Link>{" "}
-        if you need a custom plan.
-      </p>
+      {!compact && (
+        <p className="mt-6 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+          All plans include a 14-day free trial. No card required to start.{" "}
+          <Link href="/request-access" className="underline underline-offset-2">Contact us</Link>{" "}
+          if you need a custom plan.
+        </p>
+      )}
 
-      {/* Feature comparison toggle */}
-      <div className="mt-8">
+      {/* Feature comparison toggle — hidden in compact mode to avoid 3 copies */}
+      {!compact && <div className="mt-8">
         <button
           type="button"
           onClick={() => setShowComparison((s) => !s)}
@@ -334,7 +342,7 @@ export function PricingSection({
             </table>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
