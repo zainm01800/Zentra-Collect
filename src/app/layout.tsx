@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShellWrapper } from "@/components/app-shell-wrapper";
+import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
 
 // Plausible — no-op until NEXT_PUBLIC_PLAUSIBLE_DOMAIN is set.
@@ -158,6 +159,7 @@ export default function RootLayout({
         <TooltipProvider>
           <AppShellWrapper>{children}</AppShellWrapper>
         </TooltipProvider>
+        <CookieBanner />
       </body>
     </html>
   );

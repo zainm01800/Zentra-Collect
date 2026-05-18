@@ -23,7 +23,7 @@ import {
   type CustomerDiagnosisResult,
 } from "@/lib/ai/customer-diagnosis";
 import { checkRateLimit } from "@/lib/server/rate-limit";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActiveAccount } from "@/lib/server/account-guard";
 
 let openaiClient: OpenAI | null = null;
 
@@ -36,11 +36,8 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  }
+  const { error } = await requireActiveAccount();
+  if (error) return error;
 
   const rateLimit = checkRateLimit(request, {
     namespace: "zentra-customer-diagnosis",
