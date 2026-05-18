@@ -16,13 +16,13 @@ export interface CustomNavSection {
 export const NAV_SECTIONS_KEY = "zentra.navSections.v1";
 
 /** The hrefs that can be moved between custom sections (excludes /banking — always its own fixed section). */
-export const CUSTOMISABLE_HREFS: string[] = ["/expenses", "/tax", "/pl", "/bills"];
+export const CUSTOMISABLE_HREFS: string[] = ["/expenses", "/mileage", "/tax", "/pl", "/bills"];
 
 export const DEFAULT_CUSTOM_SECTIONS: CustomNavSection[] = [
   {
     id: "default-books",
     label: "Books",
-    items: ["/expenses", "/pl", "/bills", "/tax"],
+    items: ["/expenses", "/mileage", "/pl", "/bills", "/tax"],
   },
 ];
 
