@@ -66,32 +66,32 @@ const fallbackIdentity: PendingIdentity = {
 
 const PERSONA_OPTIONS: PersonaOption[] = [
   {
+    id: "sole_trader",
+    title: "Sole trader / tradesperson",
+    subtitle: "Driving instructor, freelancer, hairdresser — I bill a handful of clients a month and want my books in one place.",
+    icon: <Users2 className="size-5" />,
+    suggestedPlan: "Starter from £5/mo",
+  },
+  {
     id: "freelancer",
-    title: "Freelancer / Consultant",
-    subtitle: "I invoice clients directly for my own work",
+    title: "Active freelancer / consultant",
+    subtitle: "I send 10–50 invoices a month and chase late payers regularly.",
     icon: <User className="size-5" />,
-    suggestedPlan: "Starter Solo",
+    suggestedPlan: "Solo £29/mo",
   },
   {
     id: "agency",
-    title: "Agency / Studio",
-    subtitle: "We invoice project clients as a team",
+    title: "Small business / agency",
+    subtitle: "We invoice multiple clients, need integrations, and want auto-send.",
     icon: <Briefcase className="size-5" />,
-    suggestedPlan: "Business",
+    suggestedPlan: "Business £59/mo",
   },
   {
     id: "bookkeeper",
     title: "Bookkeeper",
-    subtitle: "I manage AR for multiple business clients",
+    subtitle: "I manage AR and books for multiple client businesses.",
     icon: <BookOpen className="size-5" />,
-    suggestedPlan: "Practice",
-  },
-  {
-    id: "sole_trader",
-    title: "Sole trader",
-    subtitle: "I sell products or services and chase my own invoices",
-    icon: <Users2 className="size-5" />,
-    suggestedPlan: "Freelance",
+    suggestedPlan: "Practice £119/mo",
   },
 ];
 
@@ -174,6 +174,24 @@ export function OnboardingFlow() {
       monthlyInvoiceVolume: "51-100",
       mainArPainPoint: "overdue invoices",
     });
+
+    // Apply persona-based module defaults so the user lands on a
+    // sidebar that matches what they said they're here for. Bookkeepers
+    // get everything; sole traders see only the books + light chasing
+    // surface; active freelancers and agencies see the full set.
+    try {
+      import("@/lib/prefs").then(({ applyModuleSet }) => {
+        const modules = persona === "bookkeeper"
+          ? { collections: true,  cashflow: true,  expenses: true,  tax: true, reports: true }
+          : persona === "agency"
+          ? { collections: true,  cashflow: true,  expenses: true,  tax: true, reports: true }
+          : persona === "freelancer"
+          ? { collections: true,  cashflow: true,  expenses: true,  tax: true, reports: true }
+          /* sole_trader */
+          : { collections: true,  cashflow: true,  expenses: true,  tax: true, reports: false };
+        applyModuleSet(modules);
+      }).catch(() => undefined);
+    } catch { /* no-op in SSR */ }
   }
 
   async function chooseOption(option: Option) {

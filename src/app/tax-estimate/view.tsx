@@ -123,8 +123,8 @@ export function TaxEstimateView() {
       {/* Input panel */}
       <div className="rounded-2xl p-5 grid gap-3 sm:grid-cols-2"
            style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}>
-        <Stat label="Income (invoiced)" value={fmtGBP(totals.income)}
-              hint={`${totals.invoiceCount} invoice${totals.invoiceCount === 1 ? "" : "s"} in this tax year`} />
+        <Stat label="Income" value={fmtGBP(totals.income)}
+              hint={`${totals.invoiceCount} invoice${totals.invoiceCount === 1 ? "" : "s"} + any direct income tagged from your bank feed`} />
         <Stat label="Expenses tracked"  value={fmtGBP(totals.expenses)}
               hint={`${totals.expenseCount} expense${totals.expenseCount === 1 ? "" : "s"} in this tax year`} />
         <label className="flex items-center gap-2 text-[13px] py-2 sm:col-span-1"

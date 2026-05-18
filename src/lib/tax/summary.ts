@@ -15,6 +15,9 @@ import { ukTaxYearRange } from "./uk-self-employed";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import { readActiveClientId, clientInvoicesKey } from "@/lib/bookkeeper-clients";
 import { readLocalAccount } from "@/lib/demo-auth";
+import { readTaggedIncome } from "@/lib/banking/direct-income";
+import { totalMileageAllowance } from "@/lib/mileage";
+import { totalCreditedNet, totalCreditedVat } from "@/lib/credit-notes";
 import type { Invoice } from "@/types/zentra";
 
 const BOOKKEEPER_PLAN_IDS = ["bookkeeper_starter", "bookkeeper_pro"];
@@ -71,6 +74,8 @@ export interface TaxYearTotals {
   expenses:       number;
   invoiceCount:   number;
   expenseCount:   number;
+  /** Sum of VAT amounts captured on invoice line items in this tax year. */
+  vatCharged:     number;
 }
 
 /**
@@ -85,14 +90,32 @@ export function totalsForTaxYear(taxYear: string): TaxYearTotals {
 
   const invoices = readInvoicesForCurrentContext();
   const expenses = readExpenses();
+  const directIncome = readTaggedIncome();
 
   let income = 0;
   let invoiceCount = 0;
+  let vatCharged = 0;
   for (const inv of invoices) {
     const d = new Date(inv.invoiceDate).getTime();
     if (!Number.isFinite(d) || d < start || d > end) continue;
     income += inv.amount;
     invoiceCount += 1;
+    // Sum per-line VAT amounts (added in the VAT-on-invoice-lines feature).
+    // Older invoices without VAT fields contribute 0.
+    if (Array.isArray(inv.lineItems)) {
+      for (const li of inv.lineItems) {
+        const v = typeof li.vatAmount === "number" ? li.vatAmount : 0;
+        if (Number.isFinite(v)) vatCharged += v;
+      }
+    }
+  }
+  // Direct income (bank-feed credits tagged by the user as income without
+  // an invoice — driving instructors, tutors, dog walkers, etc.) counts
+  // toward turnover for Self-Assessment.
+  for (const di of directIncome) {
+    const d = new Date(di.date).getTime();
+    if (!Number.isFinite(d) || d < start || d > end) continue;
+    income += di.amount;
   }
 
   let exp = 0;
@@ -104,6 +127,23 @@ export function totalsForTaxYear(taxYear: string): TaxYearTotals {
     expenseCount += 1;
   }
 
+  // Mileage allowance — HMRC AMAP rate × business miles in the tax year.
+  // Counts as an allowable expense for self-employment.
+  const mileageAllowance = totalMileageAllowance({
+    from: new Date(start),
+    to:   new Date(end),
+  });
+  exp += mileageAllowance;
+
+  // Credit notes — money the user has formally NOT collected this period.
+  // Net amount reduces taxable income; VAT amount reduces output VAT
+  // (so VAT charged is net of any refunds issued).
+  const range = { from: new Date(start), to: new Date(end) };
+  const creditedNet = totalCreditedNet(range);
+  const creditedVat = totalCreditedVat(range);
+  income     = Math.max(0, income - creditedNet);
+  vatCharged = Math.max(0, vatCharged - creditedVat);
+
   const round2 = (n: number) => Math.round(n * 100) / 100;
   return {
     taxYear,
@@ -113,5 +153,6 @@ export function totalsForTaxYear(taxYear: string): TaxYearTotals {
     expenses:     round2(exp),
     invoiceCount,
     expenseCount,
+    vatCharged:   round2(vatCharged),
   };
 }

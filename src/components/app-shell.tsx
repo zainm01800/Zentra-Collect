@@ -10,6 +10,7 @@ import {
   Building2,
   CalendarClock,
   Calculator,
+  Car,
   Check,
   ChevronRight,
   CreditCard,
@@ -89,10 +90,12 @@ const overviewNav: NavItem[] = [
 ];
 
 const collectionsNav: NavItem[] = [
-  { href: "/invoices",  label: "Invoices",  icon: Receipt },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
-  { href: "/reports",   label: "Reports",   icon: BarChart3 },
+  { href: "/invoices",     label: "Invoices",     icon: Receipt },
+  { href: "/quotes",       label: "Quotes",       icon: FileText },
+  { href: "/credit-notes", label: "Credit notes", icon: Receipt },
+  { href: "/customers",    label: "Customers",    icon: Users },
+  { href: "/aged-debt",    label: "Aged debt",    icon: TableProperties },
+  { href: "/reports",      label: "Reports",      icon: BarChart3 },
 ];
 
 // Banking — fixed section, always its own heading.
@@ -100,9 +103,10 @@ const bankingNav: NavItem[] = [
   { href: "/banking", label: "Bank feed", icon: Building2 },
 ];
 
-// Books — user-customisable section (Expenses, P&L, Bills, Tax & VAT).
+// Books — user-customisable section (Expenses, Mileage, P&L, Bills, Tax & VAT).
 const financeNav: NavItem[] = [
   { href: "/expenses", label: "Expenses",  icon: Receipt    },
+  { href: "/mileage",  label: "Mileage",   icon: Car        },
   { href: "/pl",       label: "P&L",       icon: TrendingUp },
   { href: "/bills",    label: "Bills",     icon: FileText   },
   { href: "/tax",      label: "Tax & VAT", icon: PiggyBank  },
