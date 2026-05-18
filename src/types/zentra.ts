@@ -201,7 +201,19 @@ export interface InvoiceLineItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  /** Net (pre-VAT) amount for this line: quantity * unitPrice. */
   amount: number;
+  /**
+   * UK VAT rate as a whole-number percent: 20, 5, 0. Omit (or 0) for
+   * non-VAT-registered businesses. We support per-line VAT so a mixed
+   * invoice (some lines standard, some zero-rated) is possible later.
+   */
+  vatRate?: number;
+  /**
+   * The VAT amount for this line, computed = amount * (vatRate / 100).
+   * Stored alongside so existing readers don't have to recompute.
+   */
+  vatAmount?: number;
 }
 
 export interface PromiseToPay {

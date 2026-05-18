@@ -121,6 +121,15 @@ export function AddInvoiceForm({ open, onOpenChange }: AddInvoiceFormProps) {
   const [invoiceDate,   setInvoiceDate]   = useState(todayLocal);
   const [dueDate,       setDueDate]       = useState(() => daysFromNowLocal(30));
   const [amount,        setAmount]        = useState("");
+  // VAT rate as whole-number percent. 0 = "No VAT". Persists the user's
+  // last choice in localStorage so VAT-registered users don't have to
+  // re-select 20% every time.
+  const [vatRate,       setVatRate]       = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    const stored = window.localStorage.getItem("zentra.lastInvoiceVatRate");
+    const parsed = stored ? parseInt(stored, 10) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
   const [notes,         setNotes]         = useState("");
 
   // ── Suggestion state ─────────────────────────────────────────────────────
@@ -233,13 +242,17 @@ export function AddInvoiceForm({ open, onOpenChange }: AddInvoiceFormProps) {
 
     const parsedAmount = parseFloat(amount.replace(/[^0-9.]/g, ""));
 
+    // Persist VAT preference for next time
+    try { window.localStorage.setItem("zentra.lastInvoiceVatRate", String(vatRate)); } catch {}
+
     startTransition(async () => {
       const result = await addInvoice({
         customerName:  clientName.trim(),
         invoiceNumber: invoiceNumber.trim(),
         invoiceDate,
         dueDate,
-        amount:        parsedAmount,
+        amount:        parsedAmount,  // NET; server computes gross
+        vatRate,
         notes:         notes.trim() || undefined,
       });
 
@@ -370,31 +383,79 @@ export function AddInvoiceForm({ open, onOpenChange }: AddInvoiceFormProps) {
             </Field>
           </div>
 
-          {/* Amount */}
-          <Field label="Amount" htmlFor="invoice-amount" error={errors.amount}>
-            <div className="relative">
-              <span
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-[13px]"
-                style={{ color: "var(--zn-ink-3)" }}
-                aria-hidden
-              >
-                £
-              </span>
-              <Input
-                id="invoice-amount"
-                type="text"
-                inputMode="decimal"
-                placeholder="0"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  clearError("amount");
+          {/* Amount + VAT */}
+          <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+            <Field label="Amount (net)" htmlFor="invoice-amount" error={errors.amount}>
+              <div className="relative">
+                <span
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-[13px]"
+                  style={{ color: "var(--zn-ink-3)" }}
+                  aria-hidden
+                >
+                  £
+                </span>
+                <Input
+                  id="invoice-amount"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    clearError("amount");
+                  }}
+                  aria-invalid={!!errors.amount || undefined}
+                  className="pl-7"
+                />
+              </div>
+            </Field>
+            <Field label="VAT" htmlFor="invoice-vat">
+              <select
+                id="invoice-vat"
+                value={String(vatRate)}
+                onChange={(e) => setVatRate(parseInt(e.target.value, 10) || 0)}
+                className="w-full rounded-[10px] border px-3 py-2 text-[13.5px]"
+                style={{
+                  background: "var(--zn-surface)",
+                  borderColor: "var(--zn-line)",
+                  color: "var(--zn-ink)",
                 }}
-                aria-invalid={!!errors.amount || undefined}
-                className="pl-7"
-              />
-            </div>
-          </Field>
+              >
+                <option value="0">No VAT</option>
+                <option value="5">5% (reduced)</option>
+                <option value="20">20% (standard)</option>
+              </select>
+            </Field>
+          </div>
+
+          {/* Live VAT breakdown — only shown when net amount is parseable */}
+          {(() => {
+            const net = parseFloat((amount || "0").replace(/[^0-9.]/g, ""));
+            if (!Number.isFinite(net) || net <= 0) return null;
+            const vat = Math.round(net * (vatRate / 100) * 100) / 100;
+            const gross = Math.round((net + vat) * 100) / 100;
+            const fmt = (n: number) =>
+              new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+            return (
+              <div
+                className="rounded-[10px] px-3 py-2.5 text-[12px] grid grid-cols-3 gap-2"
+                style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+              >
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Net</p>
+                  <p className="tabular-nums mt-0.5" style={{ color: "var(--zn-ink-2)" }}>{fmt(net)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>VAT @ {vatRate}%</p>
+                  <p className="tabular-nums mt-0.5" style={{ color: "var(--zn-ink-2)" }}>{fmt(vat)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Total to bill</p>
+                  <p className="tabular-nums mt-0.5 font-semibold" style={{ color: "var(--zn-ink)" }}>{fmt(gross)}</p>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Notes — optional, auto-grows */}
           <Field

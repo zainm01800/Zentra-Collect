@@ -22,7 +22,10 @@ export interface AddInvoiceInput {
   invoiceNumber: string;
   invoiceDate:   string;   // YYYY-MM-DD
   dueDate:       string;   // YYYY-MM-DD
+  /** Net amount (before VAT). The stored `amount` column is gross. */
   amount:        number;
+  /** UK VAT rate as whole-number percent (0/5/20). Omit for non-VAT-registered. */
+  vatRate?:      number;
   notes?:        string;
 }
 
@@ -233,6 +236,25 @@ export async function addInvoice(input: AddInvoiceInput): Promise<AddInvoiceResu
 
     // ── Invoice ───────────────────────────────────────────────────────────────
 
+    // ── VAT calc ───────────────────────────────────────────────────────────
+    // `input.amount` is NET (pre-VAT). Compute the VAT portion and gross
+    // total. Stored line_items capture the breakdown so the VAT estimate
+    // page can later sum vatAmount across all invoices in a tax year.
+    const vatRate    = Number.isFinite(input.vatRate) ? Number(input.vatRate) : 0;
+    const netAmount  = input.amount;
+    const vatAmount  = Math.round(netAmount * (vatRate / 100) * 100) / 100;
+    const grossAmount = Math.round((netAmount + vatAmount) * 100) / 100;
+
+    const lineItems = [{
+      id:          `li-${Date.now()}`,
+      description: input.notes?.trim() || "Invoice",
+      quantity:    1,
+      unitPrice:   netAmount,
+      amount:      netAmount,
+      vatRate,
+      vatAmount,
+    }];
+
     const { data: invoice, error: invErr } = await supabase
       .from("zentra_invoices")
       .insert({
@@ -243,12 +265,12 @@ export async function addInvoice(input: AddInvoiceInput): Promise<AddInvoiceResu
         invoice_number:     input.invoiceNumber,
         invoice_date:       input.invoiceDate,
         due_date:           input.dueDate,
-        amount:             input.amount,
-        amount_outstanding: input.amount,
+        amount:             grossAmount,
+        amount_outstanding: grossAmount,
         currency:           "GBP",
         status,
         notes:              input.notes ?? null,
-        line_items:         [],
+        line_items:         lineItems,
       })
       .select("id")
       .single();
