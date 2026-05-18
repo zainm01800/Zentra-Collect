@@ -145,7 +145,7 @@ export function TaxEstimateView() {
             min="0"
             value={otherIncome}
             onChange={(e) => setOtherIncome(e.target.value)}
-            className="rounded-md px-2 py-1 text-[13px] border bg-white w-24 tabular-nums"
+            className="rounded-md px-2 py-1 text-[13px] border w-24 tabular-nums"
             style={{ borderColor: "var(--zn-line)" }}
           />
         </label>

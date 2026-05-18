@@ -41,7 +41,7 @@ export default async function PromisePage({
       <PortalShell>
         <div className="text-center max-w-md mx-auto">
           <h1 className="text-[22px] font-semibold mb-3">Link unavailable</h1>
-          <p className="text-[14px] leading-6 text-neutral-600">
+          <p className="text-[14px] leading-6 text-neutral-600 dark:text-neutral-300">
             This link doesn&apos;t look valid. Please ask the sender to resend it.
           </p>
         </div>
@@ -66,15 +66,15 @@ export default async function PromisePage({
             <CheckCircle2 className="size-6 text-emerald-600" />
           </div>
           <h1 className="text-[22px] font-semibold mb-2">Thanks — we&apos;ll expect it</h1>
-          <p className="text-[14px] leading-6 text-neutral-600 mb-1">
+          <p className="text-[14px] leading-6 text-neutral-600 dark:text-neutral-300 mb-1">
             {inv.businessName} now expects payment on {fmtDate}.
           </p>
-          <p className="text-[13px] text-neutral-500 mt-2">
+          <p className="text-[13px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 mt-2">
             Invoice {inv.invoiceNumber} · £{inv.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
           </p>
           <Link
             href={`/pay/${token}`}
-            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 hover:text-neutral-800 mt-6"
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 mt-6"
           >
             Or pay now instead →
           </Link>
@@ -89,7 +89,7 @@ export default async function PromisePage({
       <div className="max-w-md mx-auto">
         <Link
           href={`/pay/${token}`}
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 hover:text-neutral-800 mb-4"
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 hover:text-neutral-800 mb-4"
         >
           <ArrowLeft className="size-3.5" />
           Back
@@ -97,16 +97,16 @@ export default async function PromisePage({
 
         <div className="text-center mb-6">
           <div className="size-10 rounded-full bg-neutral-100 inline-flex items-center justify-center mb-3">
-            <Calendar className="size-5 text-neutral-600" />
+            <Calendar className="size-5 text-neutral-600 dark:text-neutral-300" />
           </div>
           <h1 className="text-[20px] font-semibold mb-1">When will you pay?</h1>
-          <p className="text-[13.5px] text-neutral-600">
+          <p className="text-[13.5px] text-neutral-600 dark:text-neutral-300">
             Just pick a date — we&apos;ll let {inv.businessName} know to expect it.
           </p>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-5 mb-4">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-2">
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-5 mb-4">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400 dark:text-neutral-500 mb-2">
             Invoice
           </div>
           <div className="flex items-baseline justify-between mb-2">
@@ -115,7 +115,7 @@ export default async function PromisePage({
               £{inv.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="text-[12px] text-neutral-500">{inv.customerName}</div>
+          <div className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500">{inv.customerName}</div>
         </div>
 
         <PromiseDatePicker token={token} />
@@ -126,7 +126,7 @@ export default async function PromisePage({
 
 function PortalShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center px-4 py-12">
       <div className="w-full">{children}</div>
     </div>
   );

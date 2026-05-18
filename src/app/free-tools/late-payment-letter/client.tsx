@@ -166,7 +166,7 @@ function Input({
       step={step}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg px-3 py-2 text-[14px] border bg-white"
+      className="w-full rounded-lg px-3 py-2 text-[14px] border"
       style={{ borderColor: "var(--zn-line)" }}
     />
   );

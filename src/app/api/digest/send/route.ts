@@ -22,6 +22,7 @@ import {
 import { decryptPassword } from "@/lib/email/crypto";
 import { sendEmail, type SmtpConfig } from "@/lib/email/smtp";
 import { checkRateLimit } from "@/lib/server/rate-limit";
+import { createSupabaseServerClient, hasSupabaseServerConfig } from "@/lib/supabase/server";
 
 function getAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -64,6 +65,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // ── Resolve authenticated account ─────────────────────────────────────────
+  let accountId: string | null = null;
+  if (hasSupabaseServerConfig()) {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, code: "not_signed_in", error: "Not signed in." }, { status: 401 });
+    }
+    const { data: member } = await supabase
+      .from("zentra_account_members")
+      .select("account_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    accountId = member?.account_id ?? null;
+  }
+
   const admin = getAdmin();
   if (!admin) {
     return NextResponse.json(
@@ -76,18 +93,17 @@ export async function POST(request: Request) {
     );
   }
 
-  // ── Load most recent email settings row ──────────────────────────────────
-  // (we don't have full user auth here yet — for an MVP we read the most-
-  // recently-saved settings row. Once auth is fully wired this will scope
-  // to the signed-in account_id.)
+  // ── Load email settings scoped to this account ────────────────────────────
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: settings, error: settingsError } = await (admin as any)
+    const query = (admin as any)
       .from("zentra_email_settings")
       .select("email, encrypted_password, smtp_host, smtp_port, from_name")
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (accountId) query.eq("account_id", accountId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: settings, error: settingsError } = await query.maybeSingle();
 
     if (settingsError || !settings || !settings.email || !settings.encrypted_password) {
       return NextResponse.json(

@@ -100,19 +100,19 @@ export function DsoCalculatorClient() {
               type="number" step="0.01" placeholder="1500.00"
               value={r.amount}
               onChange={(e) => update(r.id, "amount", e.target.value)}
-              className="rounded-md px-2 py-1.5 text-[13.5px] border bg-white tabular-nums"
+              className="rounded-md px-2 py-1.5 text-[13.5px] border tabular-nums"
               style={{ borderColor: "var(--zn-line)" }}
             />
             <input
               type="date" value={r.issueDate}
               onChange={(e) => update(r.id, "issueDate", e.target.value)}
-              className="rounded-md px-2 py-1.5 text-[13.5px] border bg-white"
+              className="rounded-md px-2 py-1.5 text-[13.5px] border"
               style={{ borderColor: "var(--zn-line)" }}
             />
             <input
               type="date" value={r.paidDate}
               onChange={(e) => update(r.id, "paidDate", e.target.value)}
-              className="rounded-md px-2 py-1.5 text-[13.5px] border bg-white"
+              className="rounded-md px-2 py-1.5 text-[13.5px] border"
               style={{ borderColor: "var(--zn-line)" }}
             />
             <button

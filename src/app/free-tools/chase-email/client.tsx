@@ -107,7 +107,7 @@ export function ChaseEmailClient() {
           <select
             value={tone}
             onChange={(e) => setTone(e.target.value as Tone)}
-            className="w-full rounded-lg px-3 py-2 text-[14px] border bg-white"
+            className="w-full rounded-lg px-3 py-2 text-[14px] border"
             style={{ borderColor: "var(--zn-line)" }}
           >
             {TONE_OPTIONS.map((t) => (
@@ -188,7 +188,7 @@ function Input({
       step={step}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg px-3 py-2 text-[14px] border bg-white"
+      className="w-full rounded-lg px-3 py-2 text-[14px] border"
       style={{ borderColor: "var(--zn-line)" }}
     />
   );

@@ -16,12 +16,20 @@ import { createSupabaseServerClient as createServerClient } from "@/lib/supabase
 import { sendEmail } from "@/lib/email/smtp";
 import { decryptPassword } from "@/lib/email/crypto";
 
+export interface OutstandingInvoice {
+  invoiceNumber?: string;
+  dueDate?:       string;
+  amountOutstanding: number;
+  daysOverdue?:   number;
+}
+
 export interface SendSingleEmailInput {
-  to:          string;
-  subject:     string;
-  bodyText:    string;
-  invoiceRef:  string;
-  clientName:  string;
+  to:                   string;
+  subject:              string;
+  bodyText:             string;
+  invoiceRef:           string;
+  clientName:           string;
+  outstandingInvoices?: OutstandingInvoice[];
 }
 
 export interface SendSingleEmailResult {
@@ -98,11 +106,50 @@ export async function sendSingleEmail(
       fromName: settings.from_name ?? "Zentra Collect",
     };
 
-    // Simple plain-text → HTML wrapper
-    const bodyHtml = `<pre style="font-family:sans-serif;white-space:pre-wrap;line-height:1.6">${input.bodyText
+    // Plain-text → HTML wrapper
+    const escapedBody = input.bodyText
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</pre>`;
+      .replace(/>/g, "&gt;");
+
+    // Optional statement-of-account table
+    let statementHtml = "";
+    if (input.outstandingInvoices && input.outstandingInvoices.length > 0) {
+      const fmt = (n: number) =>
+        new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+      const total = input.outstandingInvoices.reduce((s, i) => s + i.amountOutstanding, 0);
+      const rows = input.outstandingInvoices.map((inv) => `
+        <tr>
+          <td style="padding:6px 12px;border-bottom:1px solid #e5e0d4;font-size:13px">${inv.invoiceNumber ?? "—"}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #e5e0d4;font-size:13px">${inv.dueDate ?? "—"}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #e5e0d4;font-size:13px;text-align:right">${fmt(inv.amountOutstanding)}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #e5e0d4;font-size:13px;text-align:right;color:${(inv.daysOverdue ?? 0) > 30 ? "#b91c1c" : "#374151"}">${inv.daysOverdue != null ? `${inv.daysOverdue}d` : "—"}</td>
+        </tr>`).join("");
+      statementHtml = `
+        <div style="margin-top:24px">
+          <p style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#8d8472;margin-bottom:8px">Statement of outstanding invoices</p>
+          <table style="width:100%;border-collapse:collapse;background:#faf5e8;border:1px solid #e5e0d4;border-radius:8px;overflow:hidden">
+            <thead>
+              <tr style="background:#f0ead8">
+                <th style="padding:7px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6b6253">Invoice</th>
+                <th style="padding:7px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6b6253">Due date</th>
+                <th style="padding:7px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6b6253">Amount</th>
+                <th style="padding:7px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6b6253">Overdue</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr style="background:#f0ead8">
+                <td colspan="2" style="padding:8px 12px;font-size:13px;font-weight:600">Total outstanding</td>
+                <td style="padding:8px 12px;font-size:13px;font-weight:700;text-align:right">${fmt(total)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+    }
+
+    const bodyHtml = `<pre style="font-family:sans-serif;white-space:pre-wrap;line-height:1.6">${escapedBody}</pre>${statementHtml}`;
 
     const result = await sendEmail(
       config,
