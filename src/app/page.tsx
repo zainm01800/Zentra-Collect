@@ -1,13 +1,14 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Banknote,
   CheckCircle2,
   FileText,
-  MessageSquare,
-  PhoneCall,
-  RefreshCcw,
+  Mail,
+  PiggyBank,
+  Receipt,
   ShieldCheck,
-  UserCheck,
+  TrendingUp,
 } from "lucide-react";
 import { MarketingNav } from "@/components/marketing-nav";
 import { LandingFocusCard } from "@/components/landing-focus-card";
@@ -25,8 +26,7 @@ const PLAN_PRICE_IDS: Partial<Record<PlanId, string>> = {
 };
 
 // Annual plan price IDs (~17% discount). Optional — the toggle hides itself
-// when none of these are configured, so users don't see a discount that
-// can't actually be redeemed.
+// when none of these are configured.
 const PLAN_PRICE_IDS_ANNUAL: Partial<Record<PlanId, string>> = {
   TRADER:              process.env.STRIPE_PRICE_ID_TRADER_ANNUAL ?? "",
   FREELANCE:           process.env.STRIPE_PRICE_ID_FREELANCE_ANNUAL ?? "",
@@ -36,34 +36,58 @@ const PLAN_PRICE_IDS_ANNUAL: Partial<Record<PlanId, string>> = {
   BOOKKEEPER_PRO:      process.env.STRIPE_PRICE_ID_BOOKKEEPER_PRO_ANNUAL ?? "",
 };
 
+// ── Marketing copy — "books that catch the cash" positioning ────────────────
+
 const answers = [
-  "Who should I chase today?",
-  "What should I ask for?",
-  "What changed since last import?",
-  "Is it safe to chase this customer?",
-  "What cash is likely this week?",
+  "Who owes me money right now?",
+  "Will I have enough to cover rent next week?",
+  "How much will I owe HMRC?",
+  "Which expenses haven't I categorised?",
+  "What changed since last week?",
 ];
 
-const scenarios = [
-  { label: "Payment reminders",  sub: "Drafted from invoice data, tone, and days overdue",   Icon: MessageSquare },
-  { label: "Promise follow-ups", sub: "Tracks 'I'll pay Friday' and flags when it slips",     Icon: RefreshCcw    },
-  { label: "Dispute responses",  sub: "Pauses chasing and logs what's needed to unblock",     Icon: ShieldCheck   },
-  { label: "Statement requests", sub: "Generates a clear account summary on demand",          Icon: FileText      },
-  { label: "AP-contact requests",sub: "Routes to the right contact when the invoice goes cold",Icon: UserCheck    },
+const features = [
+  {
+    label: "Invoicing",
+    sub:   "Send branded invoices in 30 seconds. Customer portal built in.",
+    Icon:  Receipt,
+  },
+  {
+    label: "Bank feed reconciliation",
+    sub:   "Payments auto-match to open invoices. Marks them paid, stops the chase.",
+    Icon:  Banknote,
+  },
+  {
+    label: "Expense tracking",
+    sub:   "Categorise from the bank feed. HMRC-aligned categories out of the box.",
+    Icon:  FileText,
+  },
+  {
+    label: "Self-Assessment estimate",
+    sub:   "Tax estimate updates as cash lands — so the number reflects reality.",
+    Icon:  PiggyBank,
+  },
+  {
+    label: "VAT (MTD-ready)",
+    sub:   "VAT estimate, quarterly returns, MTD filing on the roadmap.",
+    Icon:  TrendingUp,
+  },
+  {
+    label: "Chase plan",
+    sub:   "Ranked chase queue with action + reason + draft. You approve every send.",
+    Icon:  Mail,
+  },
 ];
 
 const trustItems = [
   { label: "Human approval before every send", Icon: ShieldCheck },
   { label: "Activity history per invoice",      Icon: FileText },
-  { label: "Plain-English safety checks",       Icon: CheckCircle2 },
   { label: "UK-hosted data, encrypted at rest", Icon: ShieldCheck },
-  { label: "No legal or accounting advice",     Icon: ShieldCheck },
+  { label: "No legal or accounting advice",     Icon: CheckCircle2 },
 ];
 
-// 7 plans on the marketing page — trial entry through to bookkeeper pro
 const pricingPlanIds: PlanId[] = [
   "TRIAL",
-  "TRADER",
   "FREELANCE",
   "STARTER_SOLO",
   "SINGLE_BUSINESS",
@@ -73,35 +97,39 @@ const pricingPlanIds: PlanId[] = [
 
 const pricingDescriptions: Record<PlanId, string> = {
   DEMO:                "Sample data only.",
-  TRIAL:               "14 days, no card required. Upload your own AR exports.",
-  TRADER:              "For UK sole traders under £90k — cheaper than Sage, with invoicing, payment portal, and tax estimate.",
-  FREELANCE:           "For freelancers sending 5–15 invoices a month — pairs with your accounting tool.",
-  STARTER_SOLO:        "For sole traders and micro businesses with a small invoice book.",
-  SINGLE_BUSINESS:     "For one small business running a practical chase process.",
-  BOOKKEEPER_STARTER:  "For bookkeepers managing a handful of client ledgers.",
-  BOOKKEEPER_PRO:      "For larger client portfolios that need more capacity.",
+  TRIAL:               "14 days, no card required. Real bank feed, real invoices, real chase plan.",
+  TRADER:              "For UK sole traders under £90k — invoicing, payment portal, tax estimate.",
+  FREELANCE:           "Freelancers sending 5–15 invoices a month. Templates, no AI.",
+  STARTER_SOLO:        "Sole traders and micro-businesses with a growing invoice book.",
+  SINGLE_BUSINESS:     "Small businesses running a practical chase process every week.",
+  BOOKKEEPER_STARTER:  "Bookkeepers managing a handful of client ledgers.",
+  BOOKKEEPER_PRO:      "Larger client portfolios that need more capacity.",
 };
 
 const faqs = [
   {
-    q: "Do I need Xero or QuickBooks?",
-    a: "No. CSV/Excel exports work. Most accounting tools can produce one in two clicks.",
+    q: "Is this an accounting tool or a chasing tool?",
+    a: "Both — built as one. The books features (invoicing, expenses, tax, VAT) and the chasing features share the same data, so payments reconcile automatically and your tax estimate moves as cash actually lands.",
   },
   {
-    q: "Does Zentra send emails automatically?",
-    a: "Only if you enable it. Auto-send is off by default — every message is reviewed by you first. When enabled, there is a 5-minute cancellation window before the first send fires.",
+    q: "Do I need Xero or QuickBooks?",
+    a: "No. You can run your books entirely in Zentra. If you already have Xero or QuickBooks, we can read-only sync from them so you don't double-enter invoices.",
+  },
+  {
+    q: "Does Zentra send chase emails automatically?",
+    a: "Only if you switch on auto-send — it's off by default. Every message is reviewed by you first. Auto-send has a 5-minute cancellation window before the first send fires.",
+  },
+  {
+    q: "Can I file my Self-Assessment from this?",
+    a: "Today: we generate a Self-Assessment summary you (or your accountant) paste into HMRC. Full MTD-IT filing is on the roadmap.",
   },
   {
     q: "What happens after the trial?",
-    a: "Your data stays available. New imports and AI drafts pause until you upgrade — you can also export everything before then.",
-  },
-  {
-    q: "What counts as an AI action?",
-    a: "Drafts, rewrites, reply classification, mapping suggestions, and weekly brief summaries.",
+    a: "Your data stays available. New imports and AI drafts pause until you upgrade — you can also export everything anytime as CSV.",
   },
   {
     q: "Is this debt collection or legal advice?",
-    a: "No. Zentra Collect is a decisioning and drafting tool. You remain responsible for what you send and to whom.",
+    a: "No. Zentra is a books and decisioning tool. You remain responsible for what you send and to whom — we never give legal, accounting, or tax advice.",
   },
 ];
 
@@ -118,7 +146,7 @@ export default function Home() {
       {/* ─── Hero ─── */}
       <section className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.85fr)] lg:px-8 lg:pb-20 lg:pt-20">
         <div className="min-w-0">
-          <div className="zn-label !p-0 mb-3">Collections decisioning · for UK SMBs and bookkeepers</div>
+          <div className="zn-label !p-0 mb-3">Books for UK sole traders &amp; small businesses</div>
           <h1
             className="max-w-3xl tracking-[-0.015em] text-[44px] leading-[1.02] sm:text-[60px] lg:text-[72px]"
             style={{
@@ -126,29 +154,38 @@ export default function Home() {
               fontWeight: 500,
             }}
           >
-            Upload overdue invoices. Get a ranked chase plan in minutes.
+            Books that catch the cash.
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-            Zentra Collect turns AR ageing reports into clear next actions —
-            who to chase, what to ask for, what to ignore, what cash is likely
-            to land. Action + reason + draft message, in one calm workspace.
+            Send invoices, track expenses, estimate your tax — and{" "}
+            <em
+              style={{
+                fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
+                color: "var(--zn-ink)",
+              }}
+            >actually collect the cash</em>. Zentra is the only UK books tool that ranks
+            who to chase today, drafts the message, and updates your tax estimate the moment a payment lands.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-2">
-            <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
-              Try the demo <ArrowRight className="size-4" />
+            <Link href="/login?mode=signup" className="zn-pill" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
+              Start free trial <ArrowRight className="size-4" />
             </Link>
-            <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
-              Start a free trial
+            <Link href="/demo" className="zn-pill zn-pill-ghost" style={{ height: 40, padding: "0 18px", fontSize: 14 }}>
+              Try the demo
             </Link>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5" style={{ color: "var(--zn-safe)" }} />
+              No card for trial
+            </span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-3.5" style={{ color: "var(--zn-safe)" }} />
               Human approval before every send
             </span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-3.5" style={{ color: "var(--zn-safe)" }} />
-              No card for trial
+              UK-hosted data
             </span>
           </div>
         </div>
@@ -160,7 +197,7 @@ export default function Home() {
       </section>
 
       {/* ─── Answers ─── */}
-      <Section eyebrow="What it answers" title="A focused decisioning layer for messy AR.">
+      <Section eyebrow="What it answers every morning" title="One workspace. Five questions.">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {answers.map((item) => (
             <div
@@ -174,14 +211,34 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ─── Full feature breadth ─── */}
+      <Section eyebrow="Everything you need" title="Full books — plus the layer that gets you paid.">
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => (
+            <div key={f.label} className="zn-card p-5 flex flex-col gap-3">
+              <span
+                className="size-8 rounded-lg inline-flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)" }}
+              >
+                <f.Icon className="size-4" />
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{f.label}</p>
+                <p className="mt-1 text-[12.5px] leading-[1.5]" style={{ color: "var(--zn-ink-3)" }}>{f.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* ─── How it works ─── */}
-      <Section id="how-it-works" eyebrow="How it works" title="From CSV to chase plan in four steps.">
+      <Section id="how-it-works" eyebrow="How it works" title="Invoice. Chase. Reconcile. File.">
         <div className="grid gap-3 md:grid-cols-4">
           {[
-            { n: 1, title: "Upload",   sub: "AR ageing or invoice export — CSV today, Excel soon." },
-            { n: 2, title: "Rank",     sub: "Rules-first ranking with reasons — not a black box." },
-            { n: 3, title: "Review",   sub: "Action + reason + draft message + safety checks." },
-            { n: 4, title: "Outcome",  sub: "Record what happened. Watch the queue update." },
+            { n: 1, title: "Invoice",      sub: "Send branded invoices in 30 seconds. Customer pays via portal." },
+            { n: 2, title: "Chase",        sub: "Ranked queue tells you who to nudge, why, with draft pre-written." },
+            { n: 3, title: "Reconcile",    sub: "Bank feed marks invoices paid automatically — chasing stops." },
+            { n: 4, title: "File",         sub: "Self-Assessment summary on demand. VAT MTD on the roadmap." },
           ].map((step) => (
             <div key={step.n} className="zn-card p-5">
               <span
@@ -197,63 +254,43 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* ─── Built for messy AR ─── */}
-      <Section eyebrow="Scenarios" title="Every overdue invoice gets a different chase.">
-        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
-          {scenarios.map((s) => (
-            <div key={s.label} className="zn-card p-4 flex flex-col gap-3">
-              <span
-                className="size-7 rounded-lg inline-flex items-center justify-center flex-shrink-0"
-                style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)" }}
-              >
-                <s.Icon className="size-3.5" />
-              </span>
-              <div>
-                <p className="text-[13px] font-semibold text-[#1d1813] dark:text-[#f0e8d5]">{s.label}</p>
-                <p className="mt-1 text-[11.5px] leading-[1.5]" style={{ color: "var(--zn-ink-3)" }}>{s.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ─── What's unique to Zentra ─── */}
+      {/* ─── What's different ─── */}
       <Section
         id="why-zentra"
-        eyebrow="Built differently"
-        title="What you won't get anywhere else."
+        eyebrow="Why this is different"
+        title="Other books are passive. Ours actively collects."
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
-              kicker: "Don't chase",
-              title:  "Stop-chasing intelligence",
-              body:   "Most tools only tell you to chase more. Zentra also tells you when to stop — reliable late payers, customers on Direct Debit, recent chases — with a reason for each call.",
+              kicker: "Vs FreeAgent / QuickBooks SE",
+              title:  "A red number on a dashboard isn't a plan.",
+              body:   "Standard books tools tell you which invoice is late. Then it's your problem. Zentra ranks, drafts, and tracks every chase — so you don't lie awake on Sunday wondering who to email Monday morning.",
             },
             {
-              kicker: "Learns your customers",
-              title:  "Tone that gets paid",
-              body:   "Records which tone got a response, payment, or promise per customer. After a few chases it tells you 'Firm has worked best — Friendly didn't land.'",
+              kicker: "Vs Chaser / Satago",
+              title:  "Chasing without books is half the job.",
+              body:   "Pure-play chasing tools have no invoicing, no expenses, no tax. You end up paying for two tools that don't talk to each other. Zentra is one tool, one ledger.",
             },
             {
-              kicker: "No more chasing",
-              title:  "GoCardless Direct Debit",
-              body:   "Connect GoCardless. Any customer on an active mandate is automatically removed from the chase plan — they're paying themselves.",
+              kicker: "Stop-chasing intelligence",
+              title:  "Knows when NOT to chase.",
+              body:   "Customers on Direct Debit auto-disappear from your queue. Reliable late-payers get a softer touch. Recent chases throttle automatically. No more accidentally double-chasing a paying customer.",
+            },
+            {
+              kicker: "Counterparty exposure",
+              title:  "Spot bad payers before they burn you.",
+              body:   "When the same customer is late paying two or more businesses on Zentra, we flag the risk before you extend more credit. Nobody else can see this.",
             },
             {
               kicker: "Customer portal",
-              title:  "One link, three actions",
-              body:   "Every chase email carries a signed link. Customers can pay, promise a date, or explain the delay — with statutory interest and early-pay discounts surfaced automatically.",
+              title:  "One link, three actions.",
+              body:   "Every chase email carries a signed link. Your customer can pay, promise a date, or explain the delay — with statutory interest and early-pay discounts surfaced automatically.",
             },
             {
-              kicker: "Practice moat",
-              title:  "Counterparty exposure",
-              body:   "When the same customer owes two or more of your clients, Zentra aggregates the exposure across ledgers. No other tool can see this without your portfolio.",
-            },
-            {
-              kicker: "Pull from anywhere",
-              title:  "Xero, QuickBooks, Sage, FreeAgent",
-              body:   "Read-only sync from all four major UK accounting platforms. CSV still works for everything else. Skip CSV exports forever.",
+              kicker: "Cash-basis books",
+              title:  "Tax estimate moves when money lands.",
+              body:   "Your Self-Assessment estimate updates the moment cash hits your account, not the moment you issue an invoice. The number you see is the number you'll be taxed on.",
             },
           ].map((card) => (
             <div key={card.title} className="zn-card p-5">
@@ -273,14 +310,14 @@ export default function Home() {
       <Section
         id="bookkeepers"
         eyebrow="For bookkeepers"
-        title="See which client ledgers need attention first."
+        title="One pane across every client ledger."
       >
         <div className="zn-card p-6 lg:p-8">
           <p className="max-w-3xl text-[15px] leading-[1.65]" style={{ color: "var(--zn-ink-3)" }}>
-            Portfolio mode is built for bookkeepers managing multiple small
-            business clients. One pane across every ledger, weekly client
-            briefs, ledger-level risk, and a clear queue for where to spend
-            the next hour.
+            Practice mode is built for bookkeepers managing multiple small
+            business clients. One workspace across every ledger, weekly client
+            briefs, ledger-level risk scoring, and a queue that tells you which
+            client needs your hour first.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {[
@@ -299,7 +336,7 @@ export default function Home() {
       </Section>
 
       {/* ─── Trust ─── */}
-      <Section eyebrow="Safety" title="Recommendations stay human-approved.">
+      <Section eyebrow="Safety" title="Quiet, opinionated, never automatic.">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {trustItems.map((item) => {
             const Ico = item.Icon;
@@ -322,7 +359,7 @@ export default function Home() {
       <Section
         id="pricing"
         eyebrow="Pricing"
-        title="Clear plans for small teams and bookkeepers."
+        title="Clear plans for sole traders, small businesses, and bookkeepers."
       >
         <PricingSection
           plans={pricingPlanIds.map((planId) => ({
@@ -331,6 +368,11 @@ export default function Home() {
             priceIdAnnual:  PLAN_PRICE_IDS_ANNUAL[planId] || undefined,
           }))}
         />
+        <p className="mt-4 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+          {pricingDescriptions.FREELANCE && (
+            <>All plans include a 14-day free trial. No card required to start.</>
+          )}
+        </p>
       </Section>
 
       {/* ─── FAQ ─── */}
@@ -361,23 +403,28 @@ export default function Home() {
               className="max-w-3xl text-[32px] sm:text-[40px] leading-[1.1]"
               style={{ fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif", fontWeight: 500 }}
             >
-              Turn overdue invoices into today&apos;s action plan.
+              Books built around getting paid.
             </h2>
+            <p
+              className="mt-4 max-w-2xl text-[14.5px] leading-[1.55] opacity-75"
+              style={{ color: "var(--zn-surface)" }}
+            >
+              14-day free trial. No card. Run your books and chase your cash from
+              the same quiet workspace.
+            </p>
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <Link
-                href="/demo"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/login?mode=signup"
                 className="zn-pill"
                 style={{
                   height: 40, padding: "0 18px", fontSize: 14,
                   background: "var(--zn-accent)", color: "var(--zn-accent-ink)",
                 }}
               >
-                Try the demo <ArrowRight className="size-4" />
+                Start free trial <ArrowRight className="size-4" />
               </Link>
               <Link
-                href="/login?mode=signup"
+                href="/demo"
                 className="zn-pill"
                 style={{
                   height: 40, padding: "0 18px", fontSize: 14,
@@ -385,11 +432,14 @@ export default function Home() {
                   border: "1px solid rgba(250,245,232,0.25)",
                 }}
               >
-                Start a trial
+                Try the demo
               </Link>
             </div>
             <p className="mt-6 max-w-2xl text-[12.5px] leading-[1.6] opacity-55">
-              Zentra Collect is a decisioning and drafting tool. It does not send messages automatically and does not provide legal, accounting, or tax advice. You remain responsible for reviewing and approving every message before it goes out.
+              Zentra is a books and decisioning tool. It does not send messages
+              automatically and does not provide legal, accounting, or tax
+              advice. You remain responsible for reviewing and approving every
+              message before it goes out.
             </p>
           </div>
         </div>
@@ -401,16 +451,16 @@ export default function Home() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
               <span className="zn-brand-mark" style={{ width: 24, height: 24, fontSize: 13 }}>Z</span>
-              <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra Collect</span>
+              <span className="text-[13px] font-medium text-[#1d1813] dark:text-[#f0e8d5]">Zentra</span>
             </div>
             <div className="flex flex-wrap gap-x-8 gap-y-3 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
               <div className="flex flex-col gap-2">
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Product</span>
-                <Link href="#how-it-works" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">How it works</Link>
-                <Link href="#bookkeepers"  className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">For bookkeepers</Link>
-                <Link href="#pricing"      className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Pricing</Link>
-                <Link href="/free-tools"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Free tools</Link>
-                <Link href="#faq"          className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">FAQ</Link>
+                <Link href="/#how-it-works"  className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">How it works</Link>
+                <Link href="/#bookkeepers"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">For bookkeepers</Link>
+                <Link href="/#pricing"       className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Pricing</Link>
+                <Link href="/free-tools"     className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Free tools</Link>
+                <Link href="/#faq"           className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">FAQ</Link>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Account</span>
@@ -433,13 +483,19 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-8 border-t pt-6 text-[12px]" style={{ borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}>
-            © {new Date().getFullYear()} Zentra Ltd · Registered in England &amp; Wales · Collections decisioning for UK bookkeepers
+            © {new Date().getFullYear()} Zentra Ltd · Registered in England &amp; Wales · UK books that get you paid
           </div>
         </div>
       </footer>
     </main>
   );
 }
+
+// Also update the homepage <title>/<description> metadata to match.
+// Done by overriding via the Next.js convention in layout.tsx's `template` —
+// the root template will append " · Zentra Collect" but for the homepage we
+// want the default title from the layout to keep firing. The opengraph image
+// already references the right text via twitter-image.tsx / opengraph-image.tsx.
 
 function Section({
   id,
@@ -467,4 +523,3 @@ function Section({
     </section>
   );
 }
-
