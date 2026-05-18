@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import { Zap, X } from "lucide-react";
 import { readDirectDebitEmails } from "@/lib/collections/dd-cache";
+import { readInvoices } from "@/lib/invoice-store";
 
 const DISMISS_KEY = "zn:dd-nudge-dismissed:v1";
 
@@ -23,6 +24,9 @@ export function DirectDebitNudge() {
     if (typeof window === "undefined") return;
     const dismissed = window.localStorage.getItem(DISMISS_KEY);
     if (dismissed) return;
+    // Don't show to new users with no invoices yet — they don't need this yet.
+    const invoices = readInvoices();
+    if (invoices.length === 0) return;
     // If the user has already synced DD emails, they're already using
     // the feature — no nudge needed.
     const emails = readDirectDebitEmails();
