@@ -38,6 +38,31 @@ export function DemoAuthForm() {
   const [forgotKind, setForgotKind] = useState<"err" | "ok">("err");
   const supabaseConfigured = hasSupabaseBrowserConfig();
 
+  // UX-7: SSO. Falls back to a clear message if the provider isn't
+  // configured on Supabase so we don't silently fail.
+  async function signInWithOAuth(provider: "google" | "azure") {
+    setError("");
+    if (!supabaseConfigured) {
+      setError("Sign-in providers aren't configured on this deployment.");
+      return;
+    }
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo },
+      });
+      if (authError) {
+        setError(
+          `Sign-in with ${provider === "google" ? "Google" : "Microsoft"} isn't enabled yet. Try email + password.`,
+        );
+      }
+    } catch {
+      setError("Sign-in failed. Please try email + password.");
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -174,7 +199,7 @@ export function DemoAuthForm() {
             <span className="zn-brand-mark">Z</span>
             <span className="flex flex-col leading-[1.1]">
               <span className="text-[14px] font-semibold tracking-[-0.01em]">Zentra</span>
-              <span className="zn-section-label !p-0 !mt-0.5">Flow</span>
+              <span className="zn-section-label !p-0 !mt-0.5">Collect</span>
             </span>
           </Link>
           <Link href="/" className="text-[13px] underline-offset-2 hover:underline" style={{ color: "var(--zn-ink-3)" }}>
@@ -259,6 +284,33 @@ export function DemoAuthForm() {
               })}
             </div>
 
+            {/* UX-7: SSO buttons. Use providers Supabase commonly supports. */}
+            <div className="flex flex-col gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => signInWithOAuth("google")}
+                className="zn-pill zn-pill-ghost w-full justify-center gap-2"
+                style={{ height: 38, fontSize: 13 }}
+              >
+                <GoogleGlyph className="size-4" />
+                Continue with Google
+              </button>
+              <button
+                type="button"
+                onClick={() => signInWithOAuth("azure")}
+                className="zn-pill zn-pill-ghost w-full justify-center gap-2"
+                style={{ height: 38, fontSize: 13 }}
+              >
+                <MicrosoftGlyph className="size-4" />
+                Continue with Microsoft
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px" style={{ background: "var(--zn-line-soft)" }} />
+              <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>or use email</span>
+              <div className="flex-1 h-px" style={{ background: "var(--zn-line-soft)" }} />
+            </div>
+
             <form onSubmit={submit} className="flex flex-col gap-4">
               {mode === "signup" ? (
                 <>
@@ -339,6 +391,30 @@ export function DemoAuthForm() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Brand glyphs used in the SSO buttons. Inline SVG keeps bundle small
+// and means we don't pull a separate icon library.
+function GoogleGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 18 18" className={className} aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.79 2.72v2.26h2.9c1.7-1.56 2.69-3.87 2.69-6.62z"/>
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34A9 9 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.29-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.99-2.34z"/>
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96l2.99 2.34C4.66 5.17 6.65 3.58 9 3.58z"/>
+    </svg>
+  );
+}
+
+function MicrosoftGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 21 21" className={className} aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+    </svg>
   );
 }
 

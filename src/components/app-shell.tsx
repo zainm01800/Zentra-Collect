@@ -181,6 +181,7 @@ function NavLink({ item, active, badge, onHide }: { item: NavItem; active: boole
     <div className="group/navitem flex items-center gap-0.5">
       <Link
         href={item.href}
+        aria-current={active ? "page" : undefined}
         className={cn("zn-nav-item flex-1 min-w-0", active && "active")}
       >
         <item.icon className="zn-nav-icon size-4" />
@@ -850,7 +851,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         {/* Page content — drawer always overlays, no shift needed.
             zn-main-pb adds 6rem + safe-area-inset-bottom on mobile so
             the bottom nav and iPhone home indicator never overlap content. */}
-        <main className="zn-main-pb flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 md:pb-8">
+        <main id="main-content" className="zn-main-pb flex-1 px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 md:pb-8">
           <div className="mx-auto w-full max-w-[1360px]">
             <PastDueBanner />
             <TrialStatusBanner />

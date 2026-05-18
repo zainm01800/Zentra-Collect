@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
+// UX-11: anchor-only hrefs (#x) didn't navigate when clicked from
+// non-homepage routes — they just appended the anchor to the current
+// URL. Use absolute `/#x` so they always land on the homepage section.
 const navLinks = [
-  { href: "#how-it-works",  label: "How it works" },
-  { href: "#why-zentra",    label: "Why Zentra" },
-  { href: "#bookkeepers",   label: "For bookkeepers" },
-  { href: "/free-tools",    label: "Free tools" },
-  { href: "#pricing",       label: "Pricing" },
-  { href: "#faq",           label: "FAQ" },
+  { href: "/#how-it-works",  label: "How it works" },
+  { href: "/#why-zentra",    label: "Why Zentra" },
+  { href: "/#bookkeepers",   label: "For bookkeepers" },
+  { href: "/free-tools",     label: "Free tools" },
+  { href: "/#pricing",       label: "Pricing" },
+  { href: "/#faq",           label: "FAQ" },
 ];
 
 export function MarketingNav() {
@@ -42,8 +45,8 @@ export function MarketingNav() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <Link href="/login?mode=signin" className="zn-pill zn-pill-ghost hidden sm:inline-flex">Sign in</Link>
-          <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill">Try the demo</Link>
+          <Link href="/login?mode=signin" className="zn-pill zn-pill-ghost inline-flex">Sign in</Link>
+          <Link href="/demo" className="zn-pill">Try the demo</Link>
           {/* Hamburger — mobile only */}
           <button
             type="button"
@@ -79,7 +82,7 @@ export function MarketingNav() {
               <Link href="/login?mode=signin" className="zn-pill zn-pill-ghost w-full justify-center">
                 Sign in
               </Link>
-              <Link href="/demo" target="_blank" rel="noopener noreferrer" className="zn-pill w-full justify-center">
+              <Link href="/demo" className="zn-pill w-full justify-center">
                 Try the demo
               </Link>
             </div>

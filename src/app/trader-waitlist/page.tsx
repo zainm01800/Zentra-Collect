@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Trader £5/mo · Zentra Collect",
+  title: "Trader £5/mo",
   description:
     "Zentra Trader — £5/mo for UK sole traders under £90k. Upload a bank statement, categorise expenses, estimate your tax. No accounting overhead.",
   alternates: { canonical: "/trader-waitlist" },

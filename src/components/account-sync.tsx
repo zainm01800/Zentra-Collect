@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { readLocalAccount, writeLocalAccount, createUsageCounters } from "@/lib/demo-auth";
 import type { DemoUser } from "@/lib/demo-auth";
+import { fetchAccountMe } from "@/lib/client/account-me-cache";
 
 // Syncs the authenticated user's plan/status from Supabase into localStorage.
 // Runs on mount AND whenever the PWA comes back to the foreground (visibilitychange/focus),
@@ -30,9 +31,12 @@ export function AccountSync() {
         }
         lastSyncRef.current = now;
 
-        const res = await fetch("/api/account/me");
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = (await fetchAccountMe(reason === "mount")) as {
+          authenticated?: boolean;
+          hasAccount?: boolean;
+          account?: Omit<DemoUser, "usage">;
+        } | null;
+        if (!data) return;
 
         if (!data.authenticated || !data.hasAccount || !data.account) return;
 

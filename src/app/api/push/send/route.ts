@@ -69,7 +69,7 @@ function buildPayload(type: string, customPayload?: NotificationPayload): Notifi
       return {
         title: "Zentra Collect — Morning digest",
         body: "Your chase plan is ready. See who to contact today.",
-        url: "/chase-plan",
+        url: "/chase-today",
         tag: "zentra-digest",
       };
 
@@ -77,7 +77,7 @@ function buildPayload(type: string, customPayload?: NotificationPayload): Notifi
       return {
         title: "⚠️ Escalation alert",
         body: "One or more invoices have exceeded 90 days. Review now.",
-        url: "/chase-plan",
+        url: "/chase-today",
         tag: "zentra-escalation",
         requireInteraction: true,
       };
@@ -86,7 +86,7 @@ function buildPayload(type: string, customPayload?: NotificationPayload): Notifi
       return {
         title: "Import complete",
         body: "Your invoices have been ranked. Your chase plan is ready.",
-        url: "/chase-plan",
+        url: "/chase-today",
         tag: "zentra-import",
       };
 

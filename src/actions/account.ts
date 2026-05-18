@@ -3,6 +3,56 @@
 import { createSupabaseServerClient, hasSupabaseServerConfig } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+/**
+ * CB-6: persist the business name captured by the onboarding gate
+ * into zentra_businesses so chase emails and the Settings page
+ * actually see it. Idempotent — safe to call on every onboarding
+ * completion. Silently no-ops when Supabase isn't configured (demo).
+ */
+export async function saveOnboardingBusinessNameAction(rawName: string) {
+  const name = rawName.trim();
+  if (!name) return { ok: false, error: "empty_name" };
+  if (!hasSupabaseServerConfig()) return { ok: true, skipped: "no_supabase" };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "not_signed_in" };
+
+  const { data: member } = await supabase
+    .from("zentra_account_members")
+    .select("account_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const accountId = member?.account_id as string | undefined;
+  if (!accountId) return { ok: false, error: "no_account" };
+
+  // Try update first; if none, insert.
+  const { data: existing } = await supabase
+    .from("zentra_businesses")
+    .select("id, name")
+    .eq("account_id", accountId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    // Don't overwrite a non-empty existing name — user may have set it manually.
+    if (existing.name && existing.name.trim()) return { ok: true, kept_existing: true };
+    const { error: updateError } = await supabase
+      .from("zentra_businesses")
+      .update({ name })
+      .eq("id", existing.id);
+    if (updateError) return { ok: false, error: updateError.message };
+  } else {
+    const { error: insertError } = await supabase
+      .from("zentra_businesses")
+      .insert({ account_id: accountId, name, business_type: "service_business" });
+    if (insertError) return { ok: false, error: insertError.message };
+  }
+
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
 export async function createSupabaseAccountAction(data: {
   businessName: string;
   planId: string;

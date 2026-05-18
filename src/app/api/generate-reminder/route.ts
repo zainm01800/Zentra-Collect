@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { buildReminderPrompt, generateTemplateReminder } from "@/lib/reminders";
 import type { Invoice, ReminderOptions, ReminderTone } from "@/types/cashpilot";
+import { requireActiveAccount } from "@/lib/server/account-guard";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 
 let openaiClient: OpenAI | null = null;
 
@@ -14,6 +16,14 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: Request) {
+  // CB-3: previously unauth'd — anyone with curl could drain the OpenAI key.
+  const rate = checkRateLimit(request, { namespace: "generate-reminder", limit: 30, windowMs: 60_000 });
+  if (!rate.allowed) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+  const guard = await requireActiveAccount();
+  if (guard.error) return guard.error;
+
   const body = (await request.json()) as {
     invoice?: Invoice;
     tone?: ReminderTone;

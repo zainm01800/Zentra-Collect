@@ -7,7 +7,7 @@ import {
 } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Get started · Zentra Collect",
+  title: "Get started",
   description: "Set up your Zentra Collect workspace in minutes.",
 };
 

@@ -120,6 +120,8 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className="flex min-h-full flex-col">
+        {/* A11y: skip-to-content link, invisible until tabbed to. */}
+        <a href="#main-content" className="skip-to-content">Skip to main content</a>
         {/* Theme init — runs before hydration to prevent flash of wrong mode */}
         <Script
           id="theme-init"

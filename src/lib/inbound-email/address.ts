@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const INBOUND_DOMAIN = process.env.INBOUND_EMAIL_DOMAIN ?? "in.zentracollect.co.uk";
 
@@ -24,19 +24,32 @@ export function extractTokenFromAddress(address: string): string | null {
 }
 
 /**
- * Generates a webhook signature for verifying inbound webhook payloads from
- * Resend or Postmark. Compare against the X-Webhook-Signature header.
+ * Verifies an inbound webhook payload signature.
+ *
+ * CB-7: previously returned true when no secret was set ("dev convenience").
+ * That meant a missing/misnamed secret in production silently disabled
+ * verification, letting anyone POST fake replies into zentra_inbound_replies.
+ * Now: in production, missing secret fails closed. Uses timing-safe compare.
  */
 export function verifyWebhookSignature(
   payload: string,
   signature: string,
 ): boolean {
   const secret = process.env.INBOUND_WEBHOOK_SECRET;
-  if (!secret) return true; // no secret configured — skip verification in dev
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") return false;
+    return true; // dev/test only
+  }
+  if (!signature) return false;
 
-  const expected = createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
-
-  return expected === signature;
+  const expected = createHmac("sha256", secret).update(payload).digest("hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  let providedBuf: Buffer;
+  try {
+    providedBuf = Buffer.from(signature, "hex");
+  } catch {
+    return false;
+  }
+  if (expectedBuf.length !== providedBuf.length) return false;
+  return timingSafeEqual(expectedBuf, providedBuf);
 }
