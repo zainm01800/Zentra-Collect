@@ -3,6 +3,7 @@
 import { Mail, Save, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { NotificationToggle } from "@/components/push-permission";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { WorkspaceSetupCard } from "@/components/workspace-setup-card";
 import { UpgradePromptModal } from "@/components/billing-gates";
 import { AutoSendModal } from "@/components/auto-send-modal";
@@ -39,6 +40,7 @@ import {
 } from "@/lib/settings/business-settings";
 
 export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
+  const router = useRouter();
   const { account } = useLocalAccount();
   const [upgradePrompt, setUpgradePrompt] = useState<string | null>(null);
   const [bizSettings, setBizSettings] = useState<BusinessSettings>(() => readBusinessSettings());
@@ -66,9 +68,7 @@ export function SettingsForm({ defaultTab }: { defaultTab?: string }) {
       incrementClientLedgerUsage(toAccountState(account));
       incrementUsage("clientLedgers");
     }
-    setUpgradePrompt(
-      "Client ledger creation is enabled for this plan, but real multi-tenant setup is still stubbed in the MVP.",
-    );
+    router.push("/portfolio");
   }
 
   return (

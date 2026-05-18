@@ -16,15 +16,16 @@
 
 import { useState, useTransition } from "react";
 import { ChevronDown, Mail, Send, X } from "lucide-react";
-import { sendSingleEmail } from "@/actions/send-single-email";
+import { sendSingleEmail, type OutstandingInvoice } from "@/actions/send-single-email";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface EmailSendButtonProps {
-  invoiceRef:  string;
-  clientName:  string;
-  toEmail?:    string;   // pre-fills the To field
-  draft:       string;   // pre-fills the body textarea
+  invoiceRef:           string;
+  clientName:           string;
+  toEmail?:             string;              // pre-fills the To field
+  draft:                string;              // pre-fills the body textarea
+  outstandingInvoices?: OutstandingInvoice[]; // appended as statement of account
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ export function EmailSendButton({
   clientName,
   toEmail = "",
   draft,
+  outstandingInvoices,
 }: EmailSendButtonProps) {
   const [open, setOpen]               = useState(false);
   const [to, setTo]                   = useState(toEmail);
@@ -74,9 +76,12 @@ export function EmailSendButton({
       const result = await sendSingleEmail({
         to,
         subject,
-        bodyText:   body,
+        bodyText:            body,
         invoiceRef,
         clientName,
+        outstandingInvoices: outstandingInvoices && outstandingInvoices.length > 0
+          ? outstandingInvoices
+          : undefined,
       });
 
       if (result.ok) {

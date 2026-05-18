@@ -2181,6 +2181,14 @@ function ActionDrawer({
                       clientName={invoice.customerName}
                       toEmail={invoice.customerEmail ?? ""}
                       draft={draft}
+                      outstandingInvoices={allInvoices
+                        .filter((i) => i.customerId === invoice.customerId && i.amountOutstanding > 0)
+                        .map((i) => ({
+                          invoiceNumber:     i.invoiceNumber ?? undefined,
+                          dueDate:           i.dueDate       ?? undefined,
+                          amountOutstanding: i.amountOutstanding,
+                          daysOverdue:       i.daysOverdue   ?? undefined,
+                        }))}
                     />
                   </div>
                   <div className="sm:col-span-2">
