@@ -10,11 +10,48 @@
  *
  * In demo / no-Supabase mode it returns { ok: true, simulated: true }
  * so the UI can show a "sent" confirmation without needing real SMTP.
+ *
+ * Outbound emails are instrumented with:
+ *   - a 1x1 tracking pixel (open events)
+ *   - per-link redirect rewriter (click events)
+ * Both flow into zentra_email_events via /api/track/{open,click}.
  */
 
+import { randomUUID } from "crypto";
 import { createSupabaseServerClient as createServerClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/smtp";
 import { decryptPassword } from "@/lib/email/crypto";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://zentracollect.co.uk";
+
+/**
+ * Replace plain zentracollect URLs in the HTML body with tracked
+ * redirects through /api/track/click. Only rewrites our own domain
+ * (open-redirect protection handled server-side too).
+ */
+function rewriteLinksForTracking(html: string, messageId: string, accountId: string): string {
+  return html.replace(
+    /href="(https?:\/\/(?:www\.)?zentracollect\.co\.uk[^"]*)"/gi,
+    (_match, url: string) => {
+      const encoded = Buffer.from(url, "utf-8")
+        .toString("base64")
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const tracked =
+        `${SITE_URL}/api/track/click?m=${encodeURIComponent(messageId)}` +
+        `&a=${encodeURIComponent(accountId)}&u=${encoded}`;
+      return `href="${tracked}"`;
+    },
+  );
+}
+
+/** 1x1 tracking pixel appended to the HTML body. */
+function trackingPixelHtml(messageId: string, accountId: string): string {
+  const src =
+    `${SITE_URL}/api/track/open?m=${encodeURIComponent(messageId)}` +
+    `&a=${encodeURIComponent(accountId)}`;
+  return `<img src="${src}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;outline:none" />`;
+}
 
 export interface OutstandingInvoice {
   invoiceNumber?: string;
@@ -77,12 +114,14 @@ export async function sendSingleEmail(
       .maybeSingle();
 
     if (!account) return { ok: false, error: "No account found." };
+    const accountId = account.id as string;
+    const messageId = randomUUID();
 
     // Load SMTP settings
     const { data: settings } = await supabase
       .from("zentra_email_settings")
       .select("smtp_host, smtp_port, smtp_user, smtp_password_enc, from_name")
-      .eq("account_id", account.id)
+      .eq("account_id", accountId)
       .maybeSingle();
 
     if (!settings || !settings.smtp_user || !settings.smtp_password_enc) {
@@ -149,7 +188,14 @@ export async function sendSingleEmail(
         </div>`;
     }
 
-    const bodyHtml = `<pre style="font-family:sans-serif;white-space:pre-wrap;line-height:1.6">${escapedBody}</pre>${statementHtml}`;
+    const rawBodyHtml = `<pre style="font-family:sans-serif;white-space:pre-wrap;line-height:1.6">${escapedBody}</pre>${statementHtml}`;
+
+    // Inject email tracking: rewrite same-origin links through /api/track/click,
+    // append a 1x1 open pixel. Both endpoints fail-soft if the events table
+    // is missing or Supabase isn't configured.
+    const bodyHtml =
+      rewriteLinksForTracking(rawBodyHtml, messageId, accountId) +
+      trackingPixelHtml(messageId, accountId);
 
     const result = await sendEmail(
       config,
