@@ -7,6 +7,7 @@ import type { PlanId, AccountType, SubscriptionStatus } from "@/lib/billing/plan
 const centralToLegacyPlan: Record<string, PlanId> = {
   DEMO: "demo",
   TRIAL: "trial",
+  FREE: "free",
   TRADER: "trader",
   FREELANCE: "freelance",
   STARTER_SOLO: "starter_solo",
@@ -21,6 +22,7 @@ const centralToLegacyPlan: Record<string, PlanId> = {
 const centralToAccountType: Record<string, AccountType> = {
   DEMO: "demo",
   TRIAL: "trial",
+  FREE: "paid",      // free is a real account, just price 0
   TRADER: "paid",
   FREELANCE: "paid",
   STARTER_SOLO: "paid",

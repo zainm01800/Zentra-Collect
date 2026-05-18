@@ -18,8 +18,10 @@ const ANNUAL_DISCOUNT = 0.17; // ~2 months free
 
 const pricingDescriptions: Record<string, string> = {
   DEMO:             "Sample data only.",
-  TRIAL:            "14 days, no card required. Upload your own AR exports.",
-  STARTER_SOLO:     "For sole traders and micro businesses with a small invoice book.",
+  FREE:             "For very small sole traders. 3 active invoices, real bank feed, real Self-Assessment estimate — forever free.",
+  TRIAL:            "14 days, no card required. Real bank feed, real chase plan — at full power.",
+  FREELANCE:        "For sole traders billing 5–15 invoices a month. Templates, customer portal, full books.",
+  STARTER_SOLO:     "For sole traders ready for AI-drafted chases and a fuller workflow.",
   SINGLE_BUSINESS:  "For one small business running a practical chase process.",
   BOOKKEEPER_STARTER: "For bookkeepers managing a handful of client ledgers.",
   BOOKKEEPER_PRO:   "For larger client portfolios that need more capacity.",
@@ -49,6 +51,16 @@ function getPricingBullets(planId: PlanId) {
       `${formatLimit(imports as number | "unlimited")} imports total`,
       `${formatLimit(aiActions as number | "unlimited")} AI actions`,
       "Export everything anytime",
+    ];
+  }
+
+  if (planId === "FREE") {
+    return [
+      "3 active invoices",
+      "Bank feed + auto-reconciliation",
+      "Expenses + Self-Assessment estimate",
+      "Template chases (no AI)",
+      "Forever free, no card",
     ];
   }
 
@@ -231,7 +243,14 @@ export function PricingSection({
                 ))}
               </div>
               <div className="mt-5">
-                {planId === "TRIAL" ? (
+                {planId === "FREE" ? (
+                  <Link
+                    href="/login?mode=signup&plan=free"
+                    className="zn-pill zn-pill-ghost w-full justify-center"
+                  >
+                    Start free
+                  </Link>
+                ) : planId === "TRIAL" ? (
                   <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost w-full justify-center">
                     Start free trial
                   </Link>
@@ -243,8 +262,14 @@ export function PricingSection({
                     variant={isFeatured ? "primary" : "secondary"}
                   />
                 ) : (
-                  <Link href="/request-access" className="zn-pill zn-pill-ghost w-full justify-center">
-                    Join waitlist
+                  // No Stripe price configured for this plan in env. Send
+                  // people to the trial signup instead of a dead waitlist
+                  // — they can pick the right plan after the trial.
+                  <Link
+                    href="/login?mode=signup"
+                    className="zn-pill zn-pill-ghost w-full justify-center"
+                  >
+                    Start free trial
                   </Link>
                 )}
               </div>
