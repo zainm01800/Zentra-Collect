@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Search, Volume2, VolumeX } from "lucide-react";
+import { MessageSquare, Plus, Search, Volume2, VolumeX } from "lucide-react";
 import { CustomerProfileDrawer } from "@/components/customer-profile-drawer";
 import { AddInvoiceDrawer } from "@/components/add-invoice-drawer";
+import { ReplyTriageModal } from "@/components/reply-triage-modal";
 import { useReview, statusForOutcome, type ReviewOutcome } from "@/components/review-context";
 import {
   filterInvoices,
@@ -44,6 +45,8 @@ export function ChaseQueue({
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [replyTriageOpen, setReplyTriageOpen] = useState(false);
+  const [triageInvoice, setTriageInvoice] = useState<Invoice | null>(null);
   const [waitingInvoices, setWaitingInvoices] = useState<ZentraInvoice[]>([]);
   const [expandedRankId, setExpandedRankId] = useState<string | null>(null);
   const review = useReview();
@@ -361,6 +364,13 @@ export function ChaseQueue({
         <div className="flex items-center gap-2 flex-wrap">
           <ChaseStreakBadge />
           <BriefMeButton queue={queue} />
+          <button
+            type="button"
+            onClick={() => { setTriageInvoice(null); setReplyTriageOpen(true); }}
+            className="zn-pill zn-pill-ghost"
+          >
+            <MessageSquare className="size-3.5" /> Classify reply
+          </button>
           <button
             type="button"
             onClick={() => setAddDrawerOpen(true)}
@@ -811,6 +821,23 @@ export function ChaseQueue({
                         >
                           {replyReceived.has(inv.id) ? "✓ Reply" : "Reply?"}
                         </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTriageInvoice(inv);
+                            setReplyTriageOpen(true);
+                          }}
+                          className="text-[10.5px] font-medium px-2 py-0.5 rounded-full transition-colors whitespace-nowrap"
+                          style={{
+                            background: "var(--zn-surface-2)",
+                            color: "var(--zn-ink-3)",
+                            border: "1px solid var(--zn-line)",
+                          }}
+                          title="Classify a reply from this customer"
+                        >
+                          Classify
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -894,6 +921,13 @@ export function ChaseQueue({
         open={addDrawerOpen}
         onOpenChange={setAddDrawerOpen}
         onAddInvoice={addInvoice}
+      />
+      <ReplyTriageModal
+        open={replyTriageOpen}
+        onClose={() => { setReplyTriageOpen(false); setTriageInvoice(null); }}
+        prefillCustomer={triageInvoice?.customerName}
+        prefillInvoice={triageInvoice?.invoiceNumber}
+        prefillAmount={triageInvoice?.amount}
       />
     </div>
   );
