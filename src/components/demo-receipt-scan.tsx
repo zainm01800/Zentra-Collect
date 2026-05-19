@@ -29,6 +29,7 @@ interface Props { open: boolean; onClose: () => void }
 export function DemoReceiptScan({ open, onClose }: Props) {
   const [phase, setPhase] = useState<"idle" | "scanning" | "ready">("idle");
   const [extracted, setExtracted] = useState<ExtractedReceipt | null>(null);
+  const [saved, setSaved] = useState(false);
 
   function simulateScan() {
     setPhase("scanning");
@@ -43,6 +44,15 @@ export function DemoReceiptScan({ open, onClose }: Props) {
   function reset() {
     setPhase("idle");
     setExtracted(null);
+    setSaved(false);
+  }
+
+  function handleSave() {
+    setSaved(true);
+    setTimeout(() => {
+      onClose();
+      reset();
+    }, 900);
   }
 
   if (!open) return null;
@@ -129,11 +139,10 @@ export function DemoReceiptScan({ open, onClose }: Props) {
                   style={{ color: "var(--zn-ink-3)" }}>
                   ← Scan another
                 </button>
-                <button type="button" disabled
-                  title="Disabled in demo — sign up to save real expenses"
-                  className="zn-pill opacity-50 cursor-not-allowed text-[12px]"
-                  style={{ height: 34, padding: "0 14px" }}>
-                  <Check className="size-3.5" /> Save expense
+                <button type="button" onClick={handleSave}
+                  className="zn-pill text-[12px] transition-all"
+                  style={{ height: 34, padding: "0 14px", opacity: saved ? 0.8 : 1 }}>
+                  <Check className="size-3.5" /> {saved ? "Saved to demo ✓" : "Save expense"}
                 </button>
               </div>
             </div>

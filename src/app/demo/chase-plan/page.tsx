@@ -11,6 +11,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  Bell,
+  BellOff,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   MessageSquare,
@@ -254,6 +257,24 @@ export default function DemoChasePlanPage() {
   const [modal, setModal] = useState<DraftModal>(null);
   const [copied, setCopied] = useState(false);
   const [aiInvoice, setAiInvoice] = useState<Invoice | null>(null);
+  const [snoozed, setSnoozed] = useState<Set<string>>(new Set());
+  const [replied, setReplied] = useState<Set<string>>(new Set());
+
+  function toggleSnooze(id: string) {
+    setSnoozed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleReplied(id: string) {
+    setReplied((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   function toggleRow(id: string) {
     setExpanded((prev) => (prev === id ? null : id));
@@ -349,8 +370,10 @@ export default function DemoChasePlanPage() {
             const colors = URGENCY_COLORS[action.urgency];
             const customer = demoCustomers.find((c) => c.id === inv.customerId);
             const isExpanded = expanded === inv.id;
+            const isSnoozed = snoozed.has(inv.id);
+            const isReplied = replied.has(inv.id);
             const canDraft = !["blocked"].includes(action.urgency) ||
-              inv.status === "disputed"; // show "view draft" for disputes too, just as example
+              inv.status === "disputed";
 
             return (
               <div key={inv.id}>
@@ -378,13 +401,25 @@ export default function DemoChasePlanPage() {
                     {fmtGBP(inv.amountOutstanding)}
                   </div>
                   {/* Action badge */}
-                  <div className="self-center">
-                    <span
-                      className="inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold"
-                      style={{ background: colors.bg, color: colors.color }}
-                    >
-                      {action.label}
-                    </span>
+                  <div className="self-center flex flex-wrap gap-1.5">
+                    {isReplied ? (
+                      <span className="inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold"
+                            style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}>
+                        Reply received ✓
+                      </span>
+                    ) : isSnoozed ? (
+                      <span className="inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold"
+                            style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)" }}>
+                        Snoozed 7 days
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold"
+                        style={{ background: colors.bg, color: colors.color }}
+                      >
+                        {action.label}
+                      </span>
+                    )}
                   </div>
                   {/* Expand */}
                   <div className="hidden sm:flex items-center justify-end self-center">
@@ -469,6 +504,32 @@ export default function DemoChasePlanPage() {
                           AI demo uses hand-written sample output — no API call. Real product drafts in your brand voice.
                         </p>
                       </div>
+                    </div>
+
+                    {/* Row-level actions */}
+                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t"
+                         style={{ borderColor: "var(--zn-line-soft)" }}>
+                      <button type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleReplied(inv.id); }}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors"
+                        style={{
+                          borderColor: isReplied ? "var(--zn-safe)" : "var(--zn-line)",
+                          color: isReplied ? "var(--zn-safe)" : "var(--zn-ink-2)",
+                          background: isReplied ? "var(--zn-safe-soft)" : "transparent",
+                        }}>
+                        <CheckCircle2 className="size-3.5" />
+                        {isReplied ? "Reply received ✓" : "Mark as replied"}
+                      </button>
+                      <button type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleSnooze(inv.id); }}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors"
+                        style={{
+                          borderColor: "var(--zn-line)",
+                          color: isSnoozed ? "var(--zn-warn)" : "var(--zn-ink-2)",
+                        }}>
+                        {isSnoozed ? <Bell className="size-3.5" /> : <BellOff className="size-3.5" />}
+                        {isSnoozed ? "Unsnoozed" : "Snooze 7 days"}
+                      </button>
                     </div>
                   </div>
                 )}

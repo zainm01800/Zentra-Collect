@@ -1,13 +1,17 @@
 "use client";
 
-/**
- * /demo/mileage — read-only mileage tracker using purely fake data.
- * No localStorage writes, no Supabase. Tagging/adding is disabled.
- */
-
-import { Car } from "lucide-react";
+import { useState } from "react";
+import { Car, Plus, X } from "lucide-react";
 import { demoMileageTrips } from "@/lib/demo-data/demo-books-data";
 import { calcMileageAllowance } from "@/lib/mileage";
+
+interface Trip {
+  id: string;
+  date: string;
+  purpose: string;
+  fromTo?: string;
+  miles: number;
+}
 
 function fmtGBP(n: number): string {
   return new Intl.NumberFormat("en-GB", {
@@ -20,9 +24,38 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+const blankForm = { from: "", to: "", miles: "", purpose: "", date: "" };
+
 export default function DemoMileagePage() {
-  const totalMiles = demoMileageTrips.reduce((s, t) => s + t.miles, 0);
+  const [extraTrips, setExtraTrips] = useState<Trip[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(blankForm);
+  const [error, setError] = useState("");
+
+  const allTrips: Trip[] = [...demoMileageTrips, ...extraTrips];
+  const totalMiles = allTrips.reduce((s, t) => s + t.miles, 0);
   const calc = calcMileageAllowance(totalMiles);
+
+  function openModal() { setForm(blankForm); setError(""); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); }
+
+  function addTrip() {
+    const miles = parseFloat(form.miles);
+    if (!form.purpose.trim()) { setError("Purpose is required."); return; }
+    if (!miles || miles <= 0) { setError("Enter a valid number of miles."); return; }
+    const date = form.date || new Date().toISOString().split("T")[0];
+    setExtraTrips((prev) => [
+      ...prev,
+      {
+        id: `demo-${Date.now()}`,
+        date,
+        purpose: form.purpose.trim(),
+        fromTo: form.from && form.to ? `${form.from} → ${form.to}` : undefined,
+        miles,
+      },
+    ]);
+    closeModal();
+  }
 
   return (
     <div className="space-y-6">
@@ -54,16 +87,15 @@ export default function DemoMileagePage() {
           </p>
           <button
             type="button"
-            disabled
-            title="Disabled in demo — sign up to log real trips"
-            className="zn-pill zn-pill-ghost opacity-50 cursor-not-allowed text-[12px]"
+            onClick={openModal}
+            className="zn-pill zn-pill-ghost text-[12px]"
             style={{ height: 30 }}
           >
-            <Car className="size-3.5" /> Add trip
+            <Plus className="size-3.5" /> Add trip
           </button>
         </div>
         <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {demoMileageTrips.map((t) => {
+          {allTrips.map((t) => {
             const allowance = calcMileageAllowance(t.miles).allowance;
             return (
               <div key={t.id} className="flex items-center gap-4 px-5 py-3">
@@ -93,6 +125,89 @@ export default function DemoMileagePage() {
           })}
         </div>
       </div>
+
+      {/* Add trip modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+             style={{ background: "rgba(0,0,0,0.55)" }}
+             role="dialog" aria-modal="true">
+          <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl"
+               style={{ background: "var(--zn-bg)" }}>
+            <button type="button" onClick={closeModal} aria-label="Close"
+              className="absolute top-4 right-4 size-8 rounded-full inline-flex items-center justify-center hover:bg-black/5"
+              style={{ color: "var(--zn-ink-3)" }}>
+              <X className="size-4" />
+            </button>
+
+            <div className="px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Car className="size-4" style={{ color: "var(--zn-accent)" }} />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+                   style={{ color: "var(--zn-ink-3)" }}>Log mileage</p>
+              </div>
+              <h2 className="text-[18px] font-semibold" style={{ color: "var(--zn-ink)" }}>Add a trip</h2>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="From" value={form.from}
+                  onChange={(v) => setForm((f) => ({ ...f, from: v }))}
+                  placeholder="e.g. London" />
+                <Field label="To" value={form.to}
+                  onChange={(v) => setForm((f) => ({ ...f, to: v }))}
+                  placeholder="e.g. Birmingham" />
+              </div>
+              <Field label="Purpose *" value={form.purpose}
+                onChange={(v) => setForm((f) => ({ ...f, purpose: v }))}
+                placeholder="e.g. Client visit — Acme Ltd" />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Miles *" value={form.miles} type="number"
+                  onChange={(v) => setForm((f) => ({ ...f, miles: v }))}
+                  placeholder="e.g. 42" />
+                <Field label="Date" value={form.date} type="date"
+                  onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
+              </div>
+              {error && (
+                <p className="text-[12px]" style={{ color: "var(--zn-risk)" }}>{error}</p>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={closeModal}
+                  className="zn-pill zn-pill-ghost text-[12.5px]" style={{ height: 34 }}>
+                  Cancel
+                </button>
+                <button type="button" onClick={addTrip}
+                  className="zn-pill text-[12.5px]" style={{ height: 34 }}>
+                  Add trip
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder, type = "text" }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[11px] font-semibold uppercase tracking-[0.07em]"
+             style={{ color: "var(--zn-ink-3)" }}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="rounded-lg border px-3 py-2 text-[13px] outline-none focus:ring-1 w-full"
+        style={{
+          borderColor: "var(--zn-line-soft)",
+          background: "var(--zn-surface)",
+          color: "var(--zn-ink)",
+        }}
+      />
     </div>
   );
 }
