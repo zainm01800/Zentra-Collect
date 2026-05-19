@@ -32,8 +32,8 @@ export interface DemoPlanInfo {
   features:    string[];
 }
 
-const COLLECTIONS_HREFS = ["/demo", "/demo/chase-plan", "/demo/customers", "/demo/quotes", "/demo/credit-notes"];
-const BOOKS_HREFS       = ["/demo/banking", "/demo/mileage", "/demo/tax"];
+const COLLECTIONS_HREFS = ["/demo", "/demo/chase-plan", "/demo/aged-debt", "/demo/customers", "/demo/quotes", "/demo/credit-notes", "/demo/reports"];
+const BOOKS_HREFS       = ["/demo/banking", "/demo/expenses", "/demo/mileage", "/demo/pl", "/demo/tax"];
 
 export const DEMO_PLANS: DemoPlanInfo[] = [
   {
@@ -43,7 +43,7 @@ export const DEMO_PLANS: DemoPlanInfo[] = [
     tagline: "Books only — no chasing",
     description: "For sole traders and freelancers who mostly need bookkeeping, not collections.",
     bestFor: "Driving instructors · tutors · tradespeople · anyone with bank-transfer income",
-    navHrefs: ["/demo", ...BOOKS_HREFS],
+    navHrefs: ["/demo", "/demo/reports", ...BOOKS_HREFS],
     features: [
       "Bank feed (read-only)",
       "Tag bank credits as direct income",

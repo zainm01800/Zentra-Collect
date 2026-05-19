@@ -13,13 +13,16 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Building2,
+  BarChart2,
   Car,
+  Calculator,
   FileText,
   LayoutDashboard,
   ListChecks,
   PiggyBank,
   Receipt,
   RefreshCw,
+  TrendingUp,
   Users,
   ArrowRight,
   FlaskConical,
@@ -35,15 +38,19 @@ import {
 const collectionsNav = [
   { href: "/demo",              label: "Dashboard",    icon: LayoutDashboard },
   { href: "/demo/chase-plan",   label: "Chase plan",   icon: ListChecks },
+  { href: "/demo/aged-debt",    label: "Aged debt",    icon: BarChart2 },
   { href: "/demo/customers",    label: "Customers",    icon: Users },
   { href: "/demo/quotes",       label: "Quotes",       icon: FileText },
   { href: "/demo/credit-notes", label: "Credit notes", icon: Receipt },
+  { href: "/demo/reports",      label: "Reports",      icon: TrendingUp },
 ];
 
 const booksNav = [
-  { href: "/demo/banking", label: "Bank feed", icon: Building2 },
-  { href: "/demo/mileage", label: "Mileage",   icon: Car },
-  { href: "/demo/tax",     label: "Tax & VAT", icon: PiggyBank },
+  { href: "/demo/banking",  label: "Bank feed",  icon: Building2 },
+  { href: "/demo/expenses", label: "Expenses",   icon: Receipt },
+  { href: "/demo/mileage",  label: "Mileage",    icon: Car },
+  { href: "/demo/pl",       label: "P&L",        icon: TrendingUp },
+  { href: "/demo/tax",      label: "Tax & VAT",  icon: PiggyBank },
 ];
 
 export function DemoShell({ children }: { children: React.ReactNode }) {
