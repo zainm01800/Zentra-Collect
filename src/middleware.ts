@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
 
   if (!user) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/onboarding";
+    loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }

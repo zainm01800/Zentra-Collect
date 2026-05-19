@@ -22,7 +22,7 @@
  *   Bank statement → localStorage "zentra.bankStatement.v1" (ParsedTransaction[])
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -33,6 +33,8 @@ import {
   CheckCircle2,
   HelpCircle,
   RotateCcw,
+  Pencil,
+  Check,
 } from "lucide-react";
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
@@ -53,6 +55,10 @@ type RichEntry = ExpenseEntry & {
   allowability?: Allowability;
   /** "manual" = user-added via form; "bank-import" = pulled from bank statement */
   source?: "manual" | "bank-import";
+  /** -1=exempt, 0=zero-rated, 5=reduced, 20=standard; undefined=not tracking */
+  vatRate?: number;
+  /** VAT portion of the gross amount */
+  vatAmount?: number;
 };
 
 type ActiveTab = "all" | "allowable" | "not-allowable";
@@ -100,6 +106,33 @@ function monthLabel(ym: string) {
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
+function fmtGBP2(n: number) {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency", currency: "GBP",
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function r2(n: number) { return Math.round(n * 100) / 100; }
+
+function vatRateLabel(rate: number | undefined): string {
+  if (rate === undefined) return "";
+  if (rate === -1) return "Exempt";
+  return `${rate}%`;
+}
+
+function defaultVatForRate(rate: number, gross: number): number {
+  if (rate <= 0) return 0;
+  return r2(gross * rate / (100 + rate));
+}
+
+const VAT_PRESETS = [
+  { label: "Exempt", rate: -1 },
+  { label: "0%",     rate:  0 },
+  { label: "5%",     rate:  5 },
+  { label: "20%",    rate: 20 },
+] as const;
 
 function loadFromStorage(): RichEntry[] {
   if (typeof window === "undefined") return [];
@@ -260,6 +293,147 @@ function CategoryPill({
   );
 }
 
+/** Inline VAT editor embedded in each expense row. Self-contained editing state. */
+function VatInlineEdit({
+  entryId,
+  gross,
+  vatRate,
+  vatAmount,
+  onSave,
+}: {
+  entryId:   string;
+  gross:     number;
+  vatRate?:  number;
+  vatAmount?: number;
+  onSave:    (id: string, vatRate: number, vatAmount: number) => void;
+}) {
+  const [editing,     setEditing]     = useState(false);
+  const [draftRate,   setDraftRate]   = useState<number | undefined>(vatRate);
+  const [draftAmount, setDraftAmount] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    setDraftRate(vatRate);
+    setDraftAmount(vatAmount !== undefined ? String(r2(vatAmount)) : "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  function selectPreset(rate: number) {
+    setDraftRate(rate);
+    setDraftAmount(String(defaultVatForRate(rate, gross)));
+  }
+
+  function save() {
+    const rate = draftRate ?? 0;
+    const amt  = parseFloat(draftAmount);
+    if (isNaN(amt) || amt < 0) return;
+    // Cap VAT at the gross so net never goes negative
+    onSave(entryId, rate, r2(Math.min(amt, gross)));
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-1.5 mt-0.5">
+        {vatAmount !== undefined ? (
+          <>
+            <span className="text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+              +{fmtGBP2(vatAmount)} VAT{vatRate !== undefined ? ` @ ${vatRateLabel(vatRate)}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={startEdit}
+              className="rounded p-0.5 hover:bg-[var(--zn-surface-2)] transition-colors"
+              aria-label="Edit VAT"
+            >
+              <Pencil className="size-2.5" style={{ color: "var(--zn-ink-3)" }} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="flex items-center gap-0.5 text-[11px] hover:underline"
+            style={{ color: "var(--zn-ink-3)" }}
+          >
+            <PlusCircle className="size-2.5" />
+            Add VAT
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-xl border overflow-hidden" style={{ borderColor: "var(--zn-line)" }}>
+      <div className="px-3 pt-2.5 pb-2" style={{ background: "var(--zn-surface)" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.07em] mb-2" style={{ color: "var(--zn-ink-3)" }}>
+          VAT rate
+        </p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {VAT_PRESETS.map((p) => (
+            <button
+              key={p.rate}
+              type="button"
+              onClick={() => selectPreset(p.rate)}
+              className="py-2 rounded-lg border text-[12px] font-semibold transition-all"
+              style={{
+                background:  draftRate === p.rate ? "var(--zn-ink)"      : "transparent",
+                color:       draftRate === p.rate ? "var(--zn-surface)"  : "var(--zn-ink)",
+                borderColor: draftRate === p.rate ? "var(--zn-ink)"      : "var(--zn-line)",
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="px-3 pt-2 pb-2.5 border-t"
+           style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.07em] mb-1.5" style={{ color: "var(--zn-ink-3)" }}>
+          VAT amount
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center rounded-lg border px-2.5 py-1.5"
+               style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)" }}>
+            <span className="text-[12px] mr-1" style={{ color: "var(--zn-ink-3)" }}>£</span>
+            <input
+              ref={inputRef}
+              type="number"
+              min="0"
+              step="0.01"
+              value={draftAmount}
+              onChange={(e) => setDraftAmount(e.target.value)}
+              className="flex-1 text-[12.5px] bg-transparent outline-none"
+              style={{ color: "var(--zn-ink)" }}
+              placeholder="0.00"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={save}
+            className="size-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+            aria-label="Save VAT"
+          >
+            <Check className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="size-8 rounded-full flex items-center justify-center flex-shrink-0 border"
+            style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+            aria-label="Cancel"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
   const [open, setOpen]         = useState(false);
   const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0]);
@@ -268,6 +442,11 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
   const [description, setDesc]  = useState("");
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [vatRate, setVatRate]   = useState<number | undefined>(undefined);
+
+  const computedVat = vatRate !== undefined && amount
+    ? defaultVatForRate(vatRate, parseFloat(amount) || 0)
+    : undefined;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -285,6 +464,9 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
       description:  description.trim(),
       allowability: "allowable",
       source:       "manual",
+      ...(vatRate !== undefined && computedVat !== undefined
+        ? { vatRate, vatAmount: computedVat }
+        : {}),
     };
 
     await addExpense({ date, amount: amt, category, description: description.trim() });
@@ -293,6 +475,7 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
     setAmount("");
     setDesc("");
     setDate(todayISO());
+    setVatRate(undefined);
     setSaving(false);
     setOpen(false);
   }
@@ -430,6 +613,38 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
           />
         </div>
 
+        <div>
+          <label className="block text-[11px] font-semibold uppercase tracking-wide mb-2"
+            style={{ color: "var(--zn-ink-3)" }}>
+            VAT <span className="normal-case font-normal">(optional)</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {VAT_PRESETS.map((p) => (
+              <button
+                key={p.rate}
+                type="button"
+                onClick={() => setVatRate(vatRate === p.rate ? undefined : p.rate)}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors"
+                style={{
+                  background:  vatRate === p.rate ? "var(--zn-ink)" : "transparent",
+                  color:       vatRate === p.rate ? "var(--zn-surface)" : "var(--zn-ink-2)",
+                  borderColor: vatRate === p.rate ? "var(--zn-ink)" : "var(--zn-line)",
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {computedVat !== undefined && computedVat > 0 && (
+            <p className="mt-1.5 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+              VAT: <span className="font-medium" style={{ color: "var(--zn-ink-2)" }}>{fmtGBP2(computedVat)}</span>
+              {" "}· Net: <span className="font-medium" style={{ color: "var(--zn-ink-2)" }}>
+                {fmtGBP2((parseFloat(amount) || 0) - computedVat)}
+              </span>
+            </p>
+          )}
+        </div>
+
         {error && (
           <p className="text-[12px]" style={{ color: "var(--zn-risk)" }}>{error}</p>
         )}
@@ -500,58 +715,73 @@ function CategoryBreakdown({ entries }: { entries: RichEntry[] }) {
   );
 }
 
-/** Single expense row with allowability badge + delete. */
+/** Single expense row with allowability badge + VAT + delete. */
 function ExpenseRow({
   entry,
   onDelete,
   onAllowabilityChange,
+  onVatChange,
 }: {
   entry:                  RichEntry;
   onDelete:               (id: string) => void;
   onAllowabilityChange:   (id: string, v: Allowability) => void;
+  onVatChange:            (id: string, vatRate: number, vatAmount: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 group">
-      {/* Category colour dot */}
-      <span
-        className="size-2 rounded-full flex-shrink-0"
-        style={{
-          background: CAT_COLOURS[
-            EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]) % CAT_COLOURS.length
-          ] ?? "var(--zn-ink-3)",
-        }}
-      />
+    <div className="px-4 py-3 group">
+      <div className="flex items-center gap-3">
+        {/* Category colour dot */}
+        <span
+          className="size-2 rounded-full flex-shrink-0 self-start mt-1.5"
+          style={{
+            background: CAT_COLOURS[
+              EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]) % CAT_COLOURS.length
+            ] ?? "var(--zn-ink-3)",
+          }}
+        />
 
-      <div className="flex-1 min-w-0">
-        <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-          {entry.description || entry.category}
-        </p>
-        <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-          {entry.category} · {fmtDate(entry.date)}
-          {entry.source === "bank-import" && (
-            <span className="ml-1 opacity-60">· from bank</span>
-          )}
-        </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
+            {entry.description || entry.category}
+          </p>
+          <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+            {entry.category} · {fmtDate(entry.date)}
+            {entry.source === "bank-import" && (
+              <span className="ml-1 opacity-60">· from bank</span>
+            )}
+          </p>
+        </div>
+
+        {/* Allowability badge — click to toggle */}
+        <AllowabilityBadge
+          value={entry.allowability ?? "allowable"}
+          onChange={(v) => onAllowabilityChange(entry.id, v)}
+        />
+
+        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink)" }}>
+          {fmtGBP(entry.amount)}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => onDelete(entry.id)}
+          className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Delete expense"
+        >
+          <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
+        </button>
       </div>
 
-      {/* Allowability badge — click to toggle */}
-      <AllowabilityBadge
-        value={entry.allowability ?? "allowable"}
-        onChange={(v) => onAllowabilityChange(entry.id, v)}
-      />
-
-      <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink)" }}>
-        {fmtGBP(entry.amount)}
-      </span>
-
-      <button
-        type="button"
-        onClick={() => onDelete(entry.id)}
-        className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        aria-label="Delete expense"
-      >
-        <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
-      </button>
+      {/* VAT editor — indented to align under description */}
+      <div className="ml-5">
+        <VatInlineEdit
+          entryId={entry.id}
+          gross={entry.amount}
+          vatRate={entry.vatRate}
+          vatAmount={entry.vatAmount}
+          onSave={onVatChange}
+        />
+      </div>
     </div>
   );
 }
@@ -562,11 +792,13 @@ function MonthGroup({
   entries,
   onDelete,
   onAllowabilityChange,
+  onVatChange,
 }: {
   ym:                   string;
   entries:              RichEntry[];
   onDelete:             (id: string) => void;
   onAllowabilityChange: (id: string, v: Allowability) => void;
+  onVatChange:          (id: string, vatRate: number, vatAmount: number) => void;
 }) {
   const [open, setOpen] = useState(true);
   const total = entries.reduce((s, e) => s + e.amount, 0);
@@ -605,6 +837,7 @@ function MonthGroup({
                 entry={e}
                 onDelete={onDelete}
                 onAllowabilityChange={onAllowabilityChange}
+                onVatChange={onVatChange}
               />
             ))}
         </div>
@@ -971,6 +1204,12 @@ export function ExpensePageClient() {
     );
   }, []);
 
+  const handleVatChange = useCallback((id: string, vatRate: number, vatAmount: number) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, vatRate, vatAmount } : e)),
+    );
+  }, []);
+
   function handleRestore(id: string) {
     const entry = deletedEntries.find((d) => d.id === id);
     if (!entry) return;
@@ -1177,6 +1416,7 @@ export function ExpensePageClient() {
           entries={monthEntries}
           onDelete={handleDelete}
           onAllowabilityChange={handleAllowabilityChange}
+          onVatChange={handleVatChange}
         />
       ))}
 

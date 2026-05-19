@@ -9,8 +9,8 @@
  */
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   BarChart2,
@@ -55,6 +55,7 @@ const booksNav = [
 
 export function DemoShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/demo";
+  const router = useRouter();
 
   // Track the selected demo plan so the sidebar / mobile nav can hide
   // items that wouldn't be on that plan in the real product.
@@ -73,6 +74,67 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   const planInfo = planId ? getPlanInfo(planId) : null;
   const visibleCollections = collectionsNav.filter((i) => planShowsHref(planId, i.href));
   const visibleBooks       = booksNav.filter((i) => planShowsHref(planId, i.href));
+  const allTabs = [...visibleCollections, ...visibleBooks];
+  const currentTabIndex = allTabs.findIndex((t) => t.href === pathname);
+
+  // All mutable swipe state in one ref — handlers registered once ([] deps)
+  // always read the latest values without re-registering listeners.
+  const swipeRef = useRef({ allTabs, currentTabIndex, router, navigating: false });
+  swipeRef.current.allTabs = allTabs;
+  swipeRef.current.currentTabIndex = currentTabIndex;
+  swipeRef.current.router = router;
+
+  // Release nav lock whenever the route settles (covers both VT and fallback).
+  useEffect(() => { swipeRef.current.navigating = false; }, [pathname]);
+
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+
+    function onStart(e: TouchEvent) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+
+    function onEnd(e: TouchEvent) {
+      if (swipeRef.current.navigating) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      if (Math.abs(dx) < 60) return;
+
+      const { allTabs: tabs, currentTabIndex: idx, router: r } = swipeRef.current;
+      let href = "";
+      if      (dx < 0 && idx < tabs.length - 1) { href = tabs[idx + 1].href; document.documentElement.dataset.swipeDir = "left";  }
+      else if (dx > 0 && idx > 0)               { href = tabs[idx - 1].href; document.documentElement.dataset.swipeDir = "right"; }
+      else return;
+
+      swipeRef.current.navigating = true;
+
+      const cleanup = () => { delete document.documentElement.dataset.swipeDir; };
+
+      // View Transitions API: browser snapshots the current page, lets React
+      // render the new page, then animates between the two — no flash, no blank
+      // frame, both old and new content visible simultaneously during transition.
+      const vt = (document as Document & {
+        startViewTransition?: (cb: () => void) => { finished: Promise<void> };
+      }).startViewTransition;
+
+      if (vt) {
+        vt.call(document, () => r.push(href)).finished.finally(cleanup);
+      } else {
+        r.push(href);
+        setTimeout(cleanup, 400);
+      }
+    }
+
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend",   onEnd,   { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend",   onEnd);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
@@ -150,7 +212,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main ─────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
         <header
           className="md:hidden flex items-center justify-between px-4 py-3 border-b"
@@ -171,12 +233,12 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        {/* Mobile nav strip */}
+        {/* Mobile scrollable nav strip */}
         <nav
           className="md:hidden flex gap-1 px-3 py-2 border-b overflow-x-auto"
           style={{ borderColor: "var(--zn-line-soft)" }}
         >
-          {[...visibleCollections, ...visibleBooks].map(({ href, label, icon: Icon }) => {
+          {allTabs.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
               <Link
@@ -195,30 +257,32 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Demo notice strip */}
-        <div
-          className="flex items-center justify-between gap-3 px-5 py-2 border-b text-[12px]"
-          style={{
-            borderColor: "var(--zn-line-soft)",
-            background: "var(--zn-warn-soft)",
-            color: "var(--zn-warn)",
-          }}
-        >
-          <span className="font-medium">
-            Sample data — no real invoices, no account required. Changes reset on refresh.
-          </span>
-          <Link
-            href="/login?mode=signup"
-            className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Demo notice strip */}
+          <div
+            className="flex items-center justify-between gap-3 px-5 py-2 border-b text-[12px]"
+            style={{
+              borderColor: "var(--zn-line-soft)",
+              background: "var(--zn-warn-soft)",
+              color: "var(--zn-warn)",
+            }}
           >
-            Start your free trial →
-          </Link>
-        </div>
+            <span className="font-medium">
+              Sample data — no real invoices, no account required. Changes reset on refresh.
+            </span>
+            <Link
+              href="/login?mode=signup"
+              className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
+            >
+              Start your free trial →
+            </Link>
+          </div>
 
-        {/* Page content */}
-        <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto">
-          {children}
-        </main>
+          {/* Page content */}
+          <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* First-visit plan picker (or re-opened via "Switch plan") */}

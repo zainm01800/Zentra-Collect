@@ -627,6 +627,43 @@ body::before {
   .zn-main-pb { padding-bottom: 2rem; }
 }
 
+/* ─── Demo shell swipe navigation — View Transitions API ──────────────────
+   The browser snapshots the current page, lets React render the new page
+   underneath, then animates between the two bitmaps on the GPU compositor.
+   Both old and new content are visible simultaneously → no flash, no blank
+   frame, no rasterisation stall. Falls back to instant navigation on Firefox.
+
+   Direction is set via data-swipe-dir on <html> before the transition fires
+   and cleaned up in the finished promise. Non-swipe navigations get no anim.
+   Respects prefers-reduced-motion automatically (browser skips VT). */
+
+@keyframes demo-vt-slide-out-left  { to   { transform: translate3d(-100%, 0, 0); } }
+@keyframes demo-vt-slide-in-right  { from { transform: translate3d( 100%, 0, 0); } }
+@keyframes demo-vt-slide-out-right { to   { transform: translate3d( 100%, 0, 0); } }
+@keyframes demo-vt-slide-in-left   { from { transform: translate3d(-100%, 0, 0); } }
+
+/* Default: no animation for regular (non-swipe) link clicks */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Swipe left → next tab enters from the right */
+html[data-swipe-dir="left"]::view-transition-old(root) {
+  animation: demo-vt-slide-out-left  0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-swipe-dir="left"]::view-transition-new(root) {
+  animation: demo-vt-slide-in-right  0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Swipe right → previous tab enters from the left */
+html[data-swipe-dir="right"]::view-transition-old(root) {
+  animation: demo-vt-slide-out-right 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-swipe-dir="right"]::view-transition-new(root) {
+  animation: demo-vt-slide-in-left   0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 /* Inputs on iOS — prevent zoom on focus when font-size < 16px */
 @supports (-webkit-touch-callout: none) {
   input, select, textarea {

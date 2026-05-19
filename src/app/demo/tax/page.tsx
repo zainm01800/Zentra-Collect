@@ -14,6 +14,7 @@ import {
   demoCreditNotes,
   demoDirectIncome,
 } from "@/lib/demo-data/demo-books-data";
+import { DEMO_EXPENSES_TOTALS } from "@/lib/demo-data/demo-expenses-data";
 import { calcMileageAllowance } from "@/lib/mileage";
 import { estimateUkSelfEmployedTax } from "@/lib/tax/uk-self-employed";
 
@@ -33,7 +34,8 @@ function fmtPlainGBP(n: number): string {
 // Mock invoiced income — typical small-services figure for a demo.
 const DEMO_INVOICED_INCOME = 38_400;
 const DEMO_INVOICED_VAT    = 7_680;
-const DEMO_EXPENSES_TRACKED = 4_120;
+// Real claimable net from the demo expenses dataset (shared with /demo/expenses).
+const DEMO_EXPENSES_TRACKED = DEMO_EXPENSES_TOTALS.totalAllowNet;
 
 export default function DemoTaxPage() {
   const [copiedBox, setCopiedBox] = useState<string | null>(null);
@@ -80,15 +82,21 @@ export default function DemoTaxPage() {
 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Headline label="Income"            value={fmtGBP(income)} />
-        <Headline label="Expenses"          value={fmtGBP(expenses)} />
-        <Headline label="Net profit"        value={fmtGBP(estimate.netProfit)} highlight />
-        <Headline label="Estimated tax"     value={fmtGBP(estimate.estimatedTaxOwed)} highlight />
-        {vatCharged > 0 && (
-          <Headline label="VAT charged"     value={fmtGBP(vatCharged)} />
+        <Headline label="Income"              value={fmtGBP(income)} />
+        <Headline label="Expenses"            value={fmtGBP(expenses)} />
+        <Headline label="Net profit"          value={fmtGBP(estimate.netProfit)} highlight />
+        <Headline label="Estimated tax"       value={fmtGBP(estimate.estimatedTaxOwed)} highlight />
+        {DEMO_EXPENSES_TOTALS.totalConfirmedVat > 0 && (
+          <Headline label="VAT reclaimable"   value={fmtGBP(DEMO_EXPENSES_TOTALS.totalConfirmedVat)} />
+        )}
+        {DEMO_EXPENSES_TOTALS.totalPendingVat > 0 && (
+          <Headline label="VAT — needs invoice" value={fmtGBP(DEMO_EXPENSES_TOTALS.totalPendingVat)} />
         )}
         {vatCharged > 0 && (
-          <Headline label="VAT to pay HMRC" value={fmtGBP(Math.max(0, vatCharged - 824))} highlight />
+          <Headline label="VAT charged"       value={fmtGBP(vatCharged)} />
+        )}
+        {vatCharged > 0 && (
+          <Headline label="VAT to pay HMRC"   value={fmtGBP(Math.max(0, vatCharged - 824))} highlight />
         )}
       </div>
 
@@ -103,7 +111,7 @@ export default function DemoTaxPage() {
           <Row label={`Direct income tagged from bank feed (${demoDirectIncome.length} txns)`} value={fmtGBP(directIncomeTotal)} />
           <Row label={`Credit notes issued (${demoCreditNotes.length})`}        value={`−${fmtPlainGBP(creditedNet)}`} muted />
           <Row label={`Total income`}                                           value={fmtGBP(income)} bold borderTop />
-          <Row label={`Expenses tracked`}                                       value={fmtGBP(DEMO_EXPENSES_TRACKED)} />
+          <Row label={`Expenses tracked (${15} allowable items)`}               value={fmtGBP(DEMO_EXPENSES_TRACKED)} />
           <Row label={`Mileage allowance (${totalMiles} mi × HMRC rates)`}      value={fmtGBP(mileageAllowance)} />
           <Row label={`Total expenses`}                                         value={fmtGBP(expenses)} bold borderTop />
         </div>
