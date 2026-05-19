@@ -207,7 +207,7 @@ export default function DemoQuotesPage() {
                 padding: "0 16px",
                 borderRadius: 999,
                 border: "none",
-                background: T.ink,
+                background: "var(--zn-bg-inverse)",
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
@@ -531,7 +531,7 @@ function ActionBtn({
     alignItems: "center",
   };
   const variant: React.CSSProperties = primary
-    ? { background: "var(--zn-ink)", color: "#fff", border: "none" }
+    ? { background: "var(--zn-bg-inverse)", color: "#fff", border: "none" }
     : ghost
     ? { background: "transparent", color: "var(--zn-ink)", border: "1px solid var(--zn-line-soft)" }
     : {};
