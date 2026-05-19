@@ -82,6 +82,9 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   const swipeState = useRef({ allTabs, currentTabIndex });
   swipeState.current = { allTabs, currentTabIndex };
 
+  // "left" = swiped left (going forward), "right" = swiped right (going back)
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+
   // Window-level touch listeners bypass the browser's scroll interception
   // that kills React synthetic touch events on scrollable content.
   useEffect(() => {
@@ -99,8 +102,13 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       if (Math.abs(dy) > Math.abs(dx)) return; // vertical scroll — ignore
       if (Math.abs(dx) < 60) return;            // too short — ignore
       const { allTabs: tabs, currentTabIndex: idx } = swipeState.current;
-      if (dx < 0 && idx < tabs.length - 1) router.push(tabs[idx + 1].href);
-      else if (dx > 0 && idx > 0)          router.push(tabs[idx - 1].href);
+      if (dx < 0 && idx < tabs.length - 1) {
+        setSlideDir("left");
+        router.push(tabs[idx + 1].href);
+      } else if (dx > 0 && idx > 0) {
+        setSlideDir("right");
+        router.push(tabs[idx - 1].href);
+      }
     }
 
     window.addEventListener("touchstart", onStart, { passive: true });
@@ -110,6 +118,14 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("touchend",   onEnd);
     };
   }, [router]);
+
+  // Clear the slide direction after the animation plays so it doesn't
+  // affect subsequent non-swipe navigations.
+  useEffect(() => {
+    if (!slideDir) return;
+    const t = setTimeout(() => setSlideDir(null), 350);
+    return () => clearTimeout(t);
+  }, [pathname, slideDir]);
 
   return (
     <div
@@ -252,9 +268,19 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        {/* Page content */}
-        <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto">
-          {children}
+        {/* Page content — keyed on pathname so the slide animation re-triggers
+            on each navigation. Only animates on mobile (md+ uses sidebar). */}
+        <main className="flex-1 overflow-hidden">
+          <div
+            key={pathname}
+            className={[
+              "px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto h-full",
+              slideDir === "left"  ? "demo-slide-in-left"  : "",
+              slideDir === "right" ? "demo-slide-in-right" : "",
+            ].join(" ")}
+          >
+            {children}
+          </div>
         </main>
       </div>
 
