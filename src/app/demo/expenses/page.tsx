@@ -617,48 +617,56 @@ function VatCell({
 
   if (isEditing) {
     return (
-      <span className="inline-flex flex-col gap-1.5">
-        <span className="inline-flex items-center gap-1 flex-wrap">
-          <span className="text-[10.5px]" style={{ color: "var(--zn-ink-3)" }}>£</span>
-          <input
-            ref={inputRef}
-            type="number" min="0" step="0.01"
-            value={vatDraft}
-            onChange={e => onDraftChange(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter")  onSaveEdit(lineIdx);
-              if (e.key === "Escape") onCancelEdit();
-            }}
-            className="w-16 text-[12px] tabular-nums rounded-md px-1.5 py-0.5 border"
-            style={{ color: "var(--zn-accent)", borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)", outline: "none" }}
-          />
+      <span className="inline-flex flex-col gap-2">
+        {/* Amount input row */}
+        <span className="inline-flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5"
+            style={{ borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)" }}>
+            <span className="text-[12px] font-medium" style={{ color: "var(--zn-accent)" }}>£</span>
+            <input
+              ref={inputRef}
+              type="number" min="0" step="0.01"
+              value={vatDraft}
+              onChange={e => onDraftChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter")  onSaveEdit(lineIdx);
+                if (e.key === "Escape") onCancelEdit();
+              }}
+              className="w-20 text-[13px] tabular-nums"
+              style={{ color: "var(--zn-accent)", background: "transparent", outline: "none",
+                       border: "none", MozAppearance: "textfield" } as React.CSSProperties}
+            />
+          </span>
           {liveRate !== null && (
-            <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+            <span className="text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
               → {vatRateLabel(liveRate)}
             </span>
           )}
-          <button type="button" onClick={() => onSaveEdit(lineIdx)}
-            className="rounded-full p-0.5" title="Save">
-            <Check className="size-3" style={{ color: "var(--zn-safe)" }} />
+          {/* Save / cancel — large enough to tap easily */}
+          <button type="button" onClick={() => onSaveEdit(lineIdx)} title="Save"
+            className="size-9 rounded-full inline-flex items-center justify-center border transition-colors"
+            style={{ borderColor: "var(--zn-safe)", background: "var(--zn-safe-soft)" }}>
+            <Check className="size-4" style={{ color: "var(--zn-safe)" }} />
           </button>
-          <button type="button" onClick={onCancelEdit}
-            className="rounded-full p-0.5" title="Cancel">
-            <X className="size-3" style={{ color: "var(--zn-risk)" }} />
+          <button type="button" onClick={onCancelEdit} title="Cancel"
+            className="size-9 rounded-full inline-flex items-center justify-center border transition-colors"
+            style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface-2)" }}>
+            <X className="size-4" style={{ color: "var(--zn-ink-3)" }} />
           </button>
         </span>
-        {/* Quick preset rate chips */}
-        <span className="inline-flex gap-1 flex-wrap">
+        {/* Preset chips — 2-column grid for easy tapping on mobile */}
+        <span className="grid grid-cols-2 gap-1.5">
           {VAT_PRESETS.map(p => {
             const active = line.vatRate === p.rate;
             return (
               <button key={p.rate} type="button"
                 onClick={() => onApplyPreset(p.rate)}
-                className="text-[10px] px-1.5 py-0.5 rounded-full border transition-colors"
+                className="text-[12px] font-medium px-3 py-2 rounded-lg border transition-colors text-center"
                 style={{
                   borderColor: active ? "var(--zn-accent)" : "var(--zn-line-soft)",
                   background:  active ? "var(--zn-accent-soft)" : "var(--zn-surface)",
-                  color:       active ? "var(--zn-accent)" : "var(--zn-ink-3)",
-                  fontWeight:  active ? 600 : 400,
+                  color:       active ? "var(--zn-accent)" : "var(--zn-ink-2)",
+                  fontWeight:  active ? 700 : 500,
                 }}>
                 {p.label}
               </button>
@@ -681,7 +689,7 @@ function VatCell({
     <button
       type="button"
       onClick={() => onStartEdit(lineIdx, line.vat)}
-      className="group inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+      className="group inline-flex items-center gap-1.5 py-2 px-2.5 -my-1 -mx-1 rounded-lg hover:bg-[var(--zn-surface-2)] transition-colors"
       title="Click to edit VAT amount"
     >
       <span
@@ -694,7 +702,7 @@ function VatCell({
         · {vatRateLabel(line.vatRate)}
       </span>
       <Pencil
-        className="size-2.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="size-3 opacity-40 group-hover:opacity-100 transition-opacity"
         style={{ color: "var(--zn-ink-3)" }}
       />
     </button>
