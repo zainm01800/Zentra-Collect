@@ -5,17 +5,17 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const T = {
-  bg:       "#FAF7F2",
-  card:     "#FFFFFF",
-  hover:    "#FAFAFA",
-  surface2: "#F4F4F5",
-  ink:      "#1A1916",
-  muted:    "#8A8680",
-  border:   "rgba(0,0,0,0.08)",
-  green:    "#16A34A",
-  amber:    "#C28800",
-  red:      "#DC2626",
-  blue:     "#2563EB",
+  bg:       "var(--zn-bg)",
+  card:     "var(--zn-surface)",
+  hover:    "var(--zn-surface-2)",
+  surface2: "var(--zn-surface-2)",
+  ink:      "var(--zn-ink)",
+  muted:    "var(--zn-ink-3)",
+  border:   "var(--zn-line-soft)",
+  green:    "var(--zn-safe)",
+  amber:    "var(--zn-warn)",
+  red:      "var(--zn-risk)",
+  blue:     "var(--zn-info)",
 };
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -72,11 +72,11 @@ const QUOTES = [
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  draft:     { bg: "#F4F4F5", color: "#374151", dot: "#8A8680", label: "Draft" },
-  sent:      { bg: "#EFF6FF", color: "#2563EB", dot: "#2563EB", label: "Sent" },
-  accepted:  { bg: "#F0FDF4", color: "#16A34A", dot: "#16A34A", label: "Accepted" },
-  expired:   { bg: "#F4F4F5", color: "#8A8680", dot: "#8A8680", label: "Expired" },
-  converted: { bg: "#F0FDF4", color: "#16A34A", dot: "#16A34A", label: "Converted" },
+  draft:     { bg: "var(--zn-surface-2)", color: "var(--zn-ink-2)",  dot: "var(--zn-ink-3)", label: "Draft" },
+  sent:      { bg: "var(--zn-info-soft)", color: "var(--zn-info)",   dot: "var(--zn-info)",  label: "Sent" },
+  accepted:  { bg: "var(--zn-safe-soft)", color: "var(--zn-safe)",   dot: "var(--zn-safe)",  label: "Accepted" },
+  expired:   { bg: "var(--zn-surface-2)", color: "var(--zn-ink-3)",  dot: "var(--zn-ink-3)", label: "Expired" },
+  converted: { bg: "var(--zn-safe-soft)", color: "var(--zn-safe)",   dot: "var(--zn-safe)",  label: "Converted" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ export default function DemoQuotesPage() {
                 padding: "0 14px",
                 borderRadius: 999,
                 border: `1px solid ${T.border}`,
-                background: "#fff",
+                background: "var(--zn-surface)",
                 fontSize: 13,
                 fontWeight: 500,
                 color: T.ink,
@@ -333,7 +333,7 @@ export default function DemoQuotesPage() {
                   <div
                     style={{
                       borderTop: `1px solid ${T.border}`,
-                      background: "#FAFAFA",
+                      background: "var(--zn-surface-2)",
                       padding: "16px 20px 20px",
                     }}
                   >
@@ -488,20 +488,20 @@ function KpiCard({
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: "var(--zn-surface)",
         borderRadius: 12,
-        border: `1px solid rgba(0,0,0,0.08)`,
+        border: `1px solid var(--zn-line-soft)`,
         padding: "16px 18px",
       }}
     >
-      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680", margin: 0 }}>
+      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)", margin: 0 }}>
         {label}
       </p>
-      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "#1A1916", margin: "8px 0 0", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", margin: "8px 0 0", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
         {value}
       </p>
       {sub && (
-        <p style={{ fontSize: 11, color: "#8A8680", margin: "4px 0 0" }}>{sub}</p>
+        <p style={{ fontSize: 11, color: "var(--zn-ink-3)", margin: "4px 0 0" }}>{sub}</p>
       )}
     </div>
   );
@@ -531,9 +531,9 @@ function ActionBtn({
     alignItems: "center",
   };
   const variant: React.CSSProperties = primary
-    ? { background: "#1A1916", color: "#fff", border: "none" }
+    ? { background: "var(--zn-ink)", color: "#fff", border: "none" }
     : ghost
-    ? { background: "transparent", color: "#1A1916", border: "1px solid rgba(0,0,0,0.12)" }
+    ? { background: "transparent", color: "var(--zn-ink)", border: "1px solid var(--zn-line-soft)" }
     : {};
 
   return (

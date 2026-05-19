@@ -26,20 +26,20 @@ function fmtRound(n: number) {
 }
 
 const T = {
-  bg:     "#FAF7F2",
-  card:   "#FFFFFF",
-  ink:    "#1A1916",
-  ink2:   "#374151",
-  muted:  "#8A8680",
-  border: "rgba(0,0,0,0.08)",
-  green:  "#16A34A",
-  amber:  "#C28800",
-  red:    "#DC2626",
-  blue:   "#2563EB",
-  greenBg:"#F0FDF4",
-  amberBg:"#FFFBEB",
-  blueBg: "#EFF6FF",
-  surface:"#F4F4F5",
+  bg:     "var(--zn-bg)",
+  card:   "var(--zn-surface)",
+  ink:    "var(--zn-ink)",
+  ink2:   "var(--zn-ink-2)",
+  muted:  "var(--zn-ink-3)",
+  border: "var(--zn-line-soft)",
+  green:  "var(--zn-safe)",
+  amber:  "var(--zn-warn)",
+  red:    "var(--zn-risk)",
+  blue:   "var(--zn-info)",
+  greenBg:"var(--zn-safe-soft)",
+  amberBg:"var(--zn-warn-soft)",
+  blueBg: "var(--zn-info-soft)",
+  surface:"var(--zn-surface-2)",
 };
 
 // ── computed values ───────────────────────────────────────────────────────────

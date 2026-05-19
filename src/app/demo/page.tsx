@@ -14,17 +14,17 @@ import { X, ChevronRight, Copy, Mail, Phone } from "lucide-react";
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:        "#FAF7F2",
-  card:      "#FFFFFF",
-  surface2:  "#F4F4F5",
-  ink:       "#1A1916",
-  ink2:      "#374151",
-  muted:     "#8A8680",
-  border:    "rgba(0,0,0,0.08)",
-  green:     "#16A34A",
-  amber:     "#C28800",
-  red:       "#DC2626",
-  blue:      "#2563EB",
+  bg:        "var(--zn-bg)",
+  card:      "var(--zn-surface)",
+  surface2:  "var(--zn-surface-2)",
+  ink:       "var(--zn-ink)",
+  ink2:      "var(--zn-ink-2)",
+  muted:     "var(--zn-ink-3)",
+  border:    "var(--zn-line-soft)",
+  green:     "var(--zn-safe)",
+  amber:     "var(--zn-warn)",
+  red:       "var(--zn-risk)",
+  blue:      "var(--zn-info)",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ function UrgencyDot({ urgency, size = 8 }: { urgency: "red" | "amber" | "grey"; 
 function ActionPill({ action }: { action: Action }) {
   const { urgency, suggested } = action;
   const color   = urgency === "red" ? C.red   : urgency === "amber" ? C.amber : C.muted;
-  const bgColor = urgency === "red" ? "#FEF2F2" : urgency === "amber" ? "#FEFCE8" : C.surface2;
+  const bgColor = urgency === "red" ? "var(--zn-risk-soft)" : urgency === "amber" ? "var(--zn-warn-soft)" : C.surface2;
   const icon =
     suggested === "Chase by email"    ? <Mail   size={10} /> :
     suggested === "Send final notice" ? <Mail   size={10} /> :
@@ -179,7 +179,7 @@ function ActivityDot({ type }: { type: string }) {
   const color =
     type === "payment" ? C.green :
     type === "reply"   ? C.blue  :
-    type === "promise" ? "#7C3AED" :
+    type === "promise" ? "#7C3AED" : /* purple kept as-is, no token */
     C.muted;
   return (
     <span
@@ -485,11 +485,11 @@ export default function DemoDashboardPage() {
                 className="w-full text-left flex items-center gap-3 px-5 py-3 transition-colors"
                 style={{
                   borderBottom: `1px solid ${C.border}`,
-                  background: isSelected ? "#F9F9F9" : "transparent",
+                  background: isSelected ? "var(--zn-surface-2)" : "transparent",
                   borderLeft: isSelected ? `2px solid ${C.ink}` : "2px solid transparent",
                   cursor: "pointer",
                 }}
-                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "#F9F9F9"; }}
+                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "var(--zn-surface-2)"; }}
                 onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
               >
                 {/* Urgency dot + customer info */}

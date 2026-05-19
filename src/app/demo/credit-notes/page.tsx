@@ -5,17 +5,17 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const T = {
-  bg:       "#FAF7F2",
-  card:     "#FFFFFF",
-  hover:    "#FAFAFA",
-  surface2: "#F4F4F5",
-  ink:      "#1A1916",
-  muted:    "#8A8680",
-  border:   "rgba(0,0,0,0.08)",
-  green:    "#16A34A",
-  amber:    "#C28800",
-  red:      "#DC2626",
-  blue:     "#2563EB",
+  bg:       "var(--zn-bg)",
+  card:     "var(--zn-surface)",
+  hover:    "var(--zn-surface-2)",
+  surface2: "var(--zn-surface-2)",
+  ink:      "var(--zn-ink)",
+  muted:    "var(--zn-ink-3)",
+  border:   "var(--zn-line-soft)",
+  green:    "var(--zn-safe)",
+  amber:    "var(--zn-warn)",
+  red:      "var(--zn-risk)",
+  blue:     "var(--zn-info)",
 };
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export default function DemoCreditNotesPage() {
                 padding: "0 14px",
                 borderRadius: 999,
                 border: `1px solid ${T.border}`,
-                background: "#fff",
+                background: "var(--zn-surface)",
                 fontSize: 13,
                 fontWeight: 500,
                 color: T.ink,
@@ -260,7 +260,7 @@ export default function DemoCreditNotesPage() {
                   <div
                     style={{
                       borderTop: `1px solid ${T.border}`,
-                      background: "#FAFAFA",
+                      background: "var(--zn-surface-2)",
                       padding: "16px 20px 20px",
                     }}
                   >
@@ -281,11 +281,11 @@ export default function DemoCreditNotesPage() {
                     {/* Impact paragraph */}
                     <div
                       style={{
-                        background: "#EFF6FF",
+                        background: "var(--zn-info-soft)",
                         borderRadius: 8,
                         padding: "12px 14px",
                         fontSize: 12.5,
-                        color: "#1e3a5f",
+                        color: "var(--zn-info)",
                         lineHeight: 1.6,
                         marginBottom: 16,
                       }}
@@ -309,7 +309,7 @@ export default function DemoCreditNotesPage() {
                           fontFamily: "monospace",
                           fontSize: 11.5,
                           color: T.blue,
-                          background: "#EFF6FF",
+                          background: "var(--zn-info-soft)",
                           border: "none",
                           borderRadius: 5,
                           padding: "3px 8px",
@@ -368,20 +368,20 @@ function KpiCard({
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: "var(--zn-surface)",
         borderRadius: 12,
-        border: "1px solid rgba(0,0,0,0.08)",
+        border: "1px solid var(--zn-line-soft)",
         padding: "16px 18px",
       }}
     >
-      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680", margin: 0 }}>
+      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)", margin: 0 }}>
         {label}
       </p>
-      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "#1A1916", margin: "8px 0 0", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", margin: "8px 0 0", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
         {value}
       </p>
       {sub && (
-        <p style={{ fontSize: 11, color: "#8A8680", margin: "4px 0 0" }}>{sub}</p>
+        <p style={{ fontSize: 11, color: "var(--zn-ink-3)", margin: "4px 0 0" }}>{sub}</p>
       )}
     </div>
   );
@@ -399,16 +399,16 @@ function SummaryCell({
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: "var(--zn-surface)",
         borderRadius: 8,
-        border: "1px solid rgba(0,0,0,0.08)",
+        border: "1px solid var(--zn-line-soft)",
         padding: "12px 14px",
       }}
     >
-      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#8A8680", margin: 0 }}>
+      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--zn-ink-3)", margin: 0 }}>
         {label}
       </p>
-      <p style={{ fontSize: 16, fontWeight: 700, color: valueColor ?? "#1A1916", margin: "6px 0 0", fontVariantNumeric: "tabular-nums" }}>
+      <p style={{ fontSize: 16, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", margin: "6px 0 0", fontVariantNumeric: "tabular-nums" }}>
         {value}
       </p>
     </div>

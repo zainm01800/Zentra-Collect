@@ -119,8 +119,8 @@ export default function DemoMileagePage() {
         {/* Page header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#1A1916", margin: 0 }}>Mileage</h1>
-            <p style={{ fontSize: 13.5, color: "#8A8680", marginTop: 4 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--zn-ink)", margin: 0 }}>Mileage</h1>
+            <p style={{ fontSize: 13.5, color: "var(--zn-ink-3)", marginTop: 4 }}>
               {totalMiles} miles logged · {fmtGBP(totalAllowance)} HMRC allowance
             </p>
           </div>
@@ -132,18 +132,18 @@ export default function DemoMileagePage() {
 
         {/* HMRC info box */}
         <div style={{
-          background: "#F4F4F5", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10,
-          padding: "10px 14px", fontSize: 12, color: "#8A8680", marginBottom: 24, lineHeight: 1.55,
+          background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)", borderRadius: 10,
+          padding: "10px 14px", fontSize: 12, color: "var(--zn-ink-3)", marginBottom: 24, lineHeight: 1.55,
         }}>
-          HMRC AMAP rate: <strong style={{ color: "#1A1916" }}>45p/mile</strong> for the first 10,000 miles,{" "}
-          <strong style={{ color: "#1A1916" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
+          HMRC AMAP rate: <strong style={{ color: "var(--zn-ink)" }}>45p/mile</strong> for the first 10,000 miles,{" "}
+          <strong style={{ color: "var(--zn-ink)" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
         </div>
 
         {/* KPI row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 28 }}>
           <KpiCard label="Total miles" value={`${totalMiles} mi`} />
-          <KpiCard label="HMRC allowance" value={fmtGBP(totalAllowance)} valueColor="#16A34A" />
-          <KpiCard label="Est. tax saving (20%)" value={fmtGBP(estimatedTaxSaving)} valueColor="#16A34A" />
+          <KpiCard label="HMRC allowance" value={fmtGBP(totalAllowance)} valueColor="var(--zn-safe)" />
+          <KpiCard label="Est. tax saving (20%)" value={fmtGBP(estimatedTaxSaving)} valueColor="var(--zn-safe)" />
         </div>
 
         {/* Trip list by month */}
@@ -157,15 +157,15 @@ export default function DemoMileagePage() {
                 {/* Month header */}
                 <div style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 20px", borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  padding: "12px 20px", borderBottom: "1px solid var(--zn-line-soft)",
                 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1916" }}>{month}</span>
-                    <span style={{ fontSize: 12, color: "#8A8680" }}>{mTrips.length} trip{mTrips.length !== 1 ? "s" : ""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--zn-ink)" }}>{month}</span>
+                    <span style={{ fontSize: 12, color: "var(--zn-ink-3)" }}>{mTrips.length} trip{mTrips.length !== 1 ? "s" : ""}</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <span style={{ fontSize: 13, color: "#8A8680", marginRight: 12 }}>{mMiles} mi</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>{fmtGBP(mAllowance)}</span>
+                    <span style={{ fontSize: 13, color: "var(--zn-ink-3)", marginRight: 12 }}>{mMiles} mi</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--zn-safe)" }}>{fmtGBP(mAllowance)}</span>
                   </div>
                 </div>
                 {/* Rows */}
@@ -174,26 +174,26 @@ export default function DemoMileagePage() {
                     display: "grid", gridTemplateColumns: "1fr auto auto",
                     gap: 16, alignItems: "center",
                     padding: "12px 20px",
-                    borderBottom: i < mTrips.length - 1 ? "1px solid rgba(0,0,0,0.06)" : undefined,
+                    borderBottom: i < mTrips.length - 1 ? "1px solid var(--zn-line-soft)" : undefined,
                   }}>
                     {/* Left */}
                     <div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#1A1916", margin: 0 }}>{t.purpose}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--zn-ink)", margin: 0 }}>{t.purpose}</p>
                       {(t.from || t.to) && (
-                        <p style={{ fontSize: 11, color: "#8A8680", marginTop: 2 }}>
+                        <p style={{ fontSize: 11, color: "var(--zn-ink-3)", marginTop: 2 }}>
                           {t.from}{t.from && t.to ? " → " : ""}{t.to}
                         </p>
                       )}
-                      <p style={{ fontSize: 11, color: "#8A8680", marginTop: 1 }}>{t.date}</p>
+                      <p style={{ fontSize: 11, color: "var(--zn-ink-3)", marginTop: 1 }}>{t.date}</p>
                     </div>
                     {/* Miles */}
                     <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1916" }}>{t.miles}</span>
-                      <span style={{ fontSize: 11, color: "#8A8680", marginLeft: 2 }}>mi</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--zn-ink)" }}>{t.miles}</span>
+                      <span style={{ fontSize: 11, color: "var(--zn-ink-3)", marginLeft: 2 }}>mi</span>
                     </div>
                     {/* Allowance */}
                     <div style={{ textAlign: "right", minWidth: 90 }}>
-                      <span style={{ fontSize: 11, color: "#16A34A" }}>{fmtGBP(t.allowance)} {t.rateLabel}</span>
+                      <span style={{ fontSize: 11, color: "var(--zn-safe)" }}>{fmtGBP(t.allowance)} {t.rateLabel}</span>
                     </div>
                   </div>
                 ))}
@@ -214,7 +214,7 @@ export default function DemoMileagePage() {
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "min(420px, 100vw)", height: "100%",
-              background: "#FFFFFF", overflowY: "auto",
+              background: "var(--zn-surface)", overflowY: "auto",
               boxShadow: "-4px 0 32px rgba(0,0,0,0.12)",
               display: "flex", flexDirection: "column",
             }}
@@ -222,12 +222,12 @@ export default function DemoMileagePage() {
             {/* Panel header */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "20px 24px 16px", borderBottom: "1px solid rgba(0,0,0,0.08)",
+              padding: "20px 24px 16px", borderBottom: "1px solid var(--zn-line-soft)",
             }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#1A1916" }}>Add trip</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "var(--zn-ink)" }}>Add trip</span>
               <button onClick={() => setShowForm(false)} style={{
                 background: "none", border: "none", cursor: "pointer",
-                fontSize: 20, color: "#8A8680", lineHeight: 1, padding: 4,
+                fontSize: 20, color: "var(--zn-ink-3)", lineHeight: 1, padding: 4,
               }}>✕</button>
             </div>
 
@@ -242,11 +242,11 @@ export default function DemoMileagePage() {
               {/* Live allowance preview */}
               {previewMiles > 0 && (
                 <div style={{
-                  background: "#F0FDF4", border: "1px solid #86EFAC",
+                  background: "var(--zn-safe-soft)", border: "1px solid var(--zn-line-soft)",
                   borderRadius: 8, padding: "10px 14px", fontSize: 12,
                 }}>
-                  <span style={{ color: "#16A34A", fontWeight: 700 }}>{fmtGBP(previewAllowance)}</span>
-                  <span style={{ color: "#8A8680", marginLeft: 6 }}>
+                  <span style={{ color: "var(--zn-safe)", fontWeight: 700 }}>{fmtGBP(previewAllowance)}</span>
+                  <span style={{ color: "var(--zn-ink-3)", marginLeft: 6 }}>
                     {previewRate === "@ 45p" ? "All at 45p/mile (under 10,000 mi total)" :
                      previewRate === "@ 25p" ? "All at 25p/mile (over 10,000 mi total)" :
                      "Split rate (crosses 10,000 mi threshold)"}
@@ -279,8 +279,8 @@ export default function DemoMileagePage() {
 function KpiCard({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <div style={{ ...card, padding: "16px 20px" }}>
-      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680", margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 22, fontWeight: 700, color: valueColor ?? "#1A1916", marginTop: 8, marginBottom: 0 }}>{value}</p>
+      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 22, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", marginTop: 8, marginBottom: 0 }}>{value}</p>
     </div>
   );
 }
@@ -292,16 +292,16 @@ function FormField({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680" }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)" }}>{label}</label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8,
-          padding: "8px 12px", fontSize: 13, color: "#1A1916",
-          background: "#FAFAFA", outline: "none", width: "100%", boxSizing: "border-box",
+          border: "1px solid var(--zn-line-soft)", borderRadius: 8,
+          padding: "8px 12px", fontSize: 13, color: "var(--zn-ink)",
+          background: "var(--zn-surface-2)", outline: "none", width: "100%", boxSizing: "border-box",
         }}
       />
     </div>
@@ -312,22 +312,22 @@ function FormField({
 // Shared styles
 // ---------------------------------------------------------------------------
 const card: React.CSSProperties = {
-  background: "#FFFFFF",
-  border: "1px solid rgba(0,0,0,0.08)",
+  background: "var(--zn-surface)",
+  border: "1px solid var(--zn-line-soft)",
   borderRadius: 12,
   overflow: "hidden",
 };
 
 const pillBtn: React.CSSProperties = {
-  background: "#1A1916", color: "#FFFFFF",
+  background: "var(--zn-bg-inverse)", color: "#fff",
   border: "none", borderRadius: 999,
   padding: "8px 18px", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap",
 };
 
 const ghostBtn: React.CSSProperties = {
-  background: "transparent", color: "#1A1916",
-  border: "1px solid rgba(0,0,0,0.15)", borderRadius: 999,
+  background: "transparent", color: "var(--zn-ink)",
+  border: "1px solid var(--zn-line-soft)", borderRadius: 999,
   padding: "8px 18px", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap",
 };

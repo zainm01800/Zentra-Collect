@@ -114,8 +114,8 @@ export default function DemoBankingPage() {
         {/* Page header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#1A1916", margin: 0 }}>Bank feed</h1>
-            <p style={{ fontSize: 13.5, color: "#8A8680", marginTop: 4 }}>Read-only · synced 19 May 2026 at 09:42</p>
+            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--zn-ink)", margin: 0 }}>Bank feed</h1>
+            <p style={{ fontSize: 13.5, color: "var(--zn-ink-3)", marginTop: 4 }}>Read-only · synced 19 May 2026 at 09:42</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={ghostBtn}>Connect bank</button>
@@ -126,15 +126,15 @@ export default function DemoBankingPage() {
         {/* Sync banner */}
         {!bannerDismissed && (
           <div style={{
-            background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10,
-            padding: "10px 14px", fontSize: 12.5, color: "#1E40AF",
+            background: "var(--zn-info-soft)", border: "1px solid var(--zn-line-soft)", borderRadius: 10,
+            padding: "10px 14px", fontSize: 12.5, color: "var(--zn-info)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
             marginBottom: 20, gap: 8,
           }}>
             <span>Read-only bank feed. Match incoming payments to open invoices to mark them as settled.</span>
             <button onClick={() => setBannerDismissed(true)} style={{
               background: "none", border: "none", cursor: "pointer",
-              color: "#1E40AF", fontSize: 16, lineHeight: 1, padding: 2,
+              color: "var(--zn-info)", fontSize: 16, lineHeight: 1, padding: 2,
               flexShrink: 0,
             }}>✕</button>
           </div>
@@ -142,9 +142,9 @@ export default function DemoBankingPage() {
 
         {/* KPI row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 28 }}>
-          <KpiCard label="Month in" value={`+${fmtGBP(monthIn)}`} valueColor="#16A34A" />
-          <KpiCard label="Unmatched" value={fmtGBP(unmatchedSum)} valueColor="#C28800" />
-          <KpiCard label="Matched" value={`${matchedCount} transactions`} valueColor="#8A8680" />
+          <KpiCard label="Month in" value={`+${fmtGBP(monthIn)}`} valueColor="var(--zn-safe)" />
+          <KpiCard label="Unmatched" value={fmtGBP(unmatchedSum)} valueColor="var(--zn-warn)" />
+          <KpiCard label="Matched" value={`${matchedCount} transactions`} valueColor="var(--zn-ink-3)" />
         </div>
 
         {/* Transactions by week */}
@@ -158,11 +158,11 @@ export default function DemoBankingPage() {
               <div key={week}>
                 {/* Week header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#8A8680", textTransform: "uppercase", letterSpacing: "0.06em" }}>{week}</span>
-                  <span style={{ fontSize: 12, color: "#8A8680" }}>
-                    <span style={{ color: "#16A34A", fontWeight: 600 }}>+{fmtGBP(wIn)}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--zn-ink-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{week}</span>
+                  <span style={{ fontSize: 12, color: "var(--zn-ink-3)" }}>
+                    <span style={{ color: "var(--zn-safe)", fontWeight: 600 }}>+{fmtGBP(wIn)}</span>
                     {" in"}
-                    {wOut > 0 && <> · <span style={{ color: "#8A8680" }}>−{fmtGBP(wOut)}</span>{" out"}</>}
+                    {wOut > 0 && <> · <span style={{ color: "var(--zn-ink-3)" }}>−{fmtGBP(wOut)}</span>{" out"}</>}
                   </span>
                 </div>
 
@@ -171,7 +171,7 @@ export default function DemoBankingPage() {
                   {wTxs.map((tx, i) => {
                     const isOpen = openId === tx.id;
                     return (
-                      <div key={tx.id} style={{ borderBottom: i < wTxs.length - 1 ? "1px solid rgba(0,0,0,0.06)" : undefined }}>
+                      <div key={tx.id} style={{ borderBottom: i < wTxs.length - 1 ? "1px solid var(--zn-line-soft)" : undefined }}>
                         {/* Main row */}
                         <div
                           onClick={() => handleRowClick(tx)}
@@ -179,16 +179,16 @@ export default function DemoBankingPage() {
                             display: "grid", gridTemplateColumns: "44px 1fr auto auto",
                             gap: 14, alignItems: "center", padding: "12px 18px",
                             cursor: (tx.state === "matched" || tx.state === "outgoing") ? "default" : "pointer",
-                            background: isOpen ? "#FAFAFA" : undefined,
+                            background: isOpen ? "var(--zn-surface-2)" : undefined,
                             transition: "background 0.15s",
                           }}
                         >
                           {/* Bank badge */}
                           <div style={{
                             width: 36, height: 36, borderRadius: 8,
-                            background: "#F4F4F5", border: "1px solid rgba(0,0,0,0.08)",
+                            background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 9, fontWeight: 700, color: "#8A8680", letterSpacing: "0.04em",
+                            fontSize: 9, fontWeight: 700, color: "var(--zn-ink-3)", letterSpacing: "0.04em",
                             flexShrink: 0,
                           }}>
                             {tx.bank}
@@ -196,10 +196,10 @@ export default function DemoBankingPage() {
 
                           {/* Desc + ref */}
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 600, color: "#1A1916", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--zn-ink)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {tx.desc}
                             </p>
-                            <p style={{ fontSize: 11, color: "#8A8680", margin: 0, fontFamily: "monospace" }}>{tx.ref}</p>
+                            <p style={{ fontSize: 11, color: "var(--zn-ink-3)", margin: 0, fontFamily: "monospace" }}>{tx.ref}</p>
                           </div>
 
                           {/* Match pill */}
@@ -211,11 +211,11 @@ export default function DemoBankingPage() {
                           <div style={{ textAlign: "right", minWidth: 80 }}>
                             <p style={{
                               fontSize: 13, fontWeight: 700, margin: 0,
-                              color: tx.kind === "credit" ? "#16A34A" : "#8A8680",
+                              color: tx.kind === "credit" ? "var(--zn-safe)" : "var(--zn-ink-3)",
                             }}>
                               {tx.kind === "credit" ? "+" : "−"}{fmtGBP(tx.amount)}
                             </p>
-                            <p style={{ fontSize: 11, color: "#8A8680", margin: 0 }}>{tx.date}</p>
+                            <p style={{ fontSize: 11, color: "var(--zn-ink-3)", margin: 0 }}>{tx.date}</p>
                           </div>
                         </div>
 
@@ -223,10 +223,10 @@ export default function DemoBankingPage() {
                         {isOpen && tx.state === "likely" && (
                           <div style={{
                             margin: "0 18px 14px", padding: "14px 16px",
-                            background: "#FFFBEB", border: "1px solid #FDE68A",
+                            background: "var(--zn-warn-soft)", border: "1px solid var(--zn-line-soft)",
                             borderRadius: 10, fontSize: 13,
                           }}>
-                            <p style={{ color: "#92400E", margin: "0 0 12px", fontWeight: 500 }}>
+                            <p style={{ color: "var(--zn-warn)", margin: "0 0 12px", fontWeight: 500 }}>
                               Match this payment of{" "}
                               <strong>{fmtGBP(tx.amount)}</strong> to{" "}
                               <strong>{tx.suggestion}</strong>
@@ -234,7 +234,7 @@ export default function DemoBankingPage() {
                             </p>
                             <div style={{ display: "flex", gap: 8 }}>
                               <button
-                                style={{ ...pillBtn, background: "#16A34A", fontSize: 12, padding: "6px 14px" }}
+                                style={{ ...pillBtn, background: "var(--zn-safe)", fontSize: 12, padding: "6px 14px" }}
                                 onClick={() => confirmMatch(tx.id, tx.suggestion!)}
                               >
                                 Confirm match
@@ -253,10 +253,10 @@ export default function DemoBankingPage() {
                         {isOpen && tx.state === "unmatched" && (
                           <div style={{
                             margin: "0 18px 14px", padding: "14px 16px",
-                            background: "#FEF2F2", border: "1px solid #FECACA",
+                            background: "var(--zn-risk-soft)", border: "1px solid var(--zn-line-soft)",
                             borderRadius: 10,
                           }}>
-                            <p style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>
+                            <p style={{ fontSize: 12, color: "var(--zn-risk)", fontWeight: 600, marginBottom: 8 }}>
                               Search open invoices to match this payment
                             </p>
                             <input
@@ -266,9 +266,9 @@ export default function DemoBankingPage() {
                               onChange={(e) => setSearchQuery(e.target.value)}
                               style={{
                                 width: "100%", boxSizing: "border-box",
-                                border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8,
+                                border: "1px solid var(--zn-line-soft)", borderRadius: 8,
                                 padding: "7px 12px", fontSize: 12.5, marginBottom: 10,
-                                background: "#FFFFFF", color: "#1A1916", outline: "none",
+                                background: "var(--zn-surface)", color: "var(--zn-ink)", outline: "none",
                               }}
                             />
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -279,21 +279,21 @@ export default function DemoBankingPage() {
                                   style={{
                                     display: "flex", justifyContent: "space-between", alignItems: "center",
                                     padding: "8px 10px", borderRadius: 8, cursor: "pointer",
-                                    background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.08)",
+                                    background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)",
                                     fontSize: 12.5,
                                   }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = "#F4F4F5")}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = "#FFFFFF")}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--zn-surface-2)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--zn-surface)")}
                                 >
                                   <div>
-                                    <span style={{ fontWeight: 600, color: "#1A1916", marginRight: 8 }}>{inv.ref}</span>
-                                    <span style={{ color: "#8A8680" }}>{inv.customer}</span>
+                                    <span style={{ fontWeight: 600, color: "var(--zn-ink)", marginRight: 8 }}>{inv.ref}</span>
+                                    <span style={{ color: "var(--zn-ink-3)" }}>{inv.customer}</span>
                                   </div>
-                                  <span style={{ color: "#1A1916", fontWeight: 600 }}>{fmtGBP(inv.amount)}</span>
+                                  <span style={{ color: "var(--zn-ink)", fontWeight: 600 }}>{fmtGBP(inv.amount)}</span>
                                 </div>
                               ))}
                               {filteredInvoices.length === 0 && (
-                                <p style={{ fontSize: 12, color: "#8A8680", textAlign: "center", padding: "8px 0" }}>No invoices match your search.</p>
+                                <p style={{ fontSize: 12, color: "var(--zn-ink-3)", textAlign: "center", padding: "8px 0" }}>No invoices match your search.</p>
                               )}
                             </div>
                           </div>
@@ -312,7 +312,7 @@ export default function DemoBankingPage() {
       {toast && (
         <div style={{
           position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)",
-          background: "#1A1916", color: "#FFFFFF",
+          background: "var(--zn-bg-inverse)", color: "#fff",
           padding: "10px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600,
           boxShadow: "0 4px 16px rgba(0,0,0,0.25)", zIndex: 100,
           whiteSpace: "nowrap",
@@ -329,10 +329,10 @@ export default function DemoBankingPage() {
 // ---------------------------------------------------------------------------
 function MatchPill({ tx }: { tx: Tx }) {
   const styles: Record<TxState, React.CSSProperties> = {
-    matched:   { background: "#F0FDF4", color: "#16A34A", border: "1px solid #86EFAC" },
-    likely:    { background: "#FFFBEB", color: "#C28800", border: "1px solid #FDE68A", cursor: "pointer" },
-    unmatched: { background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", cursor: "pointer" },
-    outgoing:  { background: "#F4F4F5", color: "#8A8680", border: "1px solid rgba(0,0,0,0.1)" },
+    matched:   { background: "var(--zn-safe-soft)", color: "var(--zn-safe)", border: "1px solid var(--zn-line-soft)" },
+    likely:    { background: "var(--zn-warn-soft)", color: "var(--zn-warn)", border: "1px solid var(--zn-line-soft)", cursor: "pointer" },
+    unmatched: { background: "var(--zn-risk-soft)", color: "var(--zn-risk)", border: "1px solid var(--zn-line-soft)", cursor: "pointer" },
+    outgoing:  { background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line-soft)" },
   };
 
   const labels: Record<TxState, string> = {
@@ -359,9 +359,9 @@ function MatchPill({ tx }: { tx: Tx }) {
 // ---------------------------------------------------------------------------
 function KpiCard({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div style={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "16px 20px" }}>
-      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680", margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "#1A1916", marginTop: 8, marginBottom: 0 }}>{value}</p>
+    <div style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)", borderRadius: 12, padding: "16px 20px" }}>
+      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", marginTop: 8, marginBottom: 0 }}>{value}</p>
     </div>
   );
 }
@@ -370,22 +370,22 @@ function KpiCard({ label, value, valueColor }: { label: string; value: string; v
 // Shared styles
 // ---------------------------------------------------------------------------
 const cardStyle: React.CSSProperties = {
-  background: "#FFFFFF",
-  border: "1px solid rgba(0,0,0,0.08)",
+  background: "var(--zn-surface)",
+  border: "1px solid var(--zn-line-soft)",
   borderRadius: 12,
   overflow: "hidden",
 };
 
 const pillBtn: React.CSSProperties = {
-  background: "#1A1916", color: "#FFFFFF",
+  background: "var(--zn-bg-inverse)", color: "#fff",
   border: "none", borderRadius: 999,
   padding: "8px 18px", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap",
 };
 
 const ghostBtn: React.CSSProperties = {
-  background: "transparent", color: "#1A1916",
-  border: "1px solid rgba(0,0,0,0.15)", borderRadius: 999,
+  background: "transparent", color: "var(--zn-ink)",
+  border: "1px solid var(--zn-line-soft)", borderRadius: 999,
   padding: "8px 18px", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap",
 };

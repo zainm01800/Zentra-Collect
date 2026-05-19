@@ -5,16 +5,16 @@ import { FileText, Copy, Check, X } from "lucide-react";
 
 // ── Color tokens ──────────────────────────────────────────────────────────────
 const T = {
-  bg:      "#FAF7F2",
-  card:    "#FFFFFF",
-  surf2:   "#F4F4F5",
-  ink:     "#1A1916",
-  muted:   "#8A8680",
-  border:  "rgba(0,0,0,0.08)",
-  green:   "#16A34A",
-  amber:   "#C28800",
-  red:     "#DC2626",
-  blue:    "#2563EB",
+  bg:      "var(--zn-bg)",
+  card:    "var(--zn-surface)",
+  surf2:   "var(--zn-surface-2)",
+  ink:     "var(--zn-ink)",
+  muted:   "var(--zn-ink-3)",
+  border:  "var(--zn-line-soft)",
+  green:   "var(--zn-safe)",
+  amber:   "var(--zn-warn)",
+  red:     "var(--zn-risk)",
+  blue:    "var(--zn-info)",
 } as const;
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -99,10 +99,10 @@ const URGENCY_DOT: Record<Urgency, string> = {
 };
 
 const URGENCY_PILL: Record<Urgency, { bg: string; color: string }> = {
-  red:     { bg: "#FEF2F2", color: T.red },
-  amber:   { bg: "#FFFBEB", color: T.amber },
-  grey:    { bg: T.surf2,   color: T.muted },
-  blocked: { bg: "#FEF2F2", color: T.red },
+  red:     { bg: "var(--zn-risk-soft)",  color: T.red },
+  amber:   { bg: "var(--zn-warn-soft)",  color: T.amber },
+  grey:    { bg: T.surf2,                color: T.muted },
+  blocked: { bg: "var(--zn-risk-soft)",  color: T.red },
 };
 
 const URGENCY_DAYS_COLOR: Record<Urgency, string> = {
@@ -181,7 +181,7 @@ function Toggle({
       onClick={onToggle}
       style={{
         width: 36, height: 20, borderRadius: 10, border: "none",
-        background: on ? colorOn : "#D1D5DB",
+        background: on ? colorOn : "var(--zn-ink-3)",
         position: "relative", cursor: "pointer", transition: "background 0.18s",
         flexShrink: 0,
       }}
@@ -344,7 +344,7 @@ function DetailPanel({
             onClick={onCopy}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              background: T.ink, color: "#fff",
+              background: "var(--zn-bg-inverse)", color: "#fff",
               border: "none", borderRadius: 99,
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
               cursor: "pointer",
@@ -540,7 +540,7 @@ export default function DemoChasePlanPage() {
             type="button"
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              background: T.ink, color: "#fff",
+              background: "var(--zn-bg-inverse)", color: "#fff",
               border: "none", borderRadius: 99,
               padding: "8px 16px", fontSize: 13, fontWeight: 600,
               cursor: "pointer",
@@ -656,7 +656,7 @@ export default function DemoChasePlanPage() {
                   style={{
                     borderBottom: idx < filtered.length - 1 ? `1px solid ${T.border}` : "none",
                     borderLeft: isSelected ? `2px solid ${T.ink}` : "2px solid transparent",
-                    background: isSelected ? "#FAFAFA" : T.card,
+                    background: isSelected ? "var(--zn-surface-2)" : T.card,
                     padding: "14px 16px",
                     cursor: "pointer",
                     display: "flex",
@@ -665,7 +665,7 @@ export default function DemoChasePlanPage() {
                     transition: "background 0.12s",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "#FAFAFA";
+                    if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "var(--zn-surface-2)";
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = T.card;
@@ -830,7 +830,7 @@ export default function DemoChasePlanPage() {
               display: "inline-flex",
               alignItems: "center",
               gap: 12,
-              background: T.ink,
+              background: "var(--zn-bg-inverse)",
               color: "#fff",
               borderRadius: 99,
               padding: "10px 20px",
@@ -895,7 +895,7 @@ export default function DemoChasePlanPage() {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 60,
-            background: T.ink,
+            background: "var(--zn-bg-inverse)",
             color: "#fff",
             borderRadius: 99,
             padding: "10px 20px",
