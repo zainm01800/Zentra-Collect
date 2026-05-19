@@ -38,8 +38,8 @@ const DEFAULTS: WorkspacePrefs = {
   modules: {
     collections: true,
     cashflow:    false,
-    expenses:    false,
-    tax:         false,
+    expenses:    true,
+    tax:         true,
     reports:     true,
   },
   widgets: {
