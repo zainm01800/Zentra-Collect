@@ -131,6 +131,27 @@ const BASE_EXPENSES: DemoExpense[] = [
     category: "Professional Services", hasReceipt: true,
     vatLines: [{ label: "Quarterly bookkeeping + filing", net: 350.00, vatRate: 20, vat: 70.00, gross: 420.00, reclaimable: true }],
   },
+  {
+    id: "e-14", date: "2026-05-01", description: "Electricity — office supply",
+    category: "Office", hasReceipt: true,
+    // Electricity billed at 5% reduced rate (small business qualifying usage)
+    // Standing charge is at the standard 20% rate — a common mixed-rate utility scenario
+    vatLines: [
+      { label: "Units consumed (reduced rate 5%)", net: 85.00, vatRate: 5,  vat: 4.25,  gross: 89.25,  reclaimable: true },
+      { label: "Standing charge (standard rate 20%)", net: 15.00, vatRate: 20, vat: 3.00, gross: 18.00, reclaimable: true },
+    ],
+  },
+  {
+    id: "e-15", date: "2026-04-25", description: "Conference catering — team day",
+    category: "Marketing", hasReceipt: true,
+    // Cold food is zero-rated (no VAT); hot drinks and room hire are standard 20%
+    // This illustrates how a single supplier invoice can have 3 different VAT treatments
+    vatLines: [
+      { label: "Cold sandwiches & buffet (zero-rated)", net: 120.00, vatRate: 0,  vat: 0.00,  gross: 120.00, reclaimable: false },
+      { label: "Hot drinks & coffee (standard 20%)",   net:  30.00, vatRate: 20, vat: 6.00,  gross:  36.00, reclaimable: true },
+      { label: "Room hire (standard 20%)",             net:  80.00, vatRate: 20, vat: 16.00, gross:  96.00, reclaimable: true },
+    ],
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -152,6 +173,12 @@ function linesReclaimVat(lines: VatLine[]) {
 function isMultiRate(lines: VatLine[]) {
   const rates = new Set(lines.map(l => l.vatRate));
   return lines.length > 1 && rates.size > 1;
+}
+function vatPctSummary(lines: VatLine[]): string {
+  if (lines.length === 0) return "—";
+  const rates = [...new Set(lines.map(l => l.vatRate))];
+  if (rates.length === 1) return vatRateLabel(rates[0]);
+  return "Mixed";
 }
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
@@ -243,7 +270,8 @@ export default function DemoExpensesPage() {
           if (i !== lineIdx) return l;
           const newVat   = r2(raw);
           const newGross = r2(l.net + newVat);
-          return { ...l, vat: newVat, gross: newGross };
+          const newRate  = l.net > 0 ? r2((raw / l.net) * 100) : l.vatRate;
+          return { ...l, vat: newVat, gross: newGross, vatRate: newRate };
         });
         return { ...p, [id]: newLines };
       });
@@ -470,13 +498,14 @@ export default function DemoExpensesPage() {
 
                 {/* Column headers */}
                 <div className="hidden sm:grid px-5 py-2 border-b text-[10.5px] font-semibold uppercase tracking-[0.06em]"
-                  style={{ gridTemplateColumns: "20px 72px 1fr 150px 120px 160px auto", gap: "12px",
+                  style={{ gridTemplateColumns: "20px 72px 1fr 150px 120px 56px 160px auto", gap: "12px",
                            borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}>
                   <span />
                   <span>Date</span>
                   <span>Description</span>
                   <span>Category</span>
                   <span>Allowability</span>
+                  <span className="text-center">VAT %</span>
                   <span className="text-right">Amount</span>
                   <span className="text-right">Claimable</span>
                 </div>
@@ -539,9 +568,14 @@ function VatCell({
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (isEditing) inputRef.current?.focus(); }, [isEditing]);
 
+  const draftNum  = parseFloat(vatDraft);
+  const liveRate  = isEditing && !isNaN(draftNum) && line.net > 0
+    ? r2((draftNum / line.net) * 100)
+    : null;
+
   if (isEditing) {
     return (
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center gap-1 flex-wrap">
         <span className="text-[10.5px]" style={{ color: "var(--zn-ink-3)" }}>£</span>
         <input
           ref={inputRef}
@@ -555,6 +589,11 @@ function VatCell({
           className="w-16 text-[12px] tabular-nums rounded-md px-1.5 py-0.5 border"
           style={{ color: "var(--zn-accent)", borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)", outline: "none" }}
         />
+        {liveRate !== null && (
+          <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+            → {vatRateLabel(liveRate)}
+          </span>
+        )}
         <button type="button" onClick={() => onSaveEdit(lineIdx)}
           className="rounded-full p-0.5" title="Save">
           <Check className="size-3" style={{ color: "var(--zn-safe)" }} />
@@ -587,6 +626,9 @@ function VatCell({
         style={{ color: pendingVat > 0 ? "var(--zn-warn)" : "var(--zn-accent)" }}
       >
         +{fmtGBP(line.vat)} VAT
+      </span>
+      <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+        · {vatRateLabel(line.vatRate)}
       </span>
       <Pencil
         className="size-2.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -645,7 +687,7 @@ function ExpenseRow({
       <div
         className="hidden sm:grid items-start gap-3 px-5 py-3.5 transition-opacity"
         style={{
-          gridTemplateColumns: "20px 72px 1fr 150px 120px 160px auto",
+          gridTemplateColumns: "20px 72px 1fr 150px 120px 56px 160px auto",
           opacity: isNotClaimable && activeTab === "claimable" ? 0.45 : 1,
         }}
       >
@@ -720,6 +762,17 @@ function ExpenseRow({
           label={badgeLabel} color={badgeColor} bg={badgeBg}
           hintOpen={hintOpen} onToggleHint={onToggleHint}
         />
+
+        {/* VAT % */}
+        <div className="text-center pt-0.5">
+          <span
+            className="text-[11px] font-semibold tabular-nums"
+            style={{ color: mixedRates ? "var(--zn-warn)" : vat > 0 ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
+            title={mixedRates ? "Multiple VAT rates — expand to see breakdown" : undefined}
+          >
+            {vatPctSummary(vatLines)}
+          </span>
+        </div>
 
         {/* Amount */}
         <div className="text-right">
@@ -824,6 +877,11 @@ function ExpenseRow({
             <span />
           </div>
         </div>
+      )}
+      {multiLine && vatExpanded && mixedRates && (
+        <p className="mx-5 mb-3 text-[11px] leading-relaxed" style={{ color: "var(--zn-warn)" }}>
+          ⚠ Mixed VAT rates on this invoice — each line must be recorded at its own rate on your VAT return. Click any VAT amount to adjust it.
+        </p>
       )}
 
       {/* HMRC hint */}
