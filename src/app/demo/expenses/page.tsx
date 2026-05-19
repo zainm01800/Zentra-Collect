@@ -219,7 +219,7 @@ export default function DemoExpensesPage() {
     const confirmedVat    = hasReceipt ? maxReclaimVat : 0;
     const pendingVat      = hasReceipt ? 0 : maxReclaimVat;
 
-    const hasAnyVat    = vat > 0;
+    const hasAnyVat    = vatLines.length > 0;
     const multiLine    = vatLines.length > 1;
     const mixedRates   = isMultiRate(vatLines);
     const originalGross    = linesGross(e.vatLines);
@@ -270,8 +270,11 @@ export default function DemoExpensesPage() {
       const baseLines = p[id] ?? BASE_EXPENSES.find(e => e.id === id)!.vatLines;
       const newLines  = baseLines.map((l, i) => {
         if (i !== lineIdx) return l;
-        const newVat   = rate <= 0 ? 0 : r2(l.net * (rate / 100));
-        return { ...l, vatRate: rate, vat: newVat, gross: r2(l.net + newVat) };
+        // Keep gross (invoice total) fixed — only split changes
+        const gross  = l.gross;
+        const newVat = rate <= 0 ? 0 : r2(gross * rate / (100 + rate));
+        const newNet = r2(gross - newVat);
+        return { ...l, vatRate: rate, vat: newVat, net: newNet, gross };
       });
       return { ...p, [id]: newLines };
     });
@@ -300,10 +303,12 @@ export default function DemoExpensesPage() {
         const baseLines = p[id] ?? (BASE_EXPENSES.find(e => e.id === id)!.vatLines);
         const newLines  = baseLines.map((l, i) => {
           if (i !== lineIdx) return l;
-          const newVat   = r2(raw);
-          const newGross = r2(l.net + newVat);
-          const newRate  = l.net > 0 ? r2((raw / l.net) * 100) : l.vatRate;
-          return { ...l, vat: newVat, gross: newGross, vatRate: newRate };
+          // Keep gross fixed — cap VAT at gross so net can't go negative
+          const gross   = l.gross;
+          const newVat  = r2(Math.min(raw, gross));
+          const newNet  = r2(gross - newVat);
+          const newRate = newNet > 0 ? r2((newVat / newNet) * 100) : l.vatRate;
+          return { ...l, vat: newVat, net: newNet, gross, vatRate: newRate };
         });
         return { ...p, [id]: newLines };
       });
@@ -923,7 +928,7 @@ function ExpenseRow({
             </button>
           )}
           {/* Pending receipt warning */}
-          {!hasReceipt && hasAnyVat && meta.vatClaimable && !forced0 && (
+          {!hasReceipt && vat > 0 && meta.vatClaimable && !forced0 && (
             <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--zn-warn)" }}>
               ⚠ Attach invoice to confirm {fmtGBP(pendingVat)} VAT reclaim
             </p>
@@ -1109,7 +1114,7 @@ function ExpenseRow({
             <p className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
               {fmtGBP(gross)}
             </p>
-            {hasAnyVat && (
+            {vat > 0 && (
               <p className="text-[10px] tabular-nums" style={{ color: pendingVat > 0 ? "var(--zn-warn)" : "var(--zn-ink-3)" }}>
                 +{fmtGBP(vat)} VAT
               </p>

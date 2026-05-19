@@ -278,7 +278,7 @@ export function normaliseLocalAccount(user: Partial<DemoUser>): DemoUser {
   const planId = user.planId ?? "demo";
   const fallback = createLocalAccount({
     name: user.name ?? "Demo user",
-    email: user.email ?? "demo@example.co.uk",
+    email: user.email ?? "demo@localhost.invalid",
     businessName: user.businessName ?? "Demo business",
     planId,
   });

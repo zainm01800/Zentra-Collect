@@ -9,8 +9,8 @@
  */
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   BarChart2,
@@ -55,6 +55,7 @@ const booksNav = [
 
 export function DemoShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/demo";
+  const router = useRouter();
 
   // Track the selected demo plan so the sidebar / mobile nav can hide
   // items that wouldn't be on that plan in the real product.
@@ -73,6 +74,42 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   const planInfo = planId ? getPlanInfo(planId) : null;
   const visibleCollections = collectionsNav.filter((i) => planShowsHref(planId, i.href));
   const visibleBooks       = booksNav.filter((i) => planShowsHref(planId, i.href));
+  const allTabs = [...visibleCollections, ...visibleBooks];
+  const currentTabIndex = allTabs.findIndex((t) => t.href === pathname);
+
+  // Keep a ref so the touch handlers always see the latest index without
+  // being re-registered on every render.
+  const swipeState = useRef({ allTabs, currentTabIndex });
+  swipeState.current = { allTabs, currentTabIndex };
+
+  // Window-level touch listeners bypass the browser's scroll interception
+  // that kills React synthetic touch events on scrollable content.
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+
+    function onStart(e: TouchEvent) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+
+    function onEnd(e: TouchEvent) {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx)) return; // vertical scroll — ignore
+      if (Math.abs(dx) < 60) return;            // too short — ignore
+      const { allTabs: tabs, currentTabIndex: idx } = swipeState.current;
+      if (dx < 0 && idx < tabs.length - 1) router.push(tabs[idx + 1].href);
+      else if (dx > 0 && idx > 0)          router.push(tabs[idx - 1].href);
+    }
+
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend",   onEnd,   { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend",   onEnd);
+    };
+  }, [router]);
 
   return (
     <div
@@ -171,12 +208,12 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        {/* Mobile nav strip */}
+        {/* Mobile scrollable nav strip */}
         <nav
           className="md:hidden flex gap-1 px-3 py-2 border-b overflow-x-auto"
           style={{ borderColor: "var(--zn-line-soft)" }}
         >
-          {[...visibleCollections, ...visibleBooks].map(({ href, label, icon: Icon }) => {
+          {allTabs.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
               <Link

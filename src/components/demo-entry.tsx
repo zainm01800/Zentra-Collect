@@ -37,7 +37,7 @@ export function DemoEntry() {
     writeLocalAccount(
       createLocalAccount({
         name: "Demo user",
-        email: "demo@zentracollect.co.uk",
+        email: "demo@localhost.invalid",
         businessName: "Zentra Demo Workspace",
         planId: "demo",
       }),
