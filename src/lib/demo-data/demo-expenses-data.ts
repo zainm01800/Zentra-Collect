@@ -16,6 +16,7 @@ export interface DemoExpense {
   id:          string;
   date:        string;
   description: string;
+  vendor:      string;
   category:    string;
   hasReceipt:  boolean;
   vatLines:    VatLine[];
@@ -49,90 +50,82 @@ const VAT_CLAIMABLE: Record<string, boolean> = {
 
 export const BASE_EXPENSES: DemoExpense[] = [
   {
-    id: "e-1", date: "2026-05-12", description: "Adobe Creative Cloud",
-    category: "Software", hasReceipt: true,
-    vatLines: [{ label: "Monthly subscription", net: 49.99, vatRate: 20, vat: 10.00, gross: 59.99, reclaimable: true }],
+    id: "e-1", date: "2026-05-14", description: "Figma — Organisation plan",
+    vendor: "Figma, Inc.", category: "Software", hasReceipt: true,
+    vatLines: [{ label: "Figma — Organisation plan", net: 450.00, vatRate: 20, vat: 90.00, gross: 540.00, reclaimable: true }],
   },
   {
-    id: "e-2", date: "2026-05-10", description: "Client lunch — BluePeak",
-    category: "Entertaining", hasReceipt: false,
-    vatLines: [{ label: "Restaurant bill", net: 68.00, vatRate: 20, vat: 13.60, gross: 81.60, reclaimable: false }],
+    id: "e-2", date: "2026-05-12", description: "Eurostar — London → Paris",
+    vendor: "Eurostar Intl.", category: "Travel", hasReceipt: true,
+    vatLines: [{ label: "Return business travel", net: 312.50, vatRate: 0, vat: 0.00, gross: 312.50, reclaimable: false }],
   },
   {
-    id: "e-3", date: "2026-05-08", description: "Hotel — London client meeting",
-    category: "Travel", hasReceipt: true,
+    id: "e-3", date: "2026-05-11", description: "Dinner — Sequoia partners",
+    vendor: "The Quality Chop House", category: "Entertaining", hasReceipt: false,
+    vatLines: [{ label: "Restaurant bill", net: 153.50, vatRate: 20, vat: 30.70, gross: 184.20, reclaimable: false }],
+  },
+  {
+    id: "e-4", date: "2026-05-09", description: "BP Connect — Fuel",
+    vendor: "BP plc", category: "Equipment", hasReceipt: false,
+    vatLines: [{ label: "Fuel (business mileage)", net: 52.00, vatRate: 20, vat: 10.40, gross: 62.40, reclaimable: true }],
+  },
+  {
+    id: "e-5", date: "2026-05-07", description: "Meta Ads — Q2 awareness push",
+    vendor: "Meta Platforms Ireland", category: "Marketing", hasReceipt: true,
+    vatLines: [{ label: "Paid social advertising", net: 1033.33, vatRate: 20, vat: 206.67, gross: 1240.00, reclaimable: true }],
+  },
+  {
+    id: "e-6", date: "2026-05-06", description: "Paperchase — notebooks & pens",
+    vendor: "Paperchase Ltd.", category: "Office", hasReceipt: true,
+    vatLines: [{ label: "Stationery", net: 32.46, vatRate: 20, vat: 6.49, gross: 38.95, reclaimable: true }],
+  },
+  {
+    id: "e-7", date: "2026-05-04", description: "Wimbledon hospitality box",
+    vendor: "AELTC", category: "Entertaining", hasReceipt: true,
+    vatLines: [{ label: "Corporate hospitality", net: 2000.00, vatRate: 20, vat: 400.00, gross: 2400.00, reclaimable: false }],
+  },
+  {
+    id: "e-8", date: "2026-05-02", description: "British Gas — office utilities",
+    vendor: "British Gas", category: "Office", hasReceipt: true,
     vatLines: [
-      { label: "Room (1 night)",    net: 160.00, vatRate: 20, vat: 32.00, gross: 192.00, reclaimable: true },
-      { label: "Breakfast",         net:  12.00, vatRate: 20, vat:  2.40, gross:  14.40, reclaimable: true },
-      { label: "Parking (on-site)", net:  18.00, vatRate: -1, vat:  0.00, gross:  18.00, reclaimable: false },
+      { label: "Energy units (reduced rate)",  net: 123.80, vatRate:  5, vat:  6.19, gross: 129.99, reclaimable: true },
+      { label: "Standing charge (standard)",   net:  15.27, vatRate: 20, vat:  3.05, gross:  18.32, reclaimable: true },
     ],
   },
   {
-    id: "e-4", date: "2026-05-07", description: "Office supplies — Ryman",
-    category: "Office", hasReceipt: true,
-    vatLines: [{ label: "Stationery and supplies", net: 24.50, vatRate: 20, vat: 4.90, gross: 29.40, reclaimable: true }],
+    id: "e-9", date: "2026-04-28", description: "Apple — MacBook Pro 14\"",
+    vendor: "Apple UK Ltd.", category: "Equipment", hasReceipt: true,
+    vatLines: [{ label: "MacBook Pro 14\" M4", net: 1999.17, vatRate: 20, vat: 399.83, gross: 2399.00, reclaimable: true }],
   },
   {
-    id: "e-5", date: "2026-04-28", description: "Broadband — BT Business",
-    category: "Communications", hasReceipt: true,
-    vatLines: [{ label: "Monthly broadband", net: 42.00, vatRate: 20, vat: 8.40, gross: 50.40, reclaimable: true }],
+    id: "e-10", date: "2026-04-22", description: "Linear — annual seats",
+    vendor: "Linear Orbit, Inc.", category: "Software", hasReceipt: true,
+    vatLines: [{ label: "Annual team seats", net: 990.00, vatRate: 20, vat: 198.00, gross: 1188.00, reclaimable: true }],
   },
   {
-    id: "e-6", date: "2026-04-22", description: "Train — London client visit",
-    category: "Travel", hasReceipt: false,
-    vatLines: [{ label: "Return rail ticket", net: 87.40, vatRate: 0, vat: 0.00, gross: 87.40, reclaimable: false }],
+    id: "e-11", date: "2026-04-18", description: "Heathrow Express — return",
+    vendor: "Heathrow Express", category: "Travel", hasReceipt: false,
+    vatLines: [{ label: "Return rail ticket", net: 45.83, vatRate: 20, vat: 9.17, gross: 55.00, reclaimable: true }],
   },
   {
-    id: "e-7", date: "2026-04-18", description: "GitHub Pro",
-    category: "Software", hasReceipt: true,
-    vatLines: [{ label: "Annual plan (monthly)", net: 3.99, vatRate: 20, vat: 0.80, gross: 4.79, reclaimable: true }],
+    id: "e-12", date: "2026-04-11", description: "Notion — team plan",
+    vendor: "Notion Labs", category: "Software", hasReceipt: true,
+    vatLines: [{ label: "Team plan (annual)", net: 160.00, vatRate: 20, vat: 32.00, gross: 192.00, reclaimable: true }],
   },
   {
-    id: "e-8", date: "2026-04-15", description: "Printer ink cartridges",
-    category: "Office", hasReceipt: false,
-    vatLines: [{ label: "Ink cartridges ×4", net: 31.20, vatRate: 20, vat: 6.24, gross: 37.44, reclaimable: true }],
+    id: "e-13", date: "2026-04-04", description: "Lunch — design contractor",
+    vendor: "Dishoom Shoreditch", category: "Entertaining", hasReceipt: true,
+    vatLines: [{ label: "Lunch bill", net: 80.42, vatRate: 20, vat: 16.08, gross: 96.50, reclaimable: false }],
   },
   {
-    id: "e-9", date: "2026-04-09", description: "Mobile phone bill",
-    category: "Communications", hasReceipt: true,
-    vatLines: [{ label: "Monthly contract", net: 35.00, vatRate: 20, vat: 7.00, gross: 42.00, reclaimable: true }],
+    id: "e-14", date: "2026-03-28", description: "Google Ads — March",
+    vendor: "Google Ireland Ltd.", category: "Marketing", hasReceipt: true,
+    vatLines: [{ label: "Paid search advertising", net: 180.00, vatRate: 20, vat: 36.00, gross: 216.00, reclaimable: true }],
   },
   {
-    id: "e-10", date: "2026-04-05", description: "Professional indemnity ins.",
-    category: "Insurance", hasReceipt: true,
-    vatLines: [{ label: "Annual premium", net: 220.00, vatRate: -1, vat: 0.00, gross: 220.00, reclaimable: false }],
-  },
-  {
-    id: "e-11", date: "2026-04-02", description: "Canva Pro subscription",
-    category: "Software", hasReceipt: false,
-    vatLines: [{ label: "Annual plan", net: 9.99, vatRate: 20, vat: 2.00, gross: 11.99, reclaimable: true }],
-  },
-  {
-    id: "e-12", date: "2026-03-28", description: "Google Ads — March",
-    category: "Marketing", hasReceipt: true,
-    vatLines: [{ label: "Paid search ads", net: 180.00, vatRate: 20, vat: 36.00, gross: 216.00, reclaimable: true }],
-  },
-  {
-    id: "e-13", date: "2026-03-20", description: "Accountant — Q4 filing",
-    category: "Professional Services", hasReceipt: true,
+    id: "e-15", date: "2026-03-20", description: "Accountant — Q4 filing",
+    vendor: "Matthews & Co. Accountants", category: "Professional Services", hasReceipt: true,
     vatLines: [{ label: "Quarterly bookkeeping + filing", net: 350.00, vatRate: 20, vat: 70.00, gross: 420.00, reclaimable: true }],
-  },
-  {
-    id: "e-14", date: "2026-05-01", description: "Electricity — office supply",
-    category: "Office", hasReceipt: true,
-    vatLines: [
-      { label: "Units consumed (reduced rate 5%)",    net: 85.00, vatRate:  5, vat:  4.25, gross:  89.25, reclaimable: true },
-      { label: "Standing charge (standard rate 20%)", net: 15.00, vatRate: 20, vat:  3.00, gross:  18.00, reclaimable: true },
-    ],
-  },
-  {
-    id: "e-15", date: "2026-04-25", description: "Conference catering — team day",
-    category: "Marketing", hasReceipt: true,
-    vatLines: [
-      { label: "Cold sandwiches & buffet (zero-rated)", net: 120.00, vatRate:  0, vat:  0.00, gross: 120.00, reclaimable: false },
-      { label: "Hot drinks & coffee (standard 20%)",    net:  30.00, vatRate: 20, vat:  6.00, gross:  36.00, reclaimable: true },
-      { label: "Room hire (standard 20%)",              net:  80.00, vatRate: 20, vat: 16.00, gross:  96.00, reclaimable: true },
-    ],
   },
 ];
 
