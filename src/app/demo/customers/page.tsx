@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { Users, Info, Search, ChevronDown } from "lucide-react";
+import { DEMO_AR_CUSTOMERS, DEMO_AR_TOTALS, type DemoARCustomer } from "@/lib/demo-data/demo-ar-data";
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const T = {
@@ -22,79 +23,11 @@ const T = {
   blueBg:  "var(--zn-info-soft)",
 } as const;
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-const CUSTOMERS = [
-  {
-    id: "pemberton", name: "Pemberton & Co", contact: "James Pemberton", role: "Managing Director",
-    email: "j.pemberton@pemberton-co.uk", phone: "+44 121 555 0167",
-    type: "Family-office advisory", location: "Birmingham, UK", since: "Nov 2021",
-    relationship: "problem", riskLevel: 5, riskLabel: "Critical risk",
-    outstanding: 23750, openInvoices: 4, maxOverdue: 112, avgPaymentDays: 78, paidOnTime: 6, paidLate: 11,
-    invoices: [
-      { ref: "INV-2026-0098", amount: 9500,  overdue: 112, status: "Final notice" },
-      { ref: "INV-2026-0107", amount: 7250,  overdue: 94,  status: "Action now"   },
-      { ref: "INV-2026-0124", amount: 4500,  overdue: 70,  status: "Action now"   },
-      { ref: "INV-2026-0143", amount: 2500,  overdue: 41,  status: "Follow up"    },
-    ],
-    riskFactors: ["4 open invoices · oldest 112 days past due", "11 of 17 lifetime invoices paid late", "Avg 78-day payment vs Net-30 terms", "Statutory interest accruing on 3 invoices"],
-    notes: "Sent pre-action protocol letter on 12 May. James acknowledged but offered no payment date. Recommend credit hold and county-court letter prep.",
-  },
-  {
-    id: "bluepeak", name: "BluePeak Ltd", contact: "Daniel Okafor", role: "Head of Finance",
-    email: "accounts@bluepeak.ltd.uk", phone: "+44 161 555 0142",
-    type: "Logistics SME", location: "Manchester, UK", since: "Aug 2024",
-    relationship: "slow", riskLevel: 3, riskLabel: "Medium risk",
-    outstanding: 17200, openInvoices: 3, maxOverdue: 31, avgPaymentDays: 43, paidOnTime: 4, paidLate: 2,
-    invoices: [
-      { ref: "INV-2026-0138", amount: 12250, overdue: 23, status: "Action now" },
-      { ref: "INV-2026-0147", amount: 3200,  overdue: 31, status: "Follow up"  },
-      { ref: "INV-2026-0152", amount: 1750,  overdue: 0,  status: "Current"    },
-    ],
-    riskFactors: ["2 of 6 invoices paid late in past 6 months", "Average 43-day payment vs Net-30 terms", "AP cycle runs on the 15th and end-of-month"],
-    notes: "AP team only processes runs on the 15th and end-of-month. Best to align invoice timing.",
-  },
-  {
-    id: "oaktree", name: "Oaktree Consulting", contact: "Priya Raman", role: "Managing Partner",
-    email: "priya@oaktree-consulting.com", phone: "+44 20 3964 7720",
-    type: "Strategy consultancy", location: "London, UK", since: "Jun 2022",
-    relationship: "regular", riskLevel: 2, riskLabel: "Low risk",
-    outstanding: 11300, openInvoices: 2, maxOverdue: 47, avgPaymentDays: 26, paidOnTime: 20, paidLate: 1,
-    invoices: [
-      { ref: "INV-2026-0142", amount: 8400, overdue: 47, status: "Action now" },
-      { ref: "INV-2026-0149", amount: 2900, overdue: 15, status: "Follow up"  },
-    ],
-    riskFactors: ["47-day overdue on INV-2026-0142 — unusually long for Oaktree", "20 of 21 lifetime invoices paid on time", "Past dispute resolved amicably in Sep 2025"],
-    notes: "Priya prefers direct calls over emails for anything over £5,000. Note to follow up the formal pre-action letter with a call.",
-  },
-  {
-    id: "meridian", name: "Meridian Studio", contact: "Sarah Whitford", role: "Operations Director",
-    email: "sarah.whitford@meridianstudio.co.uk", phone: "+44 20 7946 0118",
-    type: "Design agency", location: "London, UK", since: "Mar 2023",
-    relationship: "regular", riskLevel: 2, riskLabel: "Low risk",
-    outstanding: 9900, openInvoices: 3, maxOverdue: 62, avgPaymentDays: 31, paidOnTime: 14, paidLate: 0,
-    invoices: [
-      { ref: "INV-2026-0153", amount: 2350, overdue: 62, status: "Action now"  },
-      { ref: "INV-2026-0151", amount: 4800, overdue: 14, status: "Follow up"   },
-      { ref: "INV-2026-0155", amount: 2750, overdue: 0,  status: "Current"     },
-    ],
-    riskFactors: ["Two unanswered reminders on INV-2026-0153 (62 days)", "Otherwise perfect 14-invoice on-time history", "Net-30 standard terms"],
-    notes: "Sarah is the right contact for finance queries. CFO change rumoured in Q3 — flag if payment cycle shifts.",
-  },
-  {
-    id: "harrow", name: "Harrow Digital", contact: "Adeola Thompson", role: "Finance Manager",
-    email: "finance@harrowdigital.io", phone: "+44 20 4538 7711",
-    type: "Digital marketing", location: "London, UK", since: "Jan 2026",
-    relationship: "new", riskLevel: 1, riskLabel: "Low risk",
-    outstanding: 4200, openInvoices: 1, maxOverdue: 0, avgPaymentDays: 18, paidOnTime: 3, paidLate: 0,
-    invoices: [
-      { ref: "INV-2026-0158", amount: 4200, overdue: 0, status: "Current" },
-    ],
-    riskFactors: ["New client — 3 invoices to date, all paid within 18 days", "Net-14 terms requested", "No outstanding queries"],
-    notes: "Onboarded Jan 2026. Quick payer so far — keep an eye as volume scales in Q3.",
-  },
-] as const;
+type Customer = DemoARCustomer;
 
-type Customer = (typeof CUSTOMERS)[number];
+const HIGH_RISK_OUTSTANDING = DEMO_AR_CUSTOMERS
+  .filter((c) => c.riskLevel >= 4)
+  .reduce((s, c) => s + c.outstanding, 0);
 
 const REL_META: Record<string, { label: string; color: string }> = {
   regular: { label: "Regular",     color: T.green },
@@ -291,13 +224,13 @@ export default function DemoCustomersPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedCustomer = useMemo(
-    () => CUSTOMERS.find((c) => c.id === selectedId) ?? null,
+    () => DEMO_AR_CUSTOMERS.find((c) => c.id === selectedId) ?? null,
     [selectedId],
   );
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    let list = [...CUSTOMERS] as Customer[];
+    let list = [...DEMO_AR_CUSTOMERS] as Customer[];
     if (q) list = list.filter((c) => c.name.toLowerCase().includes(q) || c.contact.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
     list.sort((a, b) => {
       if (sort === "name")    return a.name.localeCompare(b.name);
@@ -325,7 +258,7 @@ export default function DemoCustomersPage() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: "-0.02em", lineHeight: 1.1 }}>Customers</h1>
           <p style={{ fontSize: 13.5, color: T.muted, margin: "6px 0 0" }}>
-            5 customers · {fmtGBP(66350)} outstanding · <span style={{ color: T.red }}>{fmtGBP(23750)} at high risk</span>
+            {DEMO_AR_TOTALS.customerCount} customers · {fmtGBP(DEMO_AR_TOTALS.totalOutstanding)} outstanding · <span style={{ color: T.red }}>{fmtGBP(HIGH_RISK_OUTSTANDING)} at high risk</span>
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -339,7 +272,7 @@ export default function DemoCustomersPage() {
       </div>
 
       {/* Two-panel */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr min(380px, 40%)", gap: 20, alignItems: "start" }}>
 
         {/* ── Left: customer list ── */}
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>

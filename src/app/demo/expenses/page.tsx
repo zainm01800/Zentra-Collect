@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { BASE_EXPENSES as _BASE_EXPENSES } from "@/lib/demo-data/demo-expenses-data";
 
-// â”€â”€ Category definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category definitions ──────────────────────────────────────────────────────
 
 type ExpenseCategory =
   | "Software" | "Office" | "Travel" | "Communications"
@@ -16,7 +16,7 @@ type ExpenseCategory =
   | "Marketing" | "Equipment";
 
 interface CategoryMeta {
-  dot:          string;  // small colour dot only â€” pills are always grey
+  dot:          string;  // small colour dot only — pills are always grey
   allowablePct: number;
   vatClaimable: boolean;
   hint:         string;
@@ -27,18 +27,18 @@ interface CategoryMeta {
 const CATEGORY_META: Record<ExpenseCategory, CategoryMeta> = {
   "Software":              { dot: "var(--zn-info)", allowablePct: 100, vatClaimable: true,  hint: "Software subscriptions wholly and exclusively for the trade are fully deductible. VAT is reclaimable where a valid invoice is held.", hmrcShort: "Fully allowable" },
   "Office":                { dot: "#4B5563", allowablePct: 100, vatClaimable: true,  hint: "Office supplies used for business are fully deductible. VAT is reclaimable where a valid VAT invoice is held.", hmrcShort: "Fully allowable" },
-  "Travel":                { dot: "#0D9488", allowablePct: 100, vatClaimable: true,  hint: "Business travel is fully allowable. VAT is reclaimable on standard-rated travel (e.g. Heathrow Express, fuel) where a receipt is held. Most National Rail fares are zero-rated.", hmrcShort: "Fully allowable â€” business travel" },
+  "Travel":                { dot: "#0D9488", allowablePct: 100, vatClaimable: true,  hint: "Business travel is fully allowable. VAT is reclaimable on standard-rated travel (e.g. Heathrow Express, fuel) where a receipt is held. Most National Rail fares are zero-rated.", hmrcShort: "Fully allowable — business travel" },
   "Communications":        { dot: "#7C3AED", allowablePct: 50,  vatClaimable: true,  hint: "HMRC allows 50% for phone and broadband on mixed personal/business use. 50% of VAT is reclaimable.", hmrcShort: "50% mixed-use rule" },
-  "Insurance":             { dot: "var(--zn-warn)", allowablePct: 100, vatClaimable: false, hint: "Business insurance premiums are fully allowable. Premiums are VAT-exempt â€” no VAT to reclaim.", hmrcShort: "Fully allowable Â· VAT exempt" },
-  "Entertaining":          { dot: "var(--zn-risk)", allowablePct: 0,   vatClaimable: false, hint: "HMRC does not allow client entertainment as a business deduction. VAT on entertaining is blocked input tax and cannot be reclaimed.", hmrcShort: "Not allowable Â· client entertaining" },
+  "Insurance":             { dot: "var(--zn-warn)", allowablePct: 100, vatClaimable: false, hint: "Business insurance premiums are fully allowable. Premiums are VAT-exempt — no VAT to reclaim.", hmrcShort: "Fully allowable · VAT exempt" },
+  "Entertaining":          { dot: "var(--zn-risk)", allowablePct: 0,   vatClaimable: false, hint: "HMRC does not allow client entertainment as a business deduction. VAT on entertaining is blocked input tax and cannot be reclaimed.", hmrcShort: "Not allowable · client entertaining" },
   "Professional Services": { dot: "#0369A1", allowablePct: 100, vatClaimable: true,  hint: "Accountancy, legal, and professional fees are fully allowable. VAT is reclaimable where a valid VAT invoice is held.", hmrcShort: "Fully allowable" },
   "Marketing":             { dot: "#BE185D", allowablePct: 100, vatClaimable: true,  hint: "Advertising and marketing spend is fully allowable. VAT is reclaimable where a valid invoice is held.", hmrcShort: "Fully allowable" },
-  "Equipment":             { dot: "#0369A1", allowablePct: 100, vatClaimable: true,  hint: "Business equipment is allowable via the Annual Investment Allowance (AIA). VAT is reclaimable in full where a valid VAT invoice is held.", hmrcShort: "Capital allowance Â· AIA" },
+  "Equipment":             { dot: "#0369A1", allowablePct: 100, vatClaimable: true,  hint: "Business equipment is allowable via the Annual Investment Allowance (AIA). VAT is reclaimable in full where a valid VAT invoice is held.", hmrcShort: "Capital allowance · AIA" },
 };
 
 const CATEGORY_LIST = Object.keys(CATEGORY_META) as ExpenseCategory[];
 
-// â”€â”€ Data model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Data model ────────────────────────────────────────────────────────────────
 
 interface VatLine {
   label: string; net: number; vatRate: number; vat: number; gross: number; reclaimable: boolean;
@@ -58,7 +58,7 @@ const VAT_PRESETS = [
   { label: "20%",    rate: 20 },
 ];
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 }).format(n);
@@ -89,7 +89,7 @@ function isMultiRate(lines: VatLine[]) {
 
 type Tab = "all" | "review" | "missing" | "notallowable";
 
-// â”€â”€ Resolved expense type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Resolved expense type ─────────────────────────────────────────────────────
 
 type Resolved = DemoExpense & {
   cat: ExpenseCategory; meta: CategoryMeta; pct: number;
@@ -100,7 +100,7 @@ type Resolved = DemoExpense & {
   needsReview: boolean;
 };
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function DemoExpensesPage() {
   const [activeTab,         setActiveTab]         = useState<Tab>("all");
@@ -166,7 +166,7 @@ export default function DemoExpensesPage() {
 
   const selectedExpense = selectedId ? expenses.find(e => e.id === selectedId) ?? null : null;
 
-  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   function handleCategoryChange(id: string, cat: ExpenseCategory) {
     setCategoryOverrides(p => ({ ...p, [id]: cat }));
@@ -227,21 +227,21 @@ export default function DemoExpensesPage() {
     setSelectedIds(new Set());
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5">
 
       {/* Header */}
       <div>
-        <p className="zn-section-label">Demo Â· Books</p>
+        <p className="zn-section-label">Demo · Books</p>
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
           style={{ color: "var(--zn-ink)" }}>
           Expenses
         </h1>
       </div>
 
-      {/* KPI cards â€” numbers coloured, labels/subtitles always grey */}
+      {/* KPI cards — numbers coloured, labels/subtitles always grey */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label="Total gross"     value={fmtGBP(totalGross)} />
         <StatCard label="Claimable net"   value={fmtGBP(totalAllowNet)}  accent="var(--zn-safe)" sub={`${pctClaimable}% of net expenditure`} />
@@ -260,7 +260,7 @@ export default function DemoExpensesPage() {
         />
       </div>
 
-      {/* Tabs + sort â€” plain text tabs, no pill backgrounds */}
+      {/* Tabs + sort — plain text tabs, no pill backgrounds */}
       <div className="flex items-center gap-1 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
         {([
           ["all",          "All",              expenses.length],
@@ -302,7 +302,7 @@ export default function DemoExpensesPage() {
           style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}>
           <AlertTriangle className="size-3.5 shrink-0" />
           <span>
-            <strong>{fmtGBP(totalPendingVat)}</strong> VAT at risk â€”
+            <strong>{fmtGBP(totalPendingVat)}</strong> VAT at risk —
             attach invoices on {reviewExpenses.length} expense{reviewExpenses.length !== 1 ? "s" : ""} to confirm reclaim
           </span>
         </div>
@@ -312,7 +312,7 @@ export default function DemoExpensesPage() {
           style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}>
           <X className="size-3.5 shrink-0" />
           <span>
-            <strong>{fmtGBP(totalDisallowed)}</strong> cannot be claimed â€”
+            <strong>{fmtGBP(totalDisallowed)}</strong> cannot be claimed —
             HMRC blocks client entertainment and personal expenses
           </span>
         </div>
@@ -364,13 +364,13 @@ export default function DemoExpensesPage() {
                       {fmtMonth(ym)}
                     </span>
                     <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-                      Â· {rows.length} expense{rows.length !== 1 ? "s" : ""}
+                      · {rows.length} expense{rows.length !== 1 ? "s" : ""}
                     </span>
                   </button>
 
                   <div className="shrink-0 text-right text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
                     <span style={{ color: "var(--zn-safe)", fontWeight: 600 }}>{fmtGBP(monthAllowNet)}</span>
-                    {" allowable Â· "}
+                    {" allowable · "}
                     <span style={{ color: "var(--zn-ink-2)" }}>{fmtGBP(monthNet)} net</span>
                   </div>
                 </div>
@@ -447,7 +447,7 @@ export default function DemoExpensesPage() {
           <span className="text-[12.5px] font-semibold">
             {selectedIds.size} selected
           </span>
-          <span className="opacity-30 mx-1">Â·</span>
+          <span className="opacity-30 mx-1">·</span>
           <span className="text-[12.5px] tabular-nums opacity-70">
             {fmtGBP(r2([...selectedIds].reduce((s, id) => s + (expenses.find(e => e.id === id)?.gross ?? 0), 0)))}
           </span>
@@ -473,7 +473,7 @@ export default function DemoExpensesPage() {
   );
 }
 
-// â”€â”€ Expense list row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Expense list row ──────────────────────────────────────────────────────────
 
 function ExpenseListRow({
   expense, isChecked, isActive, isMobileExpanded, editingVat, vatDraft,
@@ -531,12 +531,12 @@ function ExpenseListRow({
               style={{ color: "var(--zn-ink)", textDecoration: isNotClaimable ? "line-through" : "none" }}>
               {description}
             </p>
-            {/* Amount â€” right-aligned, pulled to far right */}
+            {/* Amount — right-aligned, pulled to far right */}
           </div>
 
-          {/* Row 2: date Â· vendor */}
+          {/* Row 2: date · vendor */}
           <p className="text-[11px] mt-0.5 ml-4" style={{ color: "var(--zn-ink-3)" }}>
-            {fmtDate(date)} Â· {vendor}
+            {fmtDate(date)} · {vendor}
           </p>
 
           {/* Row 3: category pill + VAT badge */}
@@ -575,7 +575,7 @@ function ExpenseListRow({
         <button type="button"
           onClick={ev => { ev.stopPropagation(); onToggleReceipt(); }}
           className="shrink-0 mt-0.5 hover:opacity-60 transition-opacity"
-          title={hasReceipt ? "Invoice attached â€” click to remove" : "No invoice â€” click to mark attached"}>
+          title={hasReceipt ? "Invoice attached — click to remove" : "No invoice — click to mark attached"}>
           {hasReceipt
             ? <Paperclip     className="size-4" style={{ color: "var(--zn-safe)" }} />
             : <AlertTriangle className="size-4" style={{ color: needsReview ? "var(--zn-warn)" : "var(--zn-ink-3)" }} />}
@@ -622,7 +622,7 @@ function ExpenseListRow({
   );
 }
 
-// â”€â”€ Detail panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Detail panel ──────────────────────────────────────────────────────────────
 
 interface DetailPanelProps {
   expense:           Resolved;
@@ -648,7 +648,7 @@ function DetailPanel(props: DetailPanelProps) {
         <div className="flex items-center gap-1.5 mb-1">
           <span className="size-2 rounded-full" style={{ background: meta.dot }} />
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>
-            {expense.cat} Â· {fmtDate(expense.date)}
+            {expense.cat} · {fmtDate(expense.date)}
           </p>
         </div>
         <h2 className="text-[17px] font-bold leading-snug" style={{ color: "var(--zn-ink)" }}>
@@ -711,7 +711,7 @@ function DetailContent({
 
           {mixedRates && (
             <p className="mb-2.5 text-[11px]" style={{ color: "var(--zn-warn)" }}>
-              Mixed VAT rates â€” record each line separately on your VAT return.
+              Mixed VAT rates — record each line separately on your VAT return.
             </p>
           )}
 
@@ -838,7 +838,7 @@ function DetailContent({
                 <p style={{ color: "var(--zn-safe)" }}>{fmtGBP(confirmedVat)} VAT confirmed reclaimable âœ“</p>
               )}
               {pendingVat > 0 && (
-                <p style={{ color: "var(--zn-warn)" }}>{fmtGBP(pendingVat)} pending â€” attach invoice to confirm</p>
+                <p style={{ color: "var(--zn-warn)" }}>{fmtGBP(pendingVat)} pending — attach invoice to confirm</p>
               )}
             </div>
           )}
@@ -851,7 +851,7 @@ function DetailContent({
           Allowability
         </p>
 
-        {/* HMRC rule â€” plain text, no coloured box */}
+        {/* HMRC rule — plain text, no coloured box */}
         <div>
           <p className="text-[9.5px] font-bold uppercase tracking-[0.07em] mb-1" style={{ color: "var(--zn-ink-3)" }}>
             HMRC rule
@@ -866,7 +866,7 @@ function DetailContent({
           )}
           {isPartial && (
             <p className="mt-1 text-[11.5px] font-medium" style={{ color: "var(--zn-warn)" }}>
-              {pct}% allowable Â· {fmtGBP(allowNet)} deductible
+              {pct}% allowable · {fmtGBP(allowNet)} deductible
             </p>
           )}
         </div>
@@ -892,7 +892,7 @@ function DetailContent({
 
         {allowNet > 0 && (
           <p className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            {fmtGBP(allowNet)} claimable Â·
+            {fmtGBP(allowNet)} claimable ·
             est. <strong style={{ color: "var(--zn-safe)" }}>{fmtGBP(r2(allowNet * 0.20))}</strong> tax saving at 20%
           </p>
         )}
@@ -926,10 +926,10 @@ function DetailContent({
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
               {hasReceipt
-                ? "VAT reclaim confirmed Â· tap to remove"
+                ? "VAT reclaim confirmed · tap to remove"
                 : vat > 0
-                  ? `Attach to confirm ${fmtGBP(vat)} VAT reclaim Â· tap to upload`
-                  : "Required for records Â· tap to upload"}
+                  ? `Attach to confirm ${fmtGBP(vat)} VAT reclaim · tap to upload`
+                  : "Required for records · tap to upload"}
             </p>
           </div>
           <span className="shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors"
@@ -947,7 +947,7 @@ function DetailContent({
   );
 }
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function CategorySelect({ cat, onChange, fullWidth }: {
   cat: ExpenseCategory; onChange: (c: ExpenseCategory) => void; fullWidth?: boolean;

@@ -555,7 +555,7 @@ export default function DemoChasePlanPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 400px",
+          gridTemplateColumns: "1fr min(400px, 47%)",
           gap: 20,
           alignItems: "start",
         }}
@@ -659,9 +659,10 @@ export default function DemoChasePlanPage() {
                     background: isSelected ? "var(--zn-surface-2)" : T.card,
                     padding: "14px 16px",
                     cursor: "pointer",
-                    display: "flex",
+                    display: "grid",
+                    gridTemplateColumns: "14px 8px minmax(0, 1fr) auto",
                     alignItems: "center",
-                    gap: 12,
+                    columnGap: 10,
                     transition: "background 0.12s",
                   }}
                   onMouseEnter={(e) => {
@@ -677,28 +678,27 @@ export default function DemoChasePlanPage() {
                     checked={isChecked}
                     onChange={(e) => { e.stopPropagation(); toggleChecked(inv.id); }}
                     onClick={(e) => e.stopPropagation()}
-                    style={{ width: 14, height: 14, cursor: "pointer", flexShrink: 0, accentColor: T.ink }}
+                    style={{ width: 14, height: 14, cursor: "pointer", accentColor: T.ink }}
                   />
 
                   {/* Urgency dot */}
                   <UrgencyDot urgency={inv.urgency} />
 
-                  {/* Left: customer + ref */}
-                  <div style={{ flex: "0 0 160px", minWidth: 0 }}>
-                    <p style={{
-                      fontSize: 13, fontWeight: 600, color: T.ink, margin: 0,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
-                      {cust.name}
-                    </p>
+                  {/* Customer + pill + ref — flex row for name+pill, ref below */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: 13, fontWeight: 600, color: T.ink, margin: 0,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        flexShrink: 1, minWidth: 0,
+                      }}>
+                        {cust.name}
+                      </p>
+                      <StatusPill urgency={inv.urgency} status={inv.status} />
+                    </div>
                     <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", fontFamily: "monospace" }}>
                       {inv.ref} · {inv.due}
                     </p>
-                  </div>
-
-                  {/* Middle: pill + action */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <StatusPill urgency={inv.urgency} status={inv.status} />
                     <p style={{
                       fontSize: 11, color: T.muted, margin: "4px 0 0",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -708,7 +708,7 @@ export default function DemoChasePlanPage() {
                   </div>
 
                   {/* Right: amount + days + badges */}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ textAlign: "right" }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>
                       {fmtGBP(inv.amount)}
                     </p>

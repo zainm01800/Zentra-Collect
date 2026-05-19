@@ -6,6 +6,8 @@ import {
   demoMileageTrips,
   demoCreditNotes,
   demoDirectIncome,
+  DEMO_INVOICED_INCOME,
+  DEMO_INVOICED_VAT,
 } from "@/lib/demo-data/demo-books-data";
 import { DEMO_EXPENSES_TOTALS, BASE_EXPENSES } from "@/lib/demo-data/demo-expenses-data";
 import { calcMileageAllowance } from "@/lib/mileage";
@@ -43,8 +45,6 @@ const T = {
 };
 
 // ── computed values ───────────────────────────────────────────────────────────
-const DEMO_INVOICED_INCOME = 38_400;
-const DEMO_INVOICED_VAT    = 7_680;
 const directIncomeTotal    = demoDirectIncome.reduce((s, d) => s + d.amount, 0);
 const totalMiles           = demoMileageTrips.reduce((s, t) => s + t.miles, 0);
 const mileageAllowance     = calcMileageAllowance(totalMiles).allowance;

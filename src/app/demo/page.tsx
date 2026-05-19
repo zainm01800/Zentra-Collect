@@ -11,6 +11,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { X, ChevronRight, Copy, Mail, Phone } from "lucide-react";
+import { DEMO_AR_CUSTOMERS } from "@/lib/demo-data/demo-ar-data";
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -38,11 +39,18 @@ function fmtGBP(n: number) {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const CUSTOMERS: Record<string, { name: string; contact: string; email: string; relationship: string }> = {
-  meridian: { name: "Meridian Studio",    contact: "Sarah Whitford",  email: "sarah.whitford@meridianstudio.co.uk",  relationship: "Client since 2023 · 14 invoices paid on time" },
-  bluepeak: { name: "BluePeak Ltd",       contact: "Daniel Okafor",   email: "accounts@bluepeak.ltd.uk",             relationship: "Client since 2024 · 6 invoices, 2 paid late" },
-  oaktree:  { name: "Oaktree Consulting", contact: "Priya Raman",     email: "priya@oaktree-consulting.com",         relationship: "Client since 2022 · 21 invoices, 1 dispute" },
-};
+// Lookup map derived from the shared AR dataset — keeps drawer in sync with customers page
+const CUSTOMERS = Object.fromEntries(
+  DEMO_AR_CUSTOMERS.map((c) => [
+    c.id,
+    {
+      name: c.name,
+      contact: c.contact,
+      email: c.email,
+      relationship: `Client since ${c.since} · ${c.paidOnTime + c.paidLate} invoices`,
+    },
+  ])
+) as Record<string, { name: string; contact: string; email: string; relationship: string }>;
 
 interface Action {
   id: string;
@@ -108,11 +116,22 @@ const ACTIVITY = [
   { id: "v5", type: "payment",  ts: "16 May, 14:12",     who: "Meridian Studio",    text: "Payment received — £6,750.00 (INV-2026-0136)" },
 ];
 
-const OUTSTANDING = [
-  { cust: "bluepeak" as const, invoices: 3, total: 17200.00 },
-  { cust: "oaktree"  as const, invoices: 2, total: 11300.00 },
-  { cust: "meridian" as const, invoices: 3, total:  9900.00 },
-];
+// Active-chase customers: those with open invoices that need follow-up
+// (excludes Pemberton — legal escalation track — and Harrow — fully current)
+const CHASE_IDS = ["bluepeak", "oaktree", "meridian"] as const;
+const OUTSTANDING = CHASE_IDS.map((id) => {
+  const c = DEMO_AR_CUSTOMERS.find((x) => x.id === id)!;
+  return { cust: id, invoices: c.openInvoices, total: c.outstanding };
+});
+
+// KPI values derived from the active-chase set
+const CHASE_CUSTOMERS = DEMO_AR_CUSTOMERS.filter((c) => (CHASE_IDS as readonly string[]).includes(c.id));
+const DASH_TOTAL_OUTSTANDING = CHASE_CUSTOMERS.reduce((s, c) => s + c.outstanding, 0);
+const DASH_OVERDUE_BALANCE   = CHASE_CUSTOMERS.reduce(
+  (s, c) => s + c.invoices.filter((i) => i.overdue > 0).reduce((a, i) => a + i.amount, 0),
+  0
+);
+const DASH_INVOICE_COUNT = CHASE_CUSTOMERS.reduce((s, c) => s + c.openInvoices, 0);
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 const SPARKLINE_PRESETS = [
@@ -422,14 +441,14 @@ export default function DemoDashboardPage() {
         {/* Total outstanding */}
         <div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.border}` }}>
           <p style={{ fontSize: 9.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Total outstanding</p>
-          <p style={{ fontSize: 24, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginTop: 6 }}>£38,400</p>
-          <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>3 customers · 8 invoices</p>
+          <p style={{ fontSize: 24, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginTop: 6 }}>{fmtGBP(DASH_TOTAL_OUTSTANDING)}</p>
+          <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{CHASE_CUSTOMERS.length} customers · {DASH_INVOICE_COUNT} invoices</p>
           <Sparkline preset={0} color={C.ink} />
         </div>
         {/* Overdue balance */}
         <div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.border}` }}>
           <p style={{ fontSize: 9.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Overdue balance</p>
-          <p style={{ fontSize: 24, fontWeight: 700, color: C.red, fontVariantNumeric: "tabular-nums", marginTop: 6 }}>£33,900</p>
+          <p style={{ fontSize: 24, fontWeight: 700, color: C.red, fontVariantNumeric: "tabular-nums", marginTop: 6 }}>{fmtGBP(DASH_OVERDUE_BALANCE)}</p>
           <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>6 invoices · +£8.4k this week</p>
           <Sparkline preset={1} color={C.red} />
         </div>

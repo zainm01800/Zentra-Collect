@@ -179,6 +179,12 @@ export interface DemoBankCredit {
   tagged:        boolean;
 }
 
+// ── Invoiced income ───────────────────────────────────────────────────────────
+// Total sales invoiced in the 2026/27 tax year (standard-rated, 20% VAT).
+// Kept here as the single source of truth so the tax page never has a magic number.
+export const DEMO_INVOICED_INCOME = 38_400;
+export const DEMO_INVOICED_VAT    = DEMO_INVOICED_INCOME * 0.2; // £7,680
+
 export const demoBankCredits: DemoBankCredit[] = [
   // Already tagged — the five direct-income entries above
   ...demoDirectIncome.map((e) => ({

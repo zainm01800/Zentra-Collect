@@ -1,5 +1,7 @@
 "use client";
 
+import { DEMO_AR_CUSTOMERS, DEMO_AR_TOTALS } from "@/lib/demo-data/demo-ar-data";
+
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const T = {
   card:    "var(--zn-surface)",
@@ -12,54 +14,6 @@ const T = {
   amberBg: "var(--zn-warn-soft)",
   redBg:   "var(--zn-risk-soft)",
 } as const;
-
-// ── Data ──────────────────────────────────────────────────────────────────────
-// Mirrors the invoice data in /demo/customers — only fields needed for aging
-const CUSTOMERS = [
-  {
-    id: "pemberton", name: "Pemberton & Co", contact: "James Pemberton",
-    outstanding: 23750,
-    invoices: [
-      { overdue: 112, amount: 9500 },
-      { overdue: 94,  amount: 7250 },
-      { overdue: 70,  amount: 4500 },
-      { overdue: 41,  amount: 2500 },
-    ],
-  },
-  {
-    id: "bluepeak", name: "BluePeak Ltd", contact: "Daniel Okafor",
-    outstanding: 17200,
-    invoices: [
-      { overdue: 23, amount: 12250 },
-      { overdue: 31, amount: 3200  },
-      { overdue: 0,  amount: 1750  },
-    ],
-  },
-  {
-    id: "oaktree", name: "Oaktree Consulting", contact: "Priya Raman",
-    outstanding: 11300,
-    invoices: [
-      { overdue: 47, amount: 8400 },
-      { overdue: 15, amount: 2900 },
-    ],
-  },
-  {
-    id: "meridian", name: "Meridian Studio", contact: "Sarah Whitford",
-    outstanding: 9900,
-    invoices: [
-      { overdue: 62, amount: 2350 },
-      { overdue: 14, amount: 4800 },
-      { overdue: 0,  amount: 2750 },
-    ],
-  },
-  {
-    id: "harrow", name: "Harrow Digital", contact: "Adeola Thompson",
-    outstanding: 4200,
-    invoices: [
-      { overdue: 0, amount: 4200 },
-    ],
-  },
-] as const;
 
 // ── Buckets ───────────────────────────────────────────────────────────────────
 interface Bucket { label: string; min: number; max: number | null; color: string; bg: string }
@@ -81,17 +35,11 @@ function fmtGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 }
 
-// ── KPI helpers ───────────────────────────────────────────────────────────────
-const grandTotal   = CUSTOMERS.reduce((s, c) => s + c.outstanding, 0);
-const totalOverdue = CUSTOMERS.flatMap((c) => c.invoices).filter((i) => i.overdue > 0).reduce((s, i) => s + i.amount, 0);
-const oldest       = Math.max(...CUSTOMERS.flatMap((c) => c.invoices).map((i) => i.overdue));
-const overdueCount = CUSTOMERS.flatMap((c) => c.invoices).filter((i) => i.overdue > 0).length;
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DemoAgedDebtPage() {
   const grandTotals = BUCKETS.map((b) => ({
     ...b,
-    total: CUSTOMERS.reduce((s, c) => s + bucketAmount(c.invoices, b), 0),
+    total: DEMO_AR_CUSTOMERS.reduce((s, c) => s + bucketAmount(c.invoices, b), 0),
   }));
 
   return (
@@ -101,7 +49,7 @@ export default function DemoAgedDebtPage() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: T.ink, margin: 0 }}>Aged debt</h1>
           <p style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>
-            All customers · {fmtGBP(grandTotal)} outstanding
+            All customers · {fmtGBP(DEMO_AR_TOTALS.totalOutstanding)} outstanding
           </p>
         </div>
         <button style={{
@@ -114,17 +62,17 @@ export default function DemoAgedDebtPage() {
 
       {/* KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        <KpiCard label="Total outstanding" value={fmtGBP(grandTotal)} valueColor={T.red} />
-        <KpiCard label="Overdue amount"    value={fmtGBP(totalOverdue)} valueColor={T.amber} />
-        <KpiCard label="Overdue invoices"  value={String(overdueCount)} />
-        <KpiCard label="Oldest invoice"    value={`${oldest} days`} valueColor={T.red} />
+        <KpiCard label="Total outstanding" value={fmtGBP(DEMO_AR_TOTALS.totalOutstanding)} valueColor={T.red} />
+        <KpiCard label="Overdue amount"    value={fmtGBP(DEMO_AR_TOTALS.totalOverdue)} valueColor={T.amber} />
+        <KpiCard label="Overdue invoices"  value={String(DEMO_AR_TOTALS.overdueCount)} />
+        <KpiCard label="Oldest invoice"    value={`${DEMO_AR_TOTALS.oldestOverdue} days`} valueColor={T.red} />
       </div>
 
       {/* Aging table */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
         <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: T.ink, margin: 0 }}>Aging analysis</h2>
-          <span style={{ fontSize: 12, color: T.muted }}>{CUSTOMERS.length} customers</span>
+          <span style={{ fontSize: 12, color: T.muted }}>{DEMO_AR_TOTALS.customerCount} customers</span>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
@@ -140,7 +88,7 @@ export default function DemoAgedDebtPage() {
               </tr>
             </thead>
             <tbody>
-              {[...CUSTOMERS].sort((a, b) => b.outstanding - a.outstanding).map((c, i, arr) => (
+              {[...DEMO_AR_CUSTOMERS].sort((a, b) => b.outstanding - a.outstanding).map((c, i, arr) => (
                 <tr key={c.id} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
                   <td style={{ padding: "12px 20px", color: T.ink, fontWeight: 500 }}>
                     <div>{c.name}</div>
@@ -169,7 +117,7 @@ export default function DemoAgedDebtPage() {
                   </td>
                 ))}
                 <td style={{ padding: "12px 20px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: T.ink }}>
-                  {fmtGBP(grandTotal)}
+                  {fmtGBP(DEMO_AR_TOTALS.totalOutstanding)}
                 </td>
               </tr>
             </tfoot>
