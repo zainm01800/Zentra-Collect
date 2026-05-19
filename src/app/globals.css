@@ -628,19 +628,22 @@ body::before {
 }
 
 /* ─── Demo shell swipe-between-tabs slide animation ───────────────────────── */
+/* Full-width slide: swiping left brings the next tab in from the right,
+   swiping right brings the previous tab in from the left.
+   Parent column must have overflow-hidden to clip the off-screen content. */
 @keyframes demo-slide-from-right {
-  from { transform: translateX(40px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 @keyframes demo-slide-from-left {
-  from { transform: translateX(-40px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
 }
 .demo-slide-in-left {
-  animation: demo-slide-from-right 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: demo-slide-from-right 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 .demo-slide-in-right {
-  animation: demo-slide-from-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: demo-slide-from-left 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 /* Inputs on iOS — prevent zoom on focus when font-size < 16px */

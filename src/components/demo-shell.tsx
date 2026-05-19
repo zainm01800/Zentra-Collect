@@ -70,16 +70,18 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   const allTabs = [...visibleCollections, ...visibleBooks];
   const currentTabIndex = allTabs.findIndex((t) => t.href === pathname);
 
-  // Keep a ref so the touch handlers always see the latest index without
-  // being re-registered on every render.
-  const swipeState = useRef({ allTabs, currentTabIndex });
-  swipeState.current = { allTabs, currentTabIndex };
+  // All mutable swipe state lives in a single ref so the touch handlers
+  // registered once (empty deps) always read the latest values.
+  const swipeRef = useRef({ allTabs, currentTabIndex, router, navigating: false });
+  swipeRef.current.allTabs = allTabs;
+  swipeRef.current.currentTabIndex = currentTabIndex;
+  swipeRef.current.router = router;
 
   // "left" = swiped left (going forward), "right" = swiped right (going back)
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
 
-  // Window-level touch listeners bypass the browser's scroll interception
-  // that kills React synthetic touch events on scrollable content.
+  // Register touch listeners once on mount. Using empty deps prevents
+  // re-registration on every render (which caused double-swipe firing).
   useEffect(() => {
     let startX = 0;
     let startY = 0;
@@ -90,17 +92,20 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
     }
 
     function onEnd(e: TouchEvent) {
+      if (swipeRef.current.navigating) return; // block double-fire
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dy) > Math.abs(dx)) return; // vertical scroll — ignore
-      if (Math.abs(dx) < 60) return;            // too short — ignore
-      const { allTabs: tabs, currentTabIndex: idx } = swipeState.current;
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      if (Math.abs(dx) < 60) return;
+      const { allTabs: tabs, currentTabIndex: idx, router: r } = swipeRef.current;
       if (dx < 0 && idx < tabs.length - 1) {
+        swipeRef.current.navigating = true;
         setSlideDir("left");
-        router.push(tabs[idx + 1].href);
+        r.push(tabs[idx + 1].href);
       } else if (dx > 0 && idx > 0) {
+        swipeRef.current.navigating = true;
         setSlideDir("right");
-        router.push(tabs[idx - 1].href);
+        r.push(tabs[idx - 1].href);
       }
     }
 
@@ -110,15 +115,13 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("touchstart", onStart);
       window.removeEventListener("touchend",   onEnd);
     };
-  }, [router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Clear the slide direction after the animation plays so it doesn't
-  // affect subsequent non-swipe navigations.
+  // After the slide animation completes, release the navigation lock.
   useEffect(() => {
-    if (!slideDir) return;
-    const t = setTimeout(() => setSlideDir(null), 350);
-    return () => clearTimeout(t);
-  }, [pathname, slideDir]);
+    swipeRef.current.navigating = false;
+    setSlideDir(null);
+  }, [pathname]);
 
   return (
     <div
@@ -196,7 +199,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main ─────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
         <header
           className="md:hidden flex items-center justify-between px-4 py-3 border-b"
@@ -241,40 +244,42 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Demo notice strip */}
+        {/* Everything below the nav strip slides as one unit on swipe.
+            key={pathname} remounts this block on navigation so the CSS
+            animation replays. overflow-hidden on the parent column clips it. */}
         <div
-          className="flex items-center justify-between gap-3 px-5 py-2 border-b text-[12px]"
-          style={{
-            borderColor: "var(--zn-line-soft)",
-            background: "var(--zn-warn-soft)",
-            color: "var(--zn-warn)",
-          }}
+          key={pathname}
+          className={[
+            "flex flex-col flex-1 min-h-0",
+            slideDir === "left"  ? "demo-slide-in-left"  : "",
+            slideDir === "right" ? "demo-slide-in-right" : "",
+          ].join(" ")}
         >
-          <span className="font-medium">
-            Sample data — no real invoices, no account required. Changes reset on refresh.
-          </span>
-          <Link
-            href="/login?mode=signup"
-            className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
-          >
-            Start your free trial →
-          </Link>
-        </div>
-
-        {/* Page content — keyed on pathname so the slide animation re-triggers
-            on each navigation. Only animates on mobile (md+ uses sidebar). */}
-        <main className="flex-1 overflow-hidden">
+          {/* Demo notice strip */}
           <div
-            key={pathname}
-            className={[
-              "px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto h-full",
-              slideDir === "left"  ? "demo-slide-in-left"  : "",
-              slideDir === "right" ? "demo-slide-in-right" : "",
-            ].join(" ")}
+            className="flex items-center justify-between gap-3 px-5 py-2 border-b text-[12px]"
+            style={{
+              borderColor: "var(--zn-line-soft)",
+              background: "var(--zn-warn-soft)",
+              color: "var(--zn-warn)",
+            }}
           >
-            {children}
+            <span className="font-medium">
+              Sample data — no real invoices, no account required. Changes reset on refresh.
+            </span>
+            <Link
+              href="/login?mode=signup"
+              className="shrink-0 font-semibold underline underline-offset-2 hover:no-underline"
+            >
+              Start your free trial →
+            </Link>
           </div>
-        </main>
+
+          {/* Page content */}
+          <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* First-visit plan picker (or re-opened via "Switch plan") */}
