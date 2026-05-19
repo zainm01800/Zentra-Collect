@@ -556,6 +556,7 @@ export default function Home() {
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Company</span>
                 <Link href="/about"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">About</Link>
                 <Link href="/trust"   className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Trust &amp; security</Link>
+                <a href="https://status.zentracollect.co.uk" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Status</a>
                 <Link href="/help"    className="hover:text-[#1d1813] dark:hover:text-[#f0e8d5]">Help</Link>
               </div>
               <div className="flex flex-col gap-2">

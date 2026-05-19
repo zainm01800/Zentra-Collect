@@ -18,7 +18,10 @@ export const GET = (req: NextRequest) => POST(req);
 
 export async function POST(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    return NextResponse.json({ ok: false, error: "Not configured" }, { status: 500 });
+  }
+  if (req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

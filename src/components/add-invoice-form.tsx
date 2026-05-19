@@ -258,6 +258,9 @@ export function AddInvoiceForm({ open, onOpenChange }: AddInvoiceFormProps) {
 
       if (result.success) {
         setSaved(true);
+        // Activation milestone — first invoice manually added (treated
+        // as equivalent to first import for the celebration trigger).
+        void import("@/components/celebration").then((m) => m.checkAndCelebrate("import"));
         // Brief "Saved ✓" flash, then close.
         setTimeout(() => handleOpenChange(false), 1_200);
       } else {

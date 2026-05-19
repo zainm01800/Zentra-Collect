@@ -19,7 +19,15 @@ import {
   Copy,
   Check,
   Lock,
+  Sparkles,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+// Lazy-load the AI drafter — it's only opened on click, no need in the
+// initial bundle for the chase-plan demo.
+const DemoAiDrafter = dynamic(
+  () => import("@/components/demo-ai-drafter").then((m) => m.DemoAiDrafter),
+  { ssr: false },
+);
 import {
   demoInvoices,
   demoCustomers,
@@ -245,6 +253,7 @@ export default function DemoChasePlanPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [modal, setModal] = useState<DraftModal>(null);
   const [copied, setCopied] = useState(false);
+  const [aiInvoice, setAiInvoice] = useState<Invoice | null>(null);
 
   function toggleRow(id: string) {
     setExpanded((prev) => (prev === id ? null : id));
@@ -433,18 +442,31 @@ export default function DemoChasePlanPage() {
                               : "This invoice is excluded from chasing."}
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => openDraft(inv)}
-                            className="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium border transition-colors hover:bg-[var(--zn-surface)]"
-                            style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
-                          >
-                            <MessageSquare className="size-3.5" />
-                            View draft message
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openDraft(inv)}
+                              title="Hand-written template — instant, no AI"
+                              className="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium border transition-colors hover:bg-[var(--zn-surface)]"
+                              style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+                            >
+                              <MessageSquare className="size-3.5" />
+                              Template draft
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAiInvoice(inv)}
+                              title="AI-drafted in your brand voice (real product). Demo uses sample output — no API call."
+                              className="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium transition-colors"
+                              style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
+                            >
+                              <Sparkles className="size-3.5" />
+                              AI draft (demo)
+                            </button>
+                          </div>
                         )}
                         <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-                          In a real account, Zentra drafts this using AI and your brand voice.
+                          AI demo uses hand-written sample output — no API call. Real product drafts in your brand voice.
                         </p>
                       </div>
                     </div>
@@ -533,6 +555,18 @@ export default function DemoChasePlanPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Demo AI message drafter — pure UI mimic, no API call */}
+      {aiInvoice && (
+        <DemoAiDrafter
+          open={true}
+          onClose={() => setAiInvoice(null)}
+          customerName={aiInvoice.customerName}
+          invoiceNumber={aiInvoice.invoiceNumber}
+          amount={fmtGBP(aiInvoice.amountOutstanding)}
+          daysOverdue={Math.max(0, aiInvoice.daysOverdue)}
+        />
       )}
     </div>
   );

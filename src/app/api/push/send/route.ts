@@ -152,7 +152,13 @@ async function sendByType(
   const cronSecret = process.env.CRON_SECRET;
   const isDev = process.env.NODE_ENV === "development";
 
-  if (!isDev && cronSecret) {
+  // In production, require CRON_SECRET configured AND match. Previously
+  // an unset CRON_SECRET would silently disable auth on this endpoint
+  // even in production.
+  if (!isDev) {
+    if (!cronSecret) {
+      return NextResponse.json({ error: "Not configured." }, { status: 500 });
+    }
     if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
     }

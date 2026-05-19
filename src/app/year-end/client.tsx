@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mail, Printer } from "lucide-react";
+import { ArrowLeft, Check, Copy, Mail, Printer } from "lucide-react";
 import {
   currentUkTaxYear,
   estimateUkSelfEmployedTax,
@@ -57,9 +57,10 @@ export function YearEndClient({ initialTaxYear }: { initialTaxYear?: string }) {
       `Year-end summary · ${businessName}`,
       `Tax year ${taxYear} (${window_})`,
       ``,
-      `Income (invoiced):       ${fmtGBP(totals.income)}`,
+      `Income:                  ${fmtGBP(totals.income)}`,
       `Expenses tracked:        ${fmtGBP(totals.expenses)}`,
       `Net profit:              ${fmtGBP(estimate.netProfit)}`,
+      `VAT charged (output):    ${fmtGBP(totals.vatCharged)}`,
       ``,
       `Income Tax (estimate):   ${fmtGBP(estimate.incomeTax.total)}`,
       `Class 4 NIC (estimate):  ${fmtGBP(estimate.nic.total)}`,
@@ -134,6 +135,9 @@ export function YearEndClient({ initialTaxYear }: { initialTaxYear?: string }) {
           <Headline label="Expenses" value={fmtGBP(totals.expenses)} />
           <Headline label="Net profit" value={fmtGBP(estimate.netProfit)} highlight />
           <Headline label="Estimated tax owed" value={fmtGBP(estimate.estimatedTaxOwed)} highlight />
+          {totals.vatCharged > 0 && (
+            <Headline label="VAT charged (output)" value={fmtGBP(totals.vatCharged)} />
+          )}
         </section>
 
         {/* Detailed table */}
@@ -167,6 +171,16 @@ export function YearEndClient({ initialTaxYear }: { initialTaxYear?: string }) {
             </tbody>
           </table>
         </section>
+
+        {/* SA103 box mapping — short form for self-employed turnover <£90k.
+            Numbers are estimates the user copies into the relevant SA103S
+            boxes on their HMRC return. */}
+        <Sa103BoxMap
+          income={totals.income}
+          expenses={totals.expenses}
+          netProfit={estimate.netProfit}
+          vatCharged={totals.vatCharged}
+        />
 
         {/* Counts */}
         <section className="grid grid-cols-2 gap-6 mb-8 text-[12.5px] text-neutral-600">
@@ -212,6 +226,98 @@ export function YearEndClient({ initialTaxYear }: { initialTaxYear?: string }) {
         </footer>
       </div>
     </div>
+  );
+}
+
+/**
+ * SA103S box mapping — the boxes a sole trader fills in on their UK
+ * Self-Assessment short self-employment supplement (turnover < £90k).
+ *
+ * The numbers come from the tax-year totals; the user copies each
+ * value into the matching box on HMRC's online return.
+ *
+ * Box references are from the SA103S (2024–25 version). They are
+ * the same boxes used in successive years; HMRC changes the form
+ * layout but the box numbering is stable.
+ */
+function Sa103BoxMap({
+  income, expenses, netProfit, vatCharged,
+}: {
+  income:     number;
+  expenses:   number;
+  netProfit:  number;
+  vatCharged: number;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copy(label: string, value: number) {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    navigator.clipboard.writeText(value.toFixed(2)).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  }
+
+  const rows: Array<{ box: string; label: string; value: number }> = [
+    { box: "9",  label: "Your turnover (total income)",       value: income },
+    { box: "20", label: "Total allowable expenses",           value: expenses },
+    { box: "21", label: "Net profit",                         value: Math.max(0, netProfit) },
+    { box: "22", label: "Net loss (if expenses > income)",    value: Math.max(0, -netProfit) },
+  ];
+
+  return (
+    <section className="mb-8">
+      <h2 className="text-[13px] font-bold uppercase tracking-wider text-neutral-500 mb-3">
+        Copy to your SA103S return
+      </h2>
+      <p className="text-[12px] text-neutral-600 mb-3 leading-5">
+        Type these figures into the matching boxes on HMRC&rsquo;s online
+        Self&nbsp;Assessment self-employment short form. Each box has a
+        copy button — click to copy the value to your clipboard.
+      </p>
+      <div className="rounded-lg border border-neutral-300 overflow-hidden">
+        <table className="w-full text-[13px]">
+          <thead className="bg-neutral-100 text-[11px] uppercase tracking-wider text-neutral-600">
+            <tr>
+              <th className="text-left py-2 px-3 w-16">Box</th>
+              <th className="text-left py-2 px-3">Description</th>
+              <th className="text-right py-2 px-3 w-32">Value</th>
+              <th className="text-right py-2 px-3 w-12 print:hidden hidden sm:table-cell"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.box} className="border-t border-neutral-200">
+                <td className="py-2 px-3 font-semibold text-neutral-700">{r.box}</td>
+                <td className="py-2 px-3 text-neutral-700">{r.label}</td>
+                <td className="py-2 px-3 text-right tabular-nums font-medium">
+                  {fmtPlainGBP(r.value)}
+                </td>
+                <td className="py-2 px-3 text-right print:hidden hidden sm:table-cell">
+                  <button
+                    type="button"
+                    onClick={() => copy(r.box, r.value)}
+                    aria-label={`Copy box ${r.box} value`}
+                    className="inline-flex items-center justify-center size-6 rounded hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800"
+                  >
+                    {copied === r.box
+                      ? <Check className="size-3.5 text-emerald-600" />
+                      : <Copy  className="size-3.5" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {vatCharged > 0 && (
+        <p className="mt-3 text-[12px] text-neutral-600 leading-5">
+          <strong>VAT-registered?</strong> Output VAT for the period is{" "}
+          {fmtGBP(vatCharged)}. Enter this in Box 1 of your VAT return,
+          adjusted for any input VAT on expenses.
+        </p>
+      )}
+    </section>
   );
 }
 

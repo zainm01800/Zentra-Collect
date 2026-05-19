@@ -13,6 +13,8 @@
  * Storage: localStorage "zentra.creditNotes.v1".
  */
 
+import * as serverActions from "@/actions/credit-notes";
+
 const STORAGE_KEY = "zentra.creditNotes.v1";
 
 export interface CreditNote {
@@ -101,11 +103,70 @@ export function createCreditNote(input: CreateCreditNoteInput): CreditNote {
     createdAt:        new Date().toISOString(),
   };
   safeWrite([...safeRead(), cn]);
+  void serverActions.addCreditNote({
+    customerName:   cn.customerName,
+    invoiceId:      cn.invoiceId,
+    invoiceNumber:  cn.invoiceNumber,
+    issueDate:      cn.issueDate,
+    reason:         cn.reason,
+    amountNet:      cn.amountNet,
+    vatRate:        cn.vatRate,
+    clientUuid:     cn.id,
+  }).then((r) => {
+    if (r.ok && r.creditNote) {
+      const items = safeRead();
+      const idx = items.findIndex((c) => c.id === cn.id);
+      if (idx >= 0) {
+        items[idx] = { ...items[idx], id: r.creditNote.id, creditNoteNumber: r.creditNote.creditNoteNumber };
+        safeWrite(items);
+      }
+    }
+  }).catch(() => { /* best-effort */ });
   return cn;
 }
 
 export function deleteCreditNote(id: string): void {
   safeWrite(safeRead().filter((c) => c.id !== id));
+  void serverActions.deleteCreditNote(id).catch(() => { /* best-effort */ });
+}
+
+export async function hydrateCreditNotesFromServer(): Promise<void> {
+  try {
+    const items = await serverActions.getCreditNotes();
+    if (!Array.isArray(items) || items.length === 0) return;
+    safeWrite(items.map((r) => ({
+      id:               r.id,
+      creditNoteNumber: r.creditNoteNumber,
+      invoiceId:        r.invoiceId,
+      invoiceNumber:    r.invoiceNumber,
+      customerName:     r.customerName,
+      issueDate:        r.issueDate,
+      reason:           r.reason,
+      amountNet:        r.amountNet,
+      vatRate:          r.vatRate,
+      vatAmount:        r.vatAmount,
+      amountGross:      r.amountGross,
+      createdAt:        r.createdAt,
+    })));
+  } catch { /* best-effort */ }
+}
+
+export async function pushLocalCreditNotesToServer(): Promise<number> {
+  const items = safeRead();
+  if (!items.length) return 0;
+  try {
+    const r = await serverActions.bulkImportCreditNotes(items.map((c) => ({
+      customerName:  c.customerName,
+      invoiceId:     c.invoiceId,
+      invoiceNumber: c.invoiceNumber,
+      issueDate:     c.issueDate,
+      reason:        c.reason,
+      amountNet:     c.amountNet,
+      vatRate:       c.vatRate,
+      clientUuid:    c.id,
+    })));
+    return r.inserted ?? 0;
+  } catch { return 0; }
 }
 
 // ── Aggregates ───────────────────────────────────────────────────────────────

@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { ReviewProvider, useReview } from "@/components/review-context";
 import { ReviewDrawer } from "@/components/review-drawer";
 import { PushPermission } from "@/components/push-permission";
+import { BooksSyncMount } from "@/components/books-sync-mount";
 import { TrialStatusBanner, PastDueBanner } from "@/components/trial-banners";
 import { QueueStatusBar } from "@/components/queue-status-bar";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -103,13 +104,14 @@ const bankingNav: NavItem[] = [
   { href: "/banking", label: "Bank feed", icon: Building2 },
 ];
 
-// Books — user-customisable section (Expenses, Mileage, P&L, Bills, Tax & VAT).
+// Books — user-customisable section (Expenses, Mileage, P&L, Bills, Tax & VAT, Tax estimate).
 const financeNav: NavItem[] = [
-  { href: "/expenses", label: "Expenses",  icon: Receipt    },
-  { href: "/mileage",  label: "Mileage",   icon: Car        },
-  { href: "/pl",       label: "P&L",       icon: TrendingUp },
-  { href: "/bills",    label: "Bills",     icon: FileText   },
-  { href: "/tax",      label: "Tax & VAT", icon: PiggyBank  },
+  { href: "/expenses",     label: "Expenses",     icon: Receipt    },
+  { href: "/mileage",      label: "Mileage",      icon: Car        },
+  { href: "/pl",           label: "P&L",          icon: TrendingUp },
+  { href: "/bills",        label: "Bills",        icon: FileText   },
+  { href: "/tax",          label: "Tax & VAT",    icon: PiggyBank  },
+  { href: "/tax-estimate", label: "Tax estimate", icon: Calculator },
 ];
 
 /**
@@ -893,6 +895,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
       {/* Push notification permission banner — appears after 8 s, dismissed on click */}
       <PushPermission delayMs={8000} />
+      <BooksSyncMount />
     </div>
   );
 }
