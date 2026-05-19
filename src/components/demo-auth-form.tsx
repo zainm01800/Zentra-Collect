@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { writePendingIdentity, createLocalAccount, writeLocalAccount } from "@/lib/demo-auth";
+import { writePendingIdentity, createLocalAccount, writeLocalAccount, demoUserStorageKey } from "@/lib/demo-auth";
 import type { PlanId } from "@/lib/billing/plans";
 import {
   createSupabaseBrowserClient,
@@ -38,6 +38,12 @@ export function DemoAuthForm() {
       : null;
 
   const [error, setError] = useState(urlErrorMessage ?? "");
+
+  // Clear any demo session so browser autofill can't accidentally
+  // sign into the demo account instead of a real one.
+  useEffect(() => {
+    window.localStorage.removeItem(demoUserStorageKey);
+  }, []);
   const [forgotKind, setForgotKind] = useState<"err" | "ok">("err");
   const supabaseConfigured = hasSupabaseBrowserConfig();
 
