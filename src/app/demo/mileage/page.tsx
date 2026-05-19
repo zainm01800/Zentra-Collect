@@ -1,17 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { Car, Plus, X } from "lucide-react";
-import { demoMileageTrips } from "@/lib/demo-data/demo-books-data";
-import { calcMileageAllowance } from "@/lib/mileage";
+import { useState, useMemo } from "react";
 
+// ---------------------------------------------------------------------------
+// HMRC AMAP allowance
+// ---------------------------------------------------------------------------
+function calcAllowance(miles: number, runningBefore: number): number {
+  const TIER = 10000;
+  if (runningBefore >= TIER) return miles * 0.25;
+  const remaining = TIER - runningBefore;
+  if (miles <= remaining) return miles * 0.45;
+  return remaining * 0.45 + (miles - remaining) * 0.25;
+}
+
+function rateLabel(miles: number, runningBefore: number): string {
+  const TIER = 10000;
+  if (runningBefore >= TIER) return "@ 25p";
+  const remaining = TIER - runningBefore;
+  if (miles <= remaining) return "@ 45p";
+  return "split rate";
+}
+
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
 interface Trip {
   id: string;
   date: string;
+  month: string;
   purpose: string;
-  fromTo?: string;
+  from: string;
+  to: string;
   miles: number;
 }
+
+const INITIAL_TRIPS: Trip[] = [
+  { id: "t1", date: "14 May 2026", month: "May 2026", purpose: "Site survey — Harborgate Architects", from: "London office", to: "Bristol site",  miles: 118 },
+  { id: "t2", date: "12 May 2026", month: "May 2026", purpose: "Client visit — BluePeak Ltd",         from: "London",        to: "Manchester",      miles: 200 },
+  { id: "t3", date: "9 May 2026",  month: "May 2026", purpose: "Heathrow airport run",                from: "Office",        to: "LHR T5",          miles: 32  },
+  { id: "t4", date: "5 May 2026",  month: "May 2026", purpose: "Workshop — Meridian Studio",          from: "Office",        to: "Hoxton",          miles: 8   },
+  { id: "t5", date: "2 May 2026",  month: "May 2026", purpose: "Quarterly review — Oaktree",         from: "Office",        to: "Canary Wharf",    miles: 11  },
+  { id: "t6", date: "24 Apr 2026", month: "April 2026", purpose: "Site visit — Pemberton & Co",      from: "London",        to: "Birmingham",      miles: 240 },
+  { id: "t7", date: "16 Apr 2026", month: "April 2026", purpose: "Client meeting — Harrow Digital",  from: "Office",        to: "King's Cross",    miles: 6   },
+  { id: "t8", date: "8 Apr 2026",  month: "April 2026", purpose: "Studio visit — Meridian",          from: "Office",        to: "Hoxton",          miles: 8   },
+];
 
 function fmtGBP(n: number): string {
   return new Intl.NumberFormat("en-GB", {
@@ -20,163 +52,216 @@ function fmtGBP(n: number): string {
   }).format(n);
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
-const blankForm = { from: "", to: "", miles: "", purpose: "", date: "" };
-
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export default function DemoMileagePage() {
-  const [extraTrips, setExtraTrips] = useState<Trip[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(blankForm);
-  const [error, setError] = useState("");
+  const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
+  const [showForm, setShowForm] = useState(false);
+  const [formPurpose, setFormPurpose] = useState("");
+  const [formDate, setFormDate] = useState("2026-05-19");
+  const [formFrom, setFormFrom] = useState("");
+  const [formTo, setFormTo] = useState("");
+  const [formMiles, setFormMiles] = useState("");
 
-  const allTrips: Trip[] = [...demoMileageTrips, ...extraTrips];
-  const totalMiles = allTrips.reduce((s, t) => s + t.miles, 0);
-  const calc = calcMileageAllowance(totalMiles);
+  // Compute running totals and per-trip allowances
+  const enriched = useMemo(() => {
+    let running = 0;
+    return trips.map((t) => {
+      const allowance = calcAllowance(t.miles, running);
+      const label = rateLabel(t.miles, running);
+      running += t.miles;
+      return { ...t, allowance, rateLabel: label };
+    });
+  }, [trips]);
 
-  function openModal() { setForm(blankForm); setError(""); setModalOpen(true); }
-  function closeModal() { setModalOpen(false); }
+  const totalMiles = trips.reduce((s, t) => s + t.miles, 0);
+  const totalAllowance = enriched.reduce((s, t) => s + t.allowance, 0);
+  const estimatedTaxSaving = totalAllowance * 0.2;
 
-  function addTrip() {
-    const miles = parseFloat(form.miles);
-    if (!form.purpose.trim()) { setError("Purpose is required."); return; }
-    if (!miles || miles <= 0) { setError("Enter a valid number of miles."); return; }
-    const date = form.date || new Date().toISOString().split("T")[0];
-    setExtraTrips((prev) => [
-      ...prev,
-      {
-        id: `demo-${Date.now()}`,
-        date,
-        purpose: form.purpose.trim(),
-        fromTo: form.from && form.to ? `${form.from} → ${form.to}` : undefined,
-        miles,
-      },
-    ]);
-    closeModal();
+  // Live preview in form
+  const previewMiles = parseFloat(formMiles) || 0;
+  const previewAllowance = calcAllowance(previewMiles, totalMiles);
+  const previewRate = previewMiles > 0 ? rateLabel(previewMiles, totalMiles) : null;
+
+  // Group by month (preserve insertion order)
+  const monthOrder: string[] = [];
+  const byMonth: Record<string, typeof enriched> = {};
+  for (const t of enriched) {
+    if (!byMonth[t.month]) { byMonth[t.month] = []; monthOrder.push(t.month); }
+    byMonth[t.month].push(t);
   }
 
+  function handleAddTrip() {
+    const m = parseFloat(formMiles);
+    if (!formPurpose.trim() || !(m >= 1)) return;
+    const newTrip: Trip = {
+      id: `u-${Date.now()}`,
+      date: formDate ? new Date(formDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "19 May 2026",
+      month: "May 2026",
+      purpose: formPurpose.trim(),
+      from: formFrom.trim(),
+      to: formTo.trim(),
+      miles: m,
+    };
+    setTrips((prev) => [newTrip, ...prev]);
+    setShowForm(false);
+    setFormPurpose(""); setFormDate("2026-05-19"); setFormFrom(""); setFormTo(""); setFormMiles("");
+  }
+
+  const canSubmit = formPurpose.trim().length > 0 && parseFloat(formMiles) >= 1;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="zn-section-label">Demo · Books</p>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
-            style={{ color: "var(--zn-ink)" }}>
-          Mileage
-        </h1>
-        <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          HMRC mileage allowance · 45p/mile up to 10,000, 25p after
-        </p>
-      </div>
+    <div>
+      {/* ---- Narrow content column ---- */}
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px 64px" }}>
 
-      {/* Headline stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total miles"   value={totalMiles.toLocaleString()} />
-        <Stat label="Allowance"     value={fmtGBP(calc.allowance)} accent="var(--zn-accent)" />
-        <Stat label="At 45p band"   value={`${calc.firstBandMiles.toLocaleString()} mi`} />
-        <Stat label="At 25p band"   value={`${calc.secondBandMiles.toLocaleString()} mi`} />
-      </div>
-
-      {/* Trip list */}
-      <div className="zn-card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b"
-             style={{ borderColor: "var(--zn-line-soft)" }}>
-          <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-            Trips this tax year
-          </p>
-          <button
-            type="button"
-            onClick={openModal}
-            className="zn-pill zn-pill-ghost text-[12px]"
-            style={{ height: 30 }}
-          >
-            <Plus className="size-3.5" /> Add trip
-          </button>
+        {/* Page header */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+          <div>
+            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#1A1916", margin: 0 }}>Mileage</h1>
+            <p style={{ fontSize: 13.5, color: "#8A8680", marginTop: 4 }}>
+              {totalMiles} miles logged · {fmtGBP(totalAllowance)} HMRC allowance
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button style={ghostBtn}>Export CSV</button>
+            <button style={pillBtn} onClick={() => setShowForm(true)}>+ Add trip</button>
+          </div>
         </div>
-        <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {allTrips.map((t) => {
-            const allowance = calcMileageAllowance(t.miles).allowance;
+
+        {/* HMRC info box */}
+        <div style={{
+          background: "#F4F4F5", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 10,
+          padding: "10px 14px", fontSize: 12, color: "#8A8680", marginBottom: 24, lineHeight: 1.55,
+        }}>
+          HMRC AMAP rate: <strong style={{ color: "#1A1916" }}>45p/mile</strong> for the first 10,000 miles,{" "}
+          <strong style={{ color: "#1A1916" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
+        </div>
+
+        {/* KPI row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 28 }}>
+          <KpiCard label="Total miles" value={`${totalMiles} mi`} />
+          <KpiCard label="HMRC allowance" value={fmtGBP(totalAllowance)} valueColor="#16A34A" />
+          <KpiCard label="Est. tax saving (20%)" value={fmtGBP(estimatedTaxSaving)} valueColor="#16A34A" />
+        </div>
+
+        {/* Trip list by month */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {monthOrder.map((month) => {
+            const mTrips = byMonth[month];
+            const mMiles = mTrips.reduce((s, t) => s + t.miles, 0);
+            const mAllowance = mTrips.reduce((s, t) => s + t.allowance, 0);
             return (
-              <div key={t.id} className="flex items-center gap-4 px-5 py-3">
-                <div className="w-16 text-[11.5px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-                  {fmtDate(t.date)}
+              <div key={month} style={card}>
+                {/* Month header */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 20px", borderBottom: "1px solid rgba(0,0,0,0.08)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1916" }}>{month}</span>
+                    <span style={{ fontSize: 12, color: "#8A8680" }}>{mTrips.length} trip{mTrips.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: 13, color: "#8A8680", marginRight: 12 }}>{mMiles} mi</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>{fmtGBP(mAllowance)}</span>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                    {t.purpose}
-                  </p>
-                  {t.fromTo && (
-                    <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                      {t.fromTo}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                    {t.miles} mi
-                  </p>
-                  <p className="text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-                    {fmtGBP(allowance)}
-                  </p>
-                </div>
+                {/* Rows */}
+                {mTrips.map((t, i) => (
+                  <div key={t.id} style={{
+                    display: "grid", gridTemplateColumns: "1fr auto auto",
+                    gap: 16, alignItems: "center",
+                    padding: "12px 20px",
+                    borderBottom: i < mTrips.length - 1 ? "1px solid rgba(0,0,0,0.06)" : undefined,
+                  }}>
+                    {/* Left */}
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#1A1916", margin: 0 }}>{t.purpose}</p>
+                      {(t.from || t.to) && (
+                        <p style={{ fontSize: 11, color: "#8A8680", marginTop: 2 }}>
+                          {t.from}{t.from && t.to ? " → " : ""}{t.to}
+                        </p>
+                      )}
+                      <p style={{ fontSize: 11, color: "#8A8680", marginTop: 1 }}>{t.date}</p>
+                    </div>
+                    {/* Miles */}
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1916" }}>{t.miles}</span>
+                      <span style={{ fontSize: 11, color: "#8A8680", marginLeft: 2 }}>mi</span>
+                    </div>
+                    {/* Allowance */}
+                    <div style={{ textAlign: "right", minWidth: 90 }}>
+                      <span style={{ fontSize: 11, color: "#16A34A" }}>{fmtGBP(t.allowance)} {t.rateLabel}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Add trip modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-             style={{ background: "rgba(0,0,0,0.55)" }}
-             role="dialog" aria-modal="true">
-          <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl"
-               style={{ background: "var(--zn-bg)" }}>
-            <button type="button" onClick={closeModal} aria-label="Close"
-              className="absolute top-4 right-4 size-8 rounded-full inline-flex items-center justify-center hover:bg-black/5"
-              style={{ color: "var(--zn-ink-3)" }}>
-              <X className="size-4" />
-            </button>
-
-            <div className="px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
-              <div className="flex items-center gap-2 mb-1">
-                <Car className="size-4" style={{ color: "var(--zn-accent)" }} />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-                   style={{ color: "var(--zn-ink-3)" }}>Log mileage</p>
-              </div>
-              <h2 className="text-[18px] font-semibold" style={{ color: "var(--zn-ink)" }}>Add a trip</h2>
+      {/* ---- Add trip slide-in panel ---- */}
+      {showForm && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 60,
+          display: "flex", justifyContent: "flex-end",
+          background: "rgba(0,0,0,0.35)",
+        }} onClick={() => setShowForm(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(420px, 100vw)", height: "100%",
+              background: "#FFFFFF", overflowY: "auto",
+              boxShadow: "-4px 0 32px rgba(0,0,0,0.12)",
+              display: "flex", flexDirection: "column",
+            }}
+          >
+            {/* Panel header */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "20px 24px 16px", borderBottom: "1px solid rgba(0,0,0,0.08)",
+            }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#1A1916" }}>Add trip</span>
+              <button onClick={() => setShowForm(false)} style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 20, color: "#8A8680", lineHeight: 1, padding: 4,
+              }}>✕</button>
             </div>
 
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="From" value={form.from}
-                  onChange={(v) => setForm((f) => ({ ...f, from: v }))}
-                  placeholder="e.g. London" />
-                <Field label="To" value={form.to}
-                  onChange={(v) => setForm((f) => ({ ...f, to: v }))}
-                  placeholder="e.g. Birmingham" />
-              </div>
-              <Field label="Purpose *" value={form.purpose}
-                onChange={(v) => setForm((f) => ({ ...f, purpose: v }))}
-                placeholder="e.g. Client visit — Acme Ltd" />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Miles *" value={form.miles} type="number"
-                  onChange={(v) => setForm((f) => ({ ...f, miles: v }))}
-                  placeholder="e.g. 42" />
-                <Field label="Date" value={form.date} type="date"
-                  onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
-              </div>
-              {error && (
-                <p className="text-[12px]" style={{ color: "var(--zn-risk)" }}>{error}</p>
+            {/* Fields */}
+            <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+              <FormField label="Purpose *" placeholder="e.g. Client visit — Acme Ltd" value={formPurpose} onChange={setFormPurpose} />
+              <FormField label="Date" type="date" value={formDate} onChange={setFormDate} />
+              <FormField label="From" placeholder="e.g. London" value={formFrom} onChange={setFormFrom} />
+              <FormField label="To" placeholder="e.g. Birmingham" value={formTo} onChange={setFormTo} />
+              <FormField label="Miles *" type="number" placeholder="e.g. 42" value={formMiles} onChange={setFormMiles} />
+
+              {/* Live allowance preview */}
+              {previewMiles > 0 && (
+                <div style={{
+                  background: "#F0FDF4", border: "1px solid #86EFAC",
+                  borderRadius: 8, padding: "10px 14px", fontSize: 12,
+                }}>
+                  <span style={{ color: "#16A34A", fontWeight: 700 }}>{fmtGBP(previewAllowance)}</span>
+                  <span style={{ color: "#8A8680", marginLeft: 6 }}>
+                    {previewRate === "@ 45p" ? "All at 45p/mile (under 10,000 mi total)" :
+                     previewRate === "@ 25p" ? "All at 25p/mile (over 10,000 mi total)" :
+                     "Split rate (crosses 10,000 mi threshold)"}
+                  </span>
+                </div>
               )}
-              <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={closeModal}
-                  className="zn-pill zn-pill-ghost text-[12.5px]" style={{ height: 34 }}>
-                  Cancel
-                </button>
-                <button type="button" onClick={addTrip}
-                  className="zn-pill text-[12.5px]" style={{ height: 34 }}>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+                <button style={ghostBtn} onClick={() => setShowForm(false)}>Cancel</button>
+                <button
+                  style={{ ...pillBtn, opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? "pointer" : "not-allowed" }}
+                  disabled={!canSubmit}
+                  onClick={handleAddTrip}
+                >
                   Add trip
                 </button>
               </div>
@@ -188,37 +273,61 @@ export default function DemoMileagePage() {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string;
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+function KpiCard({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <div style={{ ...card, padding: "16px 20px" }}>
+      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 22, fontWeight: 700, color: valueColor ?? "#1A1916", marginTop: 8, marginBottom: 0 }}>{value}</p>
+    </div>
+  );
+}
+
+function FormField({
+  label, value, onChange, placeholder, type = "text",
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-semibold uppercase tracking-[0.07em]"
-             style={{ color: "var(--zn-ink-3)" }}>{label}</label>
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#8A8680" }}>{label}</label>
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="rounded-lg border px-3 py-2 text-[13px] outline-none focus:ring-1 w-full"
+        onChange={(e) => onChange(e.target.value)}
         style={{
-          borderColor: "var(--zn-line-soft)",
-          background: "var(--zn-surface)",
-          color: "var(--zn-ink)",
+          border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8,
+          padding: "8px 12px", fontSize: 13, color: "#1A1916",
+          background: "#FAFAFA", outline: "none", width: "100%", boxSizing: "border-box",
         }}
       />
     </div>
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <div className="zn-card p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]"
-         style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-      <p className="mt-2 text-[22px] font-bold tabular-nums leading-none"
-         style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
-    </div>
-  );
-}
+// ---------------------------------------------------------------------------
+// Shared styles
+// ---------------------------------------------------------------------------
+const card: React.CSSProperties = {
+  background: "#FFFFFF",
+  border: "1px solid rgba(0,0,0,0.08)",
+  borderRadius: 12,
+  overflow: "hidden",
+};
+
+const pillBtn: React.CSSProperties = {
+  background: "#1A1916", color: "#FFFFFF",
+  border: "none", borderRadius: 999,
+  padding: "8px 18px", fontSize: 13, fontWeight: 600,
+  cursor: "pointer", whiteSpace: "nowrap",
+};
+
+const ghostBtn: React.CSSProperties = {
+  background: "transparent", color: "#1A1916",
+  border: "1px solid rgba(0,0,0,0.15)", borderRadius: 999,
+  padding: "8px 18px", fontSize: 13, fontWeight: 600,
+  cursor: "pointer", whiteSpace: "nowrap",
+};
