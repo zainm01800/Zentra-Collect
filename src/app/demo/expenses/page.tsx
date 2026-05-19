@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import {
   ChevronDown, ChevronRight, Pencil, Check, X,
-  Paperclip, AlertTriangle, Square, CheckSquare,
+  Paperclip, AlertTriangle, Square, CheckSquare, Download,
 } from "lucide-react";
 import { BASE_EXPENSES as _BASE_EXPENSES } from "@/lib/demo-data/demo-expenses-data";
 
@@ -17,21 +17,23 @@ type ExpenseCategory =
 interface CategoryMeta {
   color:        string;
   bg:           string;
+  dot:          string;
   allowablePct: number;
   vatClaimable: boolean;
   hint:         string;
+  hmrcShort:    string;
 }
 
 const CATEGORY_META: Record<ExpenseCategory, CategoryMeta> = {
-  "Software":              { color: "var(--zn-info)",   bg: "var(--zn-info-soft)",   allowablePct: 100, vatClaimable: true,  hint: "Business software and subscriptions — fully allowable for Self Assessment." },
-  "Office":                { color: "var(--zn-ink-2)",  bg: "var(--zn-surface-2)",   allowablePct: 100, vatClaimable: true,  hint: "Office supplies — fully allowable for Self Assessment." },
-  "Travel":                { color: "var(--zn-safe)",   bg: "var(--zn-safe-soft)",   allowablePct: 100, vatClaimable: false, hint: "Business travel is fully allowable. Most public transport is zero-rated — no VAT to reclaim." },
-  "Communications":        { color: "var(--zn-accent)", bg: "var(--zn-accent-soft)", allowablePct: 50,  vatClaimable: true,  hint: "HMRC typically allows 50% for phone/broadband on mixed personal/business use. 50% of VAT is reclaimable." },
-  "Insurance":             { color: "var(--zn-warn)",   bg: "var(--zn-warn-soft)",   allowablePct: 100, vatClaimable: false, hint: "Business insurance is fully allowable. Premiums are VAT-exempt — nothing to reclaim." },
-  "Entertaining":          { color: "var(--zn-risk)",   bg: "var(--zn-risk-soft)",   allowablePct: 0,   vatClaimable: false, hint: "HMRC does not allow client entertainment as a tax deduction. VAT on entertaining is also blocked input tax." },
-  "Professional Services": { color: "var(--zn-info)",   bg: "var(--zn-info-soft)",   allowablePct: 100, vatClaimable: true,  hint: "Accountant, legal and professional fees — fully allowable for Self Assessment." },
-  "Marketing":             { color: "var(--zn-ink-2)",  bg: "var(--zn-surface-2)",   allowablePct: 100, vatClaimable: true,  hint: "Advertising and marketing spend — fully allowable for Self Assessment." },
-  "Equipment":             { color: "var(--zn-safe)",   bg: "var(--zn-safe-soft)",   allowablePct: 100, vatClaimable: true,  hint: "Business equipment — fully allowable via the Annual Investment Allowance (AIA)." },
+  "Software":              { color: "var(--zn-info)",   bg: "var(--zn-info-soft)",   dot: "#2563EB", allowablePct: 100, vatClaimable: true,  hint: "Business software and subscriptions — fully allowable for Self Assessment.", hmrcShort: "Fully allowable" },
+  "Office":                { color: "var(--zn-ink-2)",  bg: "var(--zn-surface-2)",   dot: "#4B5563", allowablePct: 100, vatClaimable: true,  hint: "Office supplies — fully allowable for Self Assessment.", hmrcShort: "Fully allowable" },
+  "Travel":                { color: "var(--zn-safe)",   bg: "var(--zn-safe-soft)",   dot: "#0EA5A4", allowablePct: 100, vatClaimable: false, hint: "Business travel is fully allowable. Most public transport is zero-rated — no VAT to reclaim.", hmrcShort: "Fully allowable · business travel" },
+  "Communications":        { color: "var(--zn-accent)", bg: "var(--zn-accent-soft)", dot: "#7C3AED", allowablePct: 50,  vatClaimable: true,  hint: "HMRC typically allows 50% for phone/broadband on mixed personal/business use. 50% of VAT is reclaimable.", hmrcShort: "50% mixed-use rule" },
+  "Insurance":             { color: "var(--zn-warn)",   bg: "var(--zn-warn-soft)",   dot: "#C28800", allowablePct: 100, vatClaimable: false, hint: "Business insurance is fully allowable. Premiums are VAT-exempt — nothing to reclaim.", hmrcShort: "Fully allowable · VAT exempt" },
+  "Entertaining":          { color: "var(--zn-risk)",   bg: "var(--zn-risk-soft)",   dot: "#DC2626", allowablePct: 0,   vatClaimable: false, hint: "HMRC does not allow client entertainment as a tax deduction. VAT on entertaining is also blocked input tax.", hmrcShort: "Not allowable · client entertaining" },
+  "Professional Services": { color: "var(--zn-info)",   bg: "var(--zn-info-soft)",   dot: "#0369A1", allowablePct: 100, vatClaimable: true,  hint: "Accountant, legal and professional fees — fully allowable for Self Assessment.", hmrcShort: "Fully allowable" },
+  "Marketing":             { color: "var(--zn-ink-2)",  bg: "var(--zn-surface-2)",   dot: "#DB2777", allowablePct: 100, vatClaimable: true,  hint: "Advertising and marketing spend — fully allowable for Self Assessment.", hmrcShort: "Fully allowable" },
+  "Equipment":             { color: "var(--zn-safe)",   bg: "var(--zn-safe-soft)",   dot: "#0369A1", allowablePct: 100, vatClaimable: true,  hint: "Business equipment — fully allowable via the Annual Investment Allowance (AIA).", hmrcShort: "Capital allowance · AIA" },
 };
 
 const CATEGORY_LIST = Object.keys(CATEGORY_META) as ExpenseCategory[];
@@ -85,7 +87,7 @@ function isMultiRate(lines: VatLine[]) {
   return lines.length > 1 && rates.size > 1;
 }
 
-type Tab = "all" | "claimable" | "vat";
+type Tab = "all" | "review" | "missing" | "notallowable";
 
 // ── Resolved expense type ─────────────────────────────────────────────────────
 
@@ -95,6 +97,7 @@ type Resolved = DemoExpense & {
   net: number; vat: number; gross: number; allowNet: number;
   maxReclaimVat: number; confirmedVat: number; pendingVat: number;
   forced0: boolean; hasAnyVat: boolean; multiLine: boolean; mixedRates: boolean;
+  needsReview: boolean;
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -131,12 +134,14 @@ export default function DemoExpensesPage() {
     const hasAnyVat     = vatLines.length > 0;
     const multiLine     = vatLines.length > 1;
     const mixedRates    = isMultiRate(vatLines);
+    const needsReview   = !hasReceipt && vat > 0 && maxReclaimVat > 0;
     return { ...e, cat, meta, pct, vatLines, hasReceipt, net, vat, gross, allowNet,
-             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates };
+             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates, needsReview };
   }), [categoryOverrides, notClaimable, vatOverrides, receiptOverrides]);
 
-  const claimableExpenses = expenses.filter(e => e.pct > 0);
-  const vatExpenses       = expenses.filter(e => e.maxReclaimVat > 0);
+  const reviewExpenses      = expenses.filter(e => e.needsReview);
+  const missingExpenses     = expenses.filter(e => !e.hasReceipt);
+  const notAllowableExpenses = expenses.filter(e => e.pct === 0);
 
   const totalGross        = r2(expenses.reduce((s, e) => s + e.gross,          0));
   const totalAllowNet     = r2(expenses.reduce((s, e) => s + e.allowNet,       0));
@@ -145,8 +150,9 @@ export default function DemoExpensesPage() {
   const totalDisallowed   = r2(expenses.reduce((s, e) => s + (e.net - e.allowNet), 0));
   const taxSaving20       = r2(totalAllowNet * 0.20);
 
-  const baseList = activeTab === "claimable" ? claimableExpenses
-                 : activeTab === "vat"       ? vatExpenses
+  const baseList = activeTab === "review"       ? reviewExpenses
+                 : activeTab === "missing"      ? missingExpenses
+                 : activeTab === "notallowable" ? notAllowableExpenses
                  : expenses;
   const filtered = catFilter ? baseList.filter(e => e.cat === catFilter) : baseList;
 
@@ -256,15 +262,24 @@ export default function DemoExpensesPage() {
     <div className="space-y-5">
 
       {/* Header */}
-      <div>
-        <p className="zn-section-label">Demo · Books</p>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
-          style={{ color: "var(--zn-ink)" }}>
-          Expenses
-        </h1>
-        <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          Track allowable business expenses. Edit VAT inline, attach invoices to confirm reclaim, and change categories — totals update instantly.
-        </p>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="zn-section-label">Demo · Books</p>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
+            style={{ color: "var(--zn-ink)" }}>
+            Expenses
+          </h1>
+          <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            Track allowable business expenses. Edit VAT inline, attach invoices, and change categories — totals update instantly.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-full text-[12.5px] font-semibold transition-opacity hover:opacity-80"
+          style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+        >
+          + Add expense
+        </button>
       </div>
 
       {/* KPI cards */}
@@ -310,6 +325,7 @@ export default function DemoExpensesPage() {
                 borderColor: active ? meta.color : "var(--zn-line)",
               }}
             >
+              <span className="size-1.5 rounded-full shrink-0" style={{ background: meta.dot }} />
               {cat}
               <span className="text-[10px] tabular-nums" style={{ color: active ? meta.color : "var(--zn-ink-3)" }}>
                 {fmtGBP(amt)}
@@ -322,56 +338,54 @@ export default function DemoExpensesPage() {
       {/* Tab bar */}
       <div className="flex gap-1 p-1 rounded-[12px]" style={{ background: "var(--zn-surface-2)" }}>
         {([
-          ["all",       "All expenses",    expenses.length],
-          ["claimable", "Claimable",       claimableExpenses.length],
-          ["vat",       "VAT reclaimable", vatExpenses.length],
+          ["all",          "All",             expenses.length],
+          ["review",       "Needs review",    reviewExpenses.length],
+          ["missing",      "No receipt",      missingExpenses.length],
+          ["notallowable", "Not allowable",   notAllowableExpenses.length],
         ] as [Tab, string, number][]).map(([id, label, count]) => (
           <button key={id} type="button" onClick={() => setActiveTab(id)}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-[9px] py-2 text-[12.5px] font-medium transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-[9px] py-2 text-[12px] font-medium transition-all"
             style={{
               background: activeTab === id ? "var(--zn-surface)" : "transparent",
               color:      activeTab === id ? "var(--zn-ink)"     : "var(--zn-ink-3)",
               boxShadow:  activeTab === id ? "var(--zn-shadow-soft)" : "none",
             }}>
-            {label}
-            <span className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold tabular-nums"
-              style={{
-                background: activeTab === id ? "var(--zn-surface-2)" : "transparent",
-                color:      activeTab === id ? "var(--zn-ink-2)"     : "var(--zn-ink-3)",
-              }}>
-              {count}
-            </span>
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{label.split(" ")[0]}</span>
+            {count > 0 && (
+              <span className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold tabular-nums"
+                style={{
+                  background: activeTab === id ? "var(--zn-surface-2)" : "transparent",
+                  color:
+                    id === "review"       ? "var(--zn-warn)"
+                    : id === "missing"    ? "var(--zn-warn)"
+                    : id === "notallowable" ? "var(--zn-risk)"
+                    : activeTab === id    ? "var(--zn-ink-2)"
+                    : "var(--zn-ink-3)",
+                }}>
+                {count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Tab summary strip */}
-      {activeTab === "claimable" && (
+      {/* Tab context strip */}
+      {activeTab === "review" && reviewExpenses.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 rounded-[12px] text-[12.5px]"
-          style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}>
-          <span className="font-semibold">{fmtGBP(totalAllowNet)} claimable net</span>
+          style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}>
+          <AlertTriangle className="size-3.5 shrink-0" />
+          <span className="font-semibold">{fmtGBP(totalPendingVat)} VAT at risk</span>
           <span style={{ color: "var(--zn-ink-3)" }}>·</span>
-          <span>Est. <strong>{fmtGBP(taxSaving20)}</strong> off your tax bill at 20%</span>
-          <span className="hidden sm:inline" style={{ color: "var(--zn-ink-3)" }}>
-            · 40% taxpayer? Est. {fmtGBP(r2(totalAllowNet * 0.4))} saving
-          </span>
+          <span>Attach invoices to confirm reclaim on {reviewExpenses.length} expense{reviewExpenses.length !== 1 ? "s" : ""}</span>
         </div>
       )}
-      {activeTab === "vat" && (
+      {activeTab === "notallowable" && notAllowableExpenses.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 rounded-[12px] text-[12.5px]"
-          style={{ background: "var(--zn-accent-soft)", color: "var(--zn-accent)" }}>
-          <span className="font-semibold">{fmtGBP(totalConfirmedVat)} confirmed</span>
-          {totalPendingVat > 0 && (
-            <>
-              <span style={{ color: "var(--zn-ink-3)" }}>·</span>
-              <span style={{ color: "var(--zn-warn)" }}>
-                {fmtGBP(totalPendingVat)} needs an invoice attached to claim
-              </span>
-            </>
-          )}
-          <span className="hidden sm:inline" style={{ color: "var(--zn-ink-3)" }}>
-            · Only applicable if your business is VAT-registered.
-          </span>
+          style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}>
+          <span className="font-semibold">{fmtGBP(totalDisallowed)} disallowed</span>
+          <span style={{ color: "var(--zn-ink-3)" }}>·</span>
+          <span>These cannot be claimed — HMRC rules block this category</span>
         </div>
       )}
 
@@ -441,18 +455,16 @@ export default function DemoExpensesPage() {
                   </button>
 
                   {/* Month totals */}
-                  {activeTab !== "vat" && (
-                    <div className="text-right shrink-0">
-                      <p className="text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                        {fmtGBP(monthGross)}
+                  <div className="text-right shrink-0">
+                    <p className="text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
+                      {fmtGBP(monthGross)}
+                    </p>
+                    {monthAllow < monthGross && (
+                      <p className="text-[10px] tabular-nums" style={{ color: "var(--zn-safe)" }}>
+                        {fmtGBP(monthAllow)} claimable
                       </p>
-                      {monthAllow < monthGross && (
-                        <p className="text-[10px] tabular-nums" style={{ color: "var(--zn-safe)" }}>
-                          {fmtGBP(monthAllow)} claimable
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <button
                     type="button"
@@ -475,7 +487,6 @@ export default function DemoExpensesPage() {
                       <ExpenseListRow
                         key={e.id}
                         expense={e}
-                        activeTab={activeTab}
                         isChecked={selectedIds.has(e.id)}
                         isActive={selectedId === e.id}
                         isMobileExpanded={mobileExpanded === e.id}
@@ -538,24 +549,39 @@ export default function DemoExpensesPage() {
       {selectedIds.size > 0 && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl px-5 py-3 shadow-xl"
-          style={{ background: "var(--zn-ink)", color: "var(--zn-surface)", whiteSpace: "nowrap" }}
+          style={{
+            background: "var(--zn-ink)", color: "var(--zn-surface)",
+            whiteSpace: "nowrap",
+            animation: "bulkRise 0.18s ease-out both",
+          }}
         >
+          <style>{`@keyframes bulkRise{from{transform:translate(-50%,16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}`}</style>
           <span className="text-[13px] font-semibold">
             {selectedIds.size} selected
+            <span className="font-normal ml-1.5 text-white/50">·</span>
+            <span className="font-normal ml-1.5">
+              {fmtGBP(r2([...selectedIds].reduce((s, id) => s + (expenses.find(e => e.id === id)?.gross ?? 0), 0)))}
+            </span>
           </span>
-          <span className="text-[var(--zn-ink-3)]">·</span>
+          <div className="w-px h-4 bg-white/20" />
           <button
             type="button"
             onClick={markReceiptsAttached}
-            className="text-[12.5px] font-medium underline underline-offset-2 hover:no-underline"
-            style={{ color: "var(--zn-surface)" }}
+            className="text-[12px] font-medium px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/10 transition-colors"
           >
             Mark invoices attached
           </button>
           <button
             type="button"
+            className="text-[12px] font-medium px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-1.5"
+          >
+            <Download className="size-3" />
+            Export
+          </button>
+          <button
+            type="button"
             onClick={clearSelection}
-            className="ml-1 size-7 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors"
+            className="size-7 rounded-full flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors"
             title="Clear selection"
           >
             <X className="size-3.5" />
@@ -569,14 +595,13 @@ export default function DemoExpensesPage() {
 // ── Expense list row ──────────────────────────────────────────────────────────
 
 function ExpenseListRow({
-  expense, activeTab, isChecked, isActive, isMobileExpanded,
+  expense, isChecked, isActive, isMobileExpanded,
   editingVat, vatDraft,
   onRowClick, onToggleCheck, onCategoryChange, onToggleClaimable,
   onToggleReceipt, onStartVatEdit, onSaveVatEdit, onCancelVatEdit,
   onVatDraftChange, onApplyVatPreset, onResetVatLine,
 }: {
   expense:           Resolved;
-  activeTab:         Tab;
   isChecked:         boolean;
   isActive:          boolean;
   isMobileExpanded:  boolean;
@@ -595,46 +620,32 @@ function ExpenseListRow({
   onResetVatLine:    (li: number) => void;
 }) {
   const { id, date, description, cat, meta, pct, vatLines, hasReceipt,
-          net, vat, gross, allowNet, confirmedVat, pendingVat, forced0, hasAnyVat, mixedRates } = expense;
+          net, vat, gross, allowNet, confirmedVat, pendingVat, forced0, hasAnyVat, mixedRates, needsReview } = expense;
 
   const isNotClaimable = pct === 0;
-
-  const displayAmount = activeTab === "vat"
-    ? (confirmedVat > 0 ? fmtGBP(confirmedVat) : `${fmtGBP(pendingVat)} pending`)
-    : activeTab === "claimable"
-      ? fmtGBP(allowNet)
-      : fmtGBP(gross);
-
-  const displaySub = activeTab === "vat"
-    ? `of ${fmtGBP(vat)} total VAT`
-    : activeTab === "claimable"
-      ? `${fmtGBP(gross)} gross`
-      : allowNet < gross ? `${fmtGBP(allowNet)} claimable` : `${fmtGBP(net)} net`;
-
-  const displayAmountColor = activeTab === "vat"
-    ? (confirmedVat > 0 ? "var(--zn-accent)" : "var(--zn-warn)")
-    : activeTab === "claimable"
-      ? (isNotClaimable ? "var(--zn-risk)" : "var(--zn-safe)")
-      : "var(--zn-ink)";
+  // dominant VAT rate for the badge
+  const dominantRate = vatLines.length > 0
+    ? vatLines.reduce((best, l) => l.vat > best.vat ? l : best, vatLines[0]).vatRate
+    : 0;
 
   return (
     <div
       style={{
-        borderLeft: isActive ? "3px solid var(--zn-accent)" : "3px solid transparent",
-        transition: "border-color 0.15s",
+        boxShadow: isActive ? "inset 3px 0 0 var(--zn-accent)" : "inset 3px 0 0 transparent",
+        transition: "box-shadow 0.15s",
       }}
     >
       {/* ── Main row ── */}
       <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-black/[0.015] transition-colors"
-        style={{ opacity: isNotClaimable && activeTab === "claimable" ? 0.5 : 1 }}
+        className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-black/[0.015] transition-colors"
+        style={{ opacity: isNotClaimable ? 0.7 : 1 }}
         onClick={onRowClick}
       >
         {/* Checkbox */}
         <button
           type="button"
           onClick={ev => { ev.stopPropagation(); onToggleCheck(); }}
-          className="shrink-0 hover:opacity-70 transition-opacity"
+          className="shrink-0 mt-0.5 hover:opacity-70 transition-opacity"
         >
           {isChecked
             ? <CheckSquare className="size-4" style={{ color: "var(--zn-accent)" }} />
@@ -643,64 +654,67 @@ function ExpenseListRow({
         </button>
 
         {/* Date */}
-        <span className="shrink-0 w-[48px] text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+        <span className="shrink-0 w-[48px] text-[11px] tabular-nums mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
           {fmtDate(date)}
         </span>
 
-        {/* Description + category */}
+        {/* Description + category + HMRC hint */}
         <div className="flex-1 min-w-0">
           <p className={`text-[13px] font-medium truncate${isNotClaimable ? " line-through" : ""}`}
             style={{ color: isNotClaimable ? "var(--zn-ink-3)" : "var(--zn-ink)" }}>
             {description}
           </p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <CategorySelect cat={cat} onChange={c => { onCategoryChange(c); }} />
             {vat > 0 && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums shrink-0"
-                style={{
-                  background: mixedRates ? "var(--zn-warn-soft)" : "var(--zn-accent-soft)",
-                  color:      mixedRates ? "var(--zn-warn)"      : "var(--zn-accent)",
-                }}>
-                +{fmtGBP(vat)} VAT
-              </span>
+              <VatBadge amount={vat} rate={dominantRate} mixed={mixedRates} muted={!hasReceipt && needsReview} />
             )}
           </div>
+          {/* HMRC hint — always visible inline */}
+          <p className="mt-1 text-[11px] italic truncate" style={{ color: "var(--zn-ink-3)" }}>
+            {meta.hmrcShort}
+          </p>
         </div>
 
-        {/* Receipt badge */}
+        {/* Receipt indicator */}
         <button
           type="button"
           onClick={ev => { ev.stopPropagation(); onToggleReceipt(); }}
-          className="shrink-0 flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-medium border transition-colors hover:opacity-80"
+          className="shrink-0 flex items-center justify-center rounded-[7px] transition-colors hover:opacity-80"
           style={{
-            background:  hasReceipt ? "var(--zn-safe-soft)"  : "var(--zn-warn-soft)",
-            color:       hasReceipt ? "var(--zn-safe)"        : "var(--zn-warn)",
-            borderColor: hasReceipt ? "var(--zn-safe)33"      : "var(--zn-warn)33",
+            width: 28, height: 28,
+            background:  hasReceipt ? "var(--zn-safe-soft)"  : needsReview ? "var(--zn-warn-soft)" : "var(--zn-surface-2)",
+            color:       hasReceipt ? "var(--zn-safe)"        : needsReview ? "var(--zn-warn)"      : "var(--zn-ink-3)",
           }}
           title={hasReceipt ? "Invoice attached — click to remove" : "No invoice — click to mark as attached"}
         >
           {hasReceipt
-            ? <Paperclip    className="size-3" />
-            : <AlertTriangle className="size-3" />
+            ? <Paperclip     className="size-3.5" />
+            : <AlertTriangle className="size-3.5" />
           }
-          <span className="hidden sm:inline">{hasReceipt ? "Invoice" : "No invoice"}</span>
         </button>
 
         {/* Amount */}
         <div className="text-right shrink-0 w-[80px]">
-          <p className="text-[13px] font-semibold tabular-nums" style={{ color: displayAmountColor }}>
-            {displayAmount}
+          <p className="text-[13px] font-semibold tabular-nums" style={{ color: isNotClaimable ? "var(--zn-risk)" : "var(--zn-ink)" }}>
+            {fmtGBP(gross)}
           </p>
-          {displaySub && (
+          {allowNet < gross && allowNet > 0 ? (
+            <p className="text-[10px] tabular-nums" style={{ color: "var(--zn-safe)" }}>
+              {fmtGBP(allowNet)} ok
+            </p>
+          ) : isNotClaimable ? (
+            <p className="text-[10px] tabular-nums" style={{ color: "var(--zn-risk)" }}>not claim.</p>
+          ) : (
             <p className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-              {displaySub}
+              {fmtGBP(net)} net
             </p>
           )}
         </div>
       </div>
 
       {/* Pending VAT warning strip */}
-      {pendingVat > 0 && !hasReceipt && (
+      {needsReview && !hasReceipt && (
         <div className="px-[59px] pb-2.5 -mt-1 flex items-center gap-1.5 text-[11px]" style={{ color: "var(--zn-warn)" }}>
           <AlertTriangle className="size-3 shrink-0" />
           Attach invoice to confirm {fmtGBP(pendingVat)} VAT reclaim
@@ -728,6 +742,27 @@ function ExpenseListRow({
         </div>
       )}
     </div>
+  );
+}
+
+// ── VAT badge ────────────────────────────────────────────────────────────────
+
+function VatBadge({ amount, rate, mixed, muted }: { amount: number; rate: number; mixed: boolean; muted: boolean }) {
+  const isZero = amount === 0;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums shrink-0"
+      style={{
+        background: isZero ? "var(--zn-surface-2)" : muted ? "var(--zn-warn-soft)" : "var(--zn-accent-soft)",
+        color:      isZero ? "var(--zn-ink-3)"      : muted ? "var(--zn-warn)"      : "var(--zn-accent)",
+      }}>
+      +{fmtGBP(amount)}
+      <span className="rounded-full px-1 py-px text-[9px]"
+        style={{
+          background: isZero ? "var(--zn-line)" : muted ? "rgba(194,136,0,0.15)" : "rgba(37,99,235,0.12)",
+        }}>
+        {mixed ? "mixed" : vatRateLabel(rate)}
+      </span>
+    </span>
   );
 }
 
@@ -775,6 +810,8 @@ interface DetailProps {
 }
 
 function ExpenseDetailPanel(props: DetailProps) {
+  const { expense } = props;
+  const meta = CATEGORY_META[expense.cat];
   return (
     <div className="zn-card overflow-hidden">
       {/* Panel header */}
@@ -783,14 +820,37 @@ function ExpenseDetailPanel(props: DetailProps) {
           Expense detail
         </p>
         <h2 className="mt-1 text-[15px] font-semibold leading-snug" style={{ color: "var(--zn-ink)" }}>
-          {props.expense.description}
+          {expense.description}
         </h2>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-          {fmtDate(props.expense.date)} · {fmtGBP(props.expense.gross)} gross
-        </p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+            {fmtDate(expense.date)} · {fmtGBP(expense.gross)} gross
+          </span>
+          <span className="size-1.5 rounded-full" style={{ background: meta.dot }} />
+          <span className="text-[11px] font-medium italic" style={{ color: "var(--zn-ink-3)" }}>
+            {meta.hmrcShort}
+          </span>
+        </div>
       </div>
 
-      <div className="px-5 py-4 space-y-5 max-h-[calc(100vh-280px)] overflow-y-auto">
+      {/* 4-cell summary grid */}
+      <div className="grid grid-cols-4 divide-x border-b"
+        style={{ borderColor: "var(--zn-line-soft)" }}>
+        {[
+          { label: "Gross",     value: fmtGBP(expense.gross),    color: "var(--zn-ink)" },
+          { label: "Net",       value: fmtGBP(expense.net),      color: "var(--zn-ink)" },
+          { label: `VAT ${expense.vatLines[0]?.vatRate ?? 0}%`, value: fmtGBP(expense.vat), color: "var(--zn-accent)" },
+          { label: "Allowable", value: fmtGBP(expense.allowNet), color: expense.allowNet > 0 ? "var(--zn-safe)" : "var(--zn-risk)" },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="px-3 py-2.5 text-center"
+            style={{ borderColor: "var(--zn-line-soft)" }}>
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
+            <p className="mt-0.5 text-[12px] font-bold tabular-nums" style={{ color }}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="px-5 py-4 space-y-5 max-h-[calc(100vh-340px)] overflow-y-auto">
         <DetailContent {...props} />
       </div>
     </div>
@@ -837,15 +897,20 @@ function DetailContent({
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: hasReceipt ? "var(--zn-safe)" : "var(--zn-warn)" }}>
               {hasReceipt
-                ? pendingVat === 0
-                  ? "VAT reclaim confirmed ✓"
-                  : "Tap to remove"
-                : confirmedVat === 0 && vat > 0
-                  ? `Attach to confirm ${fmtGBP(vat)} VAT reclaim — tap to toggle`
-                  : "Required for VAT reclaim — tap to toggle"
+                ? "VAT reclaim confirmed · tap to toggle"
+                : vat > 0
+                  ? `Attach to confirm ${fmtGBP(vat)} VAT reclaim · tap to toggle`
+                  : "Required for VAT reclaim · tap to toggle"
               }
             </p>
           </div>
+          <span className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full"
+            style={{
+              background: hasReceipt ? "var(--zn-safe)" : "var(--zn-warn)",
+              color: "#fff",
+            }}>
+            {hasReceipt ? "Remove" : "Upload"}
+          </span>
         </button>
       </div>
 
@@ -866,7 +931,7 @@ function DetailContent({
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] mb-2" style={{ color: "var(--zn-ink-3)" }}>
           Category
         </p>
-        <CategorySelect cat={cat} onChange={onCategoryChange} />
+        <CategorySelect cat={cat} onChange={onCategoryChange} fullWidth />
       </div>
 
       {/* Allowability override */}
@@ -1093,13 +1158,16 @@ function VatEditRow({
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function CategorySelect({ cat, onChange }: { cat: ExpenseCategory; onChange: (c: ExpenseCategory) => void }) {
+function CategorySelect({ cat, onChange, fullWidth }: { cat: ExpenseCategory; onChange: (c: ExpenseCategory) => void; fullWidth?: boolean }) {
   const meta = CATEGORY_META[cat];
   return (
-    <div className="relative inline-flex items-center shrink-0">
-      <span className="text-[10.5px] font-semibold pl-2.5 pr-6 py-0.5 rounded-full pointer-events-none whitespace-nowrap"
+    <div className={`relative inline-flex items-center shrink-0 ${fullWidth ? "w-full" : ""}`}>
+      <span className={`text-[10.5px] font-semibold pl-2.5 pr-6 py-0.5 rounded-full pointer-events-none whitespace-nowrap ${fullWidth ? "w-full py-2 pl-3" : ""}`}
         style={{ background: meta.bg, color: meta.color }}>
-        {cat}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full" style={{ background: meta.dot }} />
+          {cat}
+        </span>
       </span>
       <ChevronDown className="absolute right-1.5 size-2.5 pointer-events-none" style={{ color: meta.color }} />
       <select value={cat} onChange={e => onChange(e.target.value as ExpenseCategory)}
