@@ -222,10 +222,12 @@ export default function DemoExpensesPage() {
     const hasAnyVat    = vat > 0;
     const multiLine    = vatLines.length > 1;
     const mixedRates   = isMultiRate(vatLines);
-    const originalGross = linesGross(e.vatLines);   // base lines, never overridden
+    const originalGross    = linesGross(e.vatLines);
+    const originalVatLines = e.vatLines;  // always base, never overridden
 
     return { ...e, cat, meta, pct, vatLines, hasReceipt, net, vat, gross, allowNet,
-             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates, originalGross };
+             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates,
+             originalGross, originalVatLines };
   }), [categoryOverrides, notClaimable, vatOverrides, receiptOverrides]);
 
   const claimableExpenses = expenses.filter(e => e.pct > 0);
@@ -262,6 +264,35 @@ export default function DemoExpensesPage() {
     setVatDraft(String(currentVat));
   }
   function cancelVatEdit() { setEditingVat(null); setVatDraft(""); }
+
+  function applyVatPreset(id: string, lineIdx: number, rate: number) {
+    setVatOverrides(p => {
+      const baseLines = p[id] ?? BASE_EXPENSES.find(e => e.id === id)!.vatLines;
+      const newLines  = baseLines.map((l, i) => {
+        if (i !== lineIdx) return l;
+        const newVat   = rate <= 0 ? 0 : r2(l.net * (rate / 100));
+        return { ...l, vatRate: rate, vat: newVat, gross: r2(l.net + newVat) };
+      });
+      return { ...p, [id]: newLines };
+    });
+    setEditingVat(null);
+    setVatDraft("");
+  }
+
+  function resetVatLine(id: string, lineIdx: number) {
+    const originalLine = BASE_EXPENSES.find(e => e.id === id)!.vatLines[lineIdx];
+    setVatOverrides(p => {
+      const baseLines = p[id] ?? BASE_EXPENSES.find(e => e.id === id)!.vatLines;
+      const newLines  = baseLines.map((l, i) => i === lineIdx ? originalLine : l);
+      const origLines = BASE_EXPENSES.find(e => e.id === id)!.vatLines;
+      const allReset  = newLines.every((l, i) =>
+        l.vat === origLines[i].vat && l.vatRate === origLines[i].vatRate
+      );
+      if (allReset) { const { [id]: _, ...rest } = p; return rest; }
+      return { ...p, [id]: newLines };
+    });
+  }
+
   function saveVatEdit(id: string, lineIdx: number) {
     const raw = parseFloat(vatDraft);
     if (!isNaN(raw) && raw >= 0) {
@@ -531,6 +562,8 @@ export default function DemoExpensesPage() {
                       onSaveVatEdit={li => saveVatEdit(e.id, li)}
                       onCancelVatEdit={cancelVatEdit}
                       onVatDraftChange={setVatDraft}
+                      onApplyVatPreset={(li, rate) => applyVatPreset(e.id, li, rate)}
+                      onResetVatLine={li => resetVatLine(e.id, li)}
                     />
                   ))}
                 </div>
@@ -552,19 +585,27 @@ export default function DemoExpensesPage() {
 
 // ── VatCell ───────────────────────────────────────────────────────────────────
 
+const VAT_PRESETS = [
+  { label: "Exempt", rate: -1 },
+  { label: "0%",     rate: 0  },
+  { label: "5%",     rate: 5  },
+  { label: "20%",    rate: 20 },
+];
+
 function VatCell({
   lineIdx, line, isEditing, vatDraft, pendingVat,
-  onStartEdit, onSaveEdit, onCancelEdit, onDraftChange,
+  onStartEdit, onSaveEdit, onCancelEdit, onDraftChange, onApplyPreset,
 }: {
-  lineIdx:       number;
-  line:          VatLine;
-  isEditing:     boolean;
-  vatDraft:      string;
-  pendingVat:    number;
-  onStartEdit:   (li: number, v: number) => void;
-  onSaveEdit:    (li: number) => void;
-  onCancelEdit:  () => void;
-  onDraftChange: (v: string) => void;
+  lineIdx:        number;
+  line:           VatLine;
+  isEditing:      boolean;
+  vatDraft:       string;
+  pendingVat:     number;
+  onStartEdit:    (li: number, v: number) => void;
+  onSaveEdit:     (li: number) => void;
+  onCancelEdit:   () => void;
+  onDraftChange:  (v: string) => void;
+  onApplyPreset:  (rate: number) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (isEditing) inputRef.current?.focus(); }, [isEditing]);
@@ -576,33 +617,54 @@ function VatCell({
 
   if (isEditing) {
     return (
-      <span className="inline-flex items-center gap-1 flex-wrap">
-        <span className="text-[10.5px]" style={{ color: "var(--zn-ink-3)" }}>£</span>
-        <input
-          ref={inputRef}
-          type="number" min="0" step="0.01"
-          value={vatDraft}
-          onChange={e => onDraftChange(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter")  onSaveEdit(lineIdx);
-            if (e.key === "Escape") onCancelEdit();
-          }}
-          className="w-16 text-[12px] tabular-nums rounded-md px-1.5 py-0.5 border"
-          style={{ color: "var(--zn-accent)", borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)", outline: "none" }}
-        />
-        {liveRate !== null && (
-          <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-            → {vatRateLabel(liveRate)}
-          </span>
-        )}
-        <button type="button" onClick={() => onSaveEdit(lineIdx)}
-          className="rounded-full p-0.5" title="Save">
-          <Check className="size-3" style={{ color: "var(--zn-safe)" }} />
-        </button>
-        <button type="button" onClick={onCancelEdit}
-          className="rounded-full p-0.5" title="Cancel">
-          <X className="size-3" style={{ color: "var(--zn-risk)" }} />
-        </button>
+      <span className="inline-flex flex-col gap-1.5">
+        <span className="inline-flex items-center gap-1 flex-wrap">
+          <span className="text-[10.5px]" style={{ color: "var(--zn-ink-3)" }}>£</span>
+          <input
+            ref={inputRef}
+            type="number" min="0" step="0.01"
+            value={vatDraft}
+            onChange={e => onDraftChange(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter")  onSaveEdit(lineIdx);
+              if (e.key === "Escape") onCancelEdit();
+            }}
+            className="w-16 text-[12px] tabular-nums rounded-md px-1.5 py-0.5 border"
+            style={{ color: "var(--zn-accent)", borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)", outline: "none" }}
+          />
+          {liveRate !== null && (
+            <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+              → {vatRateLabel(liveRate)}
+            </span>
+          )}
+          <button type="button" onClick={() => onSaveEdit(lineIdx)}
+            className="rounded-full p-0.5" title="Save">
+            <Check className="size-3" style={{ color: "var(--zn-safe)" }} />
+          </button>
+          <button type="button" onClick={onCancelEdit}
+            className="rounded-full p-0.5" title="Cancel">
+            <X className="size-3" style={{ color: "var(--zn-risk)" }} />
+          </button>
+        </span>
+        {/* Quick preset rate chips */}
+        <span className="inline-flex gap-1 flex-wrap">
+          {VAT_PRESETS.map(p => {
+            const active = line.vatRate === p.rate;
+            return (
+              <button key={p.rate} type="button"
+                onClick={() => onApplyPreset(p.rate)}
+                className="text-[10px] px-1.5 py-0.5 rounded-full border transition-colors"
+                style={{
+                  borderColor: active ? "var(--zn-accent)" : "var(--zn-line-soft)",
+                  background:  active ? "var(--zn-accent-soft)" : "var(--zn-surface)",
+                  color:       active ? "var(--zn-accent)" : "var(--zn-ink-3)",
+                  fontWeight:  active ? 600 : 400,
+                }}>
+                {p.label}
+              </button>
+            );
+          })}
+        </span>
       </span>
     );
   }
@@ -647,13 +709,14 @@ type ResolvedExpense = DemoExpense & {
   net: number; vat: number; gross: number; allowNet: number;
   maxReclaimVat: number; confirmedVat: number; pendingVat: number;
   forced0: boolean; hasAnyVat: boolean; multiLine: boolean; mixedRates: boolean;
-  originalGross: number;
+  originalGross: number; originalVatLines: VatLine[];
 };
 
 function ExpenseRow({
   expense, activeTab, hintOpen, vatExpanded, editingVat, vatDraft,
   onToggleHint, onToggleVatExpand, onCategoryChange, onToggleClaimable,
   onToggleReceipt, onStartVatEdit, onSaveVatEdit, onCancelVatEdit, onVatDraftChange,
+  onApplyVatPreset, onResetVatLine,
 }: {
   expense:           ResolvedExpense;
   activeTab:         Tab;
@@ -670,11 +733,13 @@ function ExpenseRow({
   onSaveVatEdit:     (lineIdx: number) => void;
   onCancelVatEdit:   () => void;
   onVatDraftChange:  (v: string) => void;
+  onApplyVatPreset:  (lineIdx: number, rate: number) => void;
+  onResetVatLine:    (lineIdx: number) => void;
 }) {
   const {
     id, date, description, cat, meta, pct, vatLines, hasReceipt,
     net, vat, gross, allowNet, confirmedVat, pendingVat, forced0,
-    hasAnyVat, multiLine, mixedRates, originalGross,
+    hasAnyVat, multiLine, mixedRates, originalGross, originalVatLines,
   } = expense;
 
   const STANDARD_RATES = new Set([-1, 0, 5, 20]);
@@ -849,7 +914,20 @@ function ExpenseRow({
                     vatDraft={vatDraft} pendingVat={pendingVat}
                     onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
                     onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
+                    onApplyPreset={(rate) => onApplyVatPreset(i, rate)}
                   />
+                  {/* Reset button — only shown when this line has been modified */}
+                  {(line.vat !== originalVatLines[i].vat || line.vatRate !== originalVatLines[i].vatRate) && (
+                    <button
+                      type="button"
+                      onClick={() => onResetVatLine(i)}
+                      title="Reset to original imported value"
+                      className="mt-0.5 block text-[10px] underline underline-offset-2 hover:no-underline"
+                      style={{ color: "var(--zn-ink-3)" }}
+                    >
+                      ↩ reset
+                    </button>
+                  )}
                 </span>
                 <span className="text-right tabular-nums font-semibold" style={{ color: "var(--zn-ink)" }}>
                   {fmtGBP(line.gross)}
