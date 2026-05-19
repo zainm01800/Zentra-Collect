@@ -222,9 +222,10 @@ export default function DemoExpensesPage() {
     const hasAnyVat    = vat > 0;
     const multiLine    = vatLines.length > 1;
     const mixedRates   = isMultiRate(vatLines);
+    const originalGross = linesGross(e.vatLines);   // base lines, never overridden
 
     return { ...e, cat, meta, pct, vatLines, hasReceipt, net, vat, gross, allowNet,
-             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates };
+             maxReclaimVat, confirmedVat, pendingVat, forced0, hasAnyVat, multiLine, mixedRates, originalGross };
   }), [categoryOverrides, notClaimable, vatOverrides, receiptOverrides]);
 
   const claimableExpenses = expenses.filter(e => e.pct > 0);
@@ -646,6 +647,7 @@ type ResolvedExpense = DemoExpense & {
   net: number; vat: number; gross: number; allowNet: number;
   maxReclaimVat: number; confirmedVat: number; pendingVat: number;
   forced0: boolean; hasAnyVat: boolean; multiLine: boolean; mixedRates: boolean;
+  originalGross: number;
 };
 
 function ExpenseRow({
@@ -672,8 +674,11 @@ function ExpenseRow({
   const {
     id, date, description, cat, meta, pct, vatLines, hasReceipt,
     net, vat, gross, allowNet, confirmedVat, pendingVat, forced0,
-    hasAnyVat, multiLine, mixedRates,
+    hasAnyVat, multiLine, mixedRates, originalGross,
   } = expense;
+
+  const STANDARD_RATES = new Set([-1, 0, 5, 20]);
+  const grossMismatch  = r2(Math.abs(gross - originalGross)) > 0.01;
 
   const isNotClaimable = pct === 0;
   const isPartial      = pct > 0 && pct < 100;
@@ -720,19 +725,8 @@ function ExpenseRow({
           >
             {description}
           </p>
-          {/* VAT line(s) under description */}
-          {hasAnyVat && !multiLine && (
-            <div className="mt-0.5">
-              <VatCell
-                lineIdx={0} line={vatLines[0]}
-                isEditing={editingVat?.id === id && editingVat?.lineIdx === 0}
-                vatDraft={vatDraft} pendingVat={pendingVat}
-                onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
-                onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
-              />
-            </div>
-          )}
-          {multiLine && (
+          {/* VAT expand toggle — consistent for single-line and multi-line */}
+          {hasAnyVat && (
             <button
               type="button"
               onClick={onToggleVatExpand}
@@ -740,8 +734,10 @@ function ExpenseRow({
               style={{ color: mixedRates ? "var(--zn-warn)" : "var(--zn-accent)" }}
             >
               {vatExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-              {mixedRates ? "Mixed VAT rates" : "Multiple lines"} · {vatLines.length} items
-              · {fmtGBP(vat)} total VAT
+              {multiLine
+                ? (mixedRates ? "Mixed VAT rates" : "Multiple lines") + ` · ${vatLines.length} items`
+                : vatRateLabel(vatLines[0].vatRate)}
+              {" · "}{fmtGBP(vat)} VAT · click to edit
             </button>
           )}
           {/* Pending receipt warning */}
@@ -817,8 +813,8 @@ function ExpenseRow({
         </div>
       </div>
 
-      {/* ── VAT breakdown (multi-line expanded) ── */}
-      {multiLine && vatExpanded && (
+      {/* ── VAT breakdown (expanded for any expense with VAT) ── */}
+      {hasAnyVat && vatExpanded && (
         <div className="hidden sm:block mx-5 mb-3 rounded-[10px] overflow-hidden border"
           style={{ borderColor: "var(--zn-line-soft)" }}>
           <div className="grid text-[10.5px] font-semibold uppercase tracking-[0.06em] px-4 py-2 border-b"
@@ -831,40 +827,44 @@ function ExpenseRow({
             <span className="text-right">Gross</span>
             <span className="text-center">Reclaimable</span>
           </div>
-          {vatLines.map((line, i) => (
-            <div key={i}
-              className="grid items-center px-4 py-2.5 border-b last:border-0 text-[12.5px]"
-              style={{ gridTemplateColumns: "1fr 80px 60px 90px 90px 80px",
-                       borderColor: "var(--zn-line-soft)" }}>
-              <span style={{ color: "var(--zn-ink-2)" }}>{line.label}</span>
-              <span className="text-right tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-                {fmtGBP(line.net)}
-              </span>
-              <span className="text-center tabular-nums text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-                {vatRateLabel(line.vatRate)}
-              </span>
-              <span className="text-right">
-                <VatCell
-                  lineIdx={i} line={line}
-                  isEditing={editingVat?.id === id && editingVat?.lineIdx === i}
-                  vatDraft={vatDraft} pendingVat={pendingVat}
-                  onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
-                  onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
-                />
-              </span>
-              <span className="text-right tabular-nums font-semibold" style={{ color: "var(--zn-ink)" }}>
-                {fmtGBP(line.gross)}
-              </span>
-              <span className="flex justify-center">
-                {line.reclaimable && line.vat > 0 ? (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                    style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}>✓</span>
-                ) : (
-                  <span className="text-[10px]" style={{ color: "var(--zn-ink-3)" }}>—</span>
-                )}
-              </span>
-            </div>
-          ))}
+          {vatLines.map((line, i) => {
+            const nonStandard = !STANDARD_RATES.has(line.vatRate) && line.vat > 0;
+            return (
+              <div key={i}
+                className="grid items-center px-4 py-2.5 border-b last:border-0 text-[12.5px]"
+                style={{ gridTemplateColumns: "1fr 80px 60px 90px 90px 80px",
+                         borderColor: "var(--zn-line-soft)" }}>
+                <span style={{ color: "var(--zn-ink-2)" }}>{line.label}</span>
+                <span className="text-right tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+                  {fmtGBP(line.net)}
+                </span>
+                <span className="text-center text-[11px]" title={nonStandard ? "Non-standard UK VAT rate" : undefined}
+                  style={{ color: nonStandard ? "var(--zn-warn)" : "var(--zn-ink-3)" }}>
+                  {vatRateLabel(line.vatRate)}{nonStandard ? " ⚠" : ""}
+                </span>
+                <span className="text-right">
+                  <VatCell
+                    lineIdx={i} line={line}
+                    isEditing={editingVat?.id === id && editingVat?.lineIdx === i}
+                    vatDraft={vatDraft} pendingVat={pendingVat}
+                    onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
+                    onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
+                  />
+                </span>
+                <span className="text-right tabular-nums font-semibold" style={{ color: "var(--zn-ink)" }}>
+                  {fmtGBP(line.gross)}
+                </span>
+                <span className="flex justify-center">
+                  {line.reclaimable && line.vat > 0 ? (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}>✓</span>
+                  ) : (
+                    <span className="text-[10px]" style={{ color: "var(--zn-ink-3)" }}>—</span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
           {/* Total row */}
           <div className="grid items-center px-4 py-2.5 text-[12.5px] font-semibold"
             style={{ gridTemplateColumns: "1fr 80px 60px 90px 90px 80px",
@@ -873,12 +873,21 @@ function ExpenseRow({
             <span className="text-right tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP(net)}</span>
             <span />
             <span className="text-right tabular-nums" style={{ color: "var(--zn-accent)" }}>+{fmtGBP(vat)}</span>
-            <span className="text-right tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP(gross)}</span>
+            <span className="text-right tabular-nums" style={{ color: grossMismatch ? "var(--zn-warn)" : "var(--zn-ink)" }}>
+              {fmtGBP(gross)}
+            </span>
             <span />
           </div>
+          {/* Total mismatch warning */}
+          {grossMismatch && (
+            <div className="px-4 py-2 text-[11px] border-t"
+              style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}>
+              ⚠ Edited VAT changes the total to {fmtGBP(gross)} — original was {fmtGBP(originalGross)}. Verify against your invoice.
+            </div>
+          )}
         </div>
       )}
-      {multiLine && vatExpanded && mixedRates && (
+      {hasAnyVat && vatExpanded && mixedRates && (
         <p className="mx-5 mb-3 text-[11px] leading-relaxed" style={{ color: "var(--zn-warn)" }}>
           ⚠ Mixed VAT rates on this invoice — each line must be recorded at its own rate on your VAT return. Click any VAT amount to adjust it.
         </p>
@@ -947,17 +956,17 @@ function ExpenseRow({
             </>
           )}
         </div>
-        {/* Multi-line expand on mobile */}
-        {multiLine && (
+        {/* VAT expand on mobile (all VAT-bearing expenses) */}
+        {hasAnyVat && (
           <button type="button" onClick={onToggleVatExpand}
             className="inline-flex items-center gap-1 text-[11px]"
-            style={{ color: "var(--zn-accent)" }}>
+            style={{ color: mixedRates ? "var(--zn-warn)" : "var(--zn-accent)" }}>
             {vatExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-            {vatLines.length} VAT lines · tap to {vatExpanded ? "hide" : "show"} breakdown
+            {multiLine ? `${vatLines.length} VAT lines` : vatRateLabel(vatLines[0].vatRate)} · tap to {vatExpanded ? "hide" : "edit"} VAT
           </button>
         )}
         {/* Mobile VAT breakdown */}
-        {multiLine && vatExpanded && (
+        {hasAnyVat && vatExpanded && (
           <div className="rounded-[10px] overflow-hidden border mt-1"
             style={{ borderColor: "var(--zn-line-soft)" }}>
             {vatLines.map((line, i) => (
@@ -977,6 +986,11 @@ function ExpenseRow({
                 </div>
               </div>
             ))}
+            {grossMismatch && (
+              <div className="px-3 py-2 text-[10.5px]" style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}>
+                ⚠ Total changed to {fmtGBP(gross)} — original {fmtGBP(originalGross)}. Verify against invoice.
+              </div>
+            )}
           </div>
         )}
       </div>
