@@ -322,7 +322,7 @@ export default function DemoExpensesPage() {
       <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-5 lg:items-start">
 
         {/* Left: expense list */}
-        <div className="space-y-3 lg:overflow-y-auto lg:max-h-[calc(100vh-350px)] lg:pr-1">
+        <div className="space-y-3 lg:overflow-y-auto lg:max-h-[calc(100vh-190px)] lg:pr-1">
           {monthGroups.length === 0 ? (
             <div className="zn-card px-5 py-12 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
               No expenses match this filter.
