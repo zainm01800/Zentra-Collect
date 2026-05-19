@@ -1047,23 +1047,42 @@ function ExpenseRow({
         {hasAnyVat && vatExpanded && (
           <div className="rounded-[10px] overflow-hidden border mt-1"
             style={{ borderColor: "var(--zn-line-soft)" }}>
-            {vatLines.map((line, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 border-b last:border-0 text-[11.5px]"
-                style={{ borderColor: "var(--zn-line-soft)" }}>
-                <div className="min-w-0">
-                  <p style={{ color: "var(--zn-ink-2)" }}>{line.label}</p>
-                  <p style={{ color: "var(--zn-ink-3)" }}>{vatRateLabel(line.vatRate)} · {fmtGBP(line.net)} net</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-semibold" style={{ color: "var(--zn-ink)" }}>{fmtGBP(line.gross)}</p>
-                  {line.vat > 0 && (
-                    <p style={{ color: line.reclaimable ? "var(--zn-accent)" : "var(--zn-ink-3)" }}>
-                      +{fmtGBP(line.vat)} VAT
+            {vatLines.map((line, i) => {
+              const lineModified = line.vat !== originalVatLines[i].vat || line.vatRate !== originalVatLines[i].vatRate;
+              return (
+                <div key={i} className="px-3 py-2.5 border-b last:border-0 text-[11.5px] space-y-1.5"
+                  style={{ borderColor: "var(--zn-line-soft)" }}>
+                  {/* Label + net */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p style={{ color: "var(--zn-ink-2)" }}>{line.label}</p>
+                      <p style={{ color: "var(--zn-ink-3)" }}>{vatRateLabel(line.vatRate)} · {fmtGBP(line.net)} net</p>
+                    </div>
+                    <p className="font-semibold tabular-nums shrink-0" style={{ color: "var(--zn-ink)" }}>
+                      {fmtGBP(line.gross)}
                     </p>
-                  )}
+                  </div>
+                  {/* VAT edit cell */}
+                  <div>
+                    <VatCell
+                      lineIdx={i} line={line}
+                      isEditing={editingVat?.id === id && editingVat?.lineIdx === i}
+                      vatDraft={vatDraft} pendingVat={pendingVat}
+                      onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
+                      onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
+                      onApplyPreset={(rate) => onApplyVatPreset(i, rate)}
+                    />
+                    {lineModified && (
+                      <button type="button" onClick={() => onResetVatLine(i)}
+                        className="mt-1 text-[10.5px] underline underline-offset-2"
+                        style={{ color: "var(--zn-ink-3)" }}>
+                        ↩ reset to original
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {grossMismatch && (
               <div className="px-3 py-2 text-[10.5px]" style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}>
                 ⚠ Total changed to {fmtGBP(gross)} — original {fmtGBP(originalGross)}. Verify against invoice.
