@@ -685,3 +685,5 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type=
 textarea::placeholder {
   color: var(--zn-ink-3);
 }
+
+@keyframes bulkRise { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
