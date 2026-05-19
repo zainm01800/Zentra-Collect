@@ -6,7 +6,8 @@
  * they get post-signup. SA103 box copy is disabled (purely visual).
  */
 
-import { Copy } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 import {
   demoMileageTrips,
   demoQuotes,
@@ -35,6 +36,13 @@ const DEMO_INVOICED_VAT    = 7_680;
 const DEMO_EXPENSES_TRACKED = 4_120;
 
 export default function DemoTaxPage() {
+  const [copiedBox, setCopiedBox] = useState<string | null>(null);
+
+  function copyVal(box: string, value: number) {
+    navigator.clipboard.writeText(fmtPlainGBP(value)).catch(() => {});
+    setCopiedBox(box);
+    setTimeout(() => setCopiedBox((c) => (c === box ? null : c)), 1500);
+  }
   const directIncomeTotal = demoDirectIncome.reduce((s, d) => s + d.amount, 0);
   const totalMiles = demoMileageTrips.reduce((s, t) => s + t.miles, 0);
   const mileageAllowance = calcMileageAllowance(totalMiles).allowance;
@@ -78,6 +86,9 @@ export default function DemoTaxPage() {
         <Headline label="Estimated tax"     value={fmtGBP(estimate.estimatedTaxOwed)} highlight />
         {vatCharged > 0 && (
           <Headline label="VAT charged"     value={fmtGBP(vatCharged)} />
+        )}
+        {vatCharged > 0 && (
+          <Headline label="VAT to pay HMRC" value={fmtGBP(Math.max(0, vatCharged - 824))} highlight />
         )}
       </div>
 
@@ -126,9 +137,11 @@ export default function DemoTaxPage() {
                   <td className="py-2 px-3 text-right tabular-nums font-medium"
                       style={{ color: "var(--zn-ink)" }}>{fmtPlainGBP(r.value)}</td>
                   <td className="py-2 px-3 text-right print:hidden">
-                    <button type="button" disabled title="Disabled in demo"
-                      className="inline-flex items-center justify-center size-6 rounded text-[var(--zn-ink-3)] opacity-50 cursor-not-allowed">
-                      <Copy className="size-3.5" />
+                    <button type="button" onClick={() => copyVal(r.box, r.value)}
+                      title="Copy value"
+                      className="inline-flex items-center justify-center size-6 rounded hover:bg-black/5 transition-colors"
+                      style={{ color: copiedBox === r.box ? "var(--zn-safe)" : "var(--zn-ink-3)" }}>
+                      {copiedBox === r.box ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
                     </button>
                   </td>
                 </tr>
