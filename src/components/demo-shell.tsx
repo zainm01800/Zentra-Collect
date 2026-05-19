@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  BarChart2,
   Building2,
   Car,
   FileText,
@@ -35,15 +36,17 @@ import {
 const collectionsNav = [
   { href: "/demo",              label: "Dashboard",    icon: LayoutDashboard },
   { href: "/demo/chase-plan",   label: "Chase plan",   icon: ListChecks },
+  { href: "/demo/aged-debt",    label: "Aged debt",    icon: BarChart2 },
   { href: "/demo/customers",    label: "Customers",    icon: Users },
   { href: "/demo/quotes",       label: "Quotes",       icon: FileText },
   { href: "/demo/credit-notes", label: "Credit notes", icon: Receipt },
 ];
 
 const booksNav = [
-  { href: "/demo/banking", label: "Bank feed", icon: Building2 },
-  { href: "/demo/mileage", label: "Mileage",   icon: Car },
-  { href: "/demo/tax",     label: "Tax & VAT", icon: PiggyBank },
+  { href: "/demo/banking",  label: "Bank feed", icon: Building2 },
+  { href: "/demo/expenses", label: "Expenses",  icon: Receipt },
+  { href: "/demo/mileage",  label: "Mileage",   icon: Car },
+  { href: "/demo/tax",      label: "Tax & VAT", icon: PiggyBank },
 ];
 
 export function DemoShell({ children }: { children: React.ReactNode }) {

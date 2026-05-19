@@ -32,8 +32,8 @@ export interface DemoPlanInfo {
   features:    string[];
 }
 
-const COLLECTIONS_HREFS = ["/demo", "/demo/chase-plan", "/demo/customers", "/demo/quotes", "/demo/credit-notes"];
-const BOOKS_HREFS       = ["/demo/banking", "/demo/mileage", "/demo/tax"];
+const COLLECTIONS_HREFS = ["/demo", "/demo/chase-plan", "/demo/aged-debt", "/demo/customers", "/demo/quotes", "/demo/credit-notes"];
+const BOOKS_HREFS       = ["/demo/banking", "/demo/expenses", "/demo/mileage", "/demo/tax"];
 
 export const DEMO_PLANS: DemoPlanInfo[] = [
   {

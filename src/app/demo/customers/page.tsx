@@ -103,22 +103,6 @@ const REL_META: Record<string, { label: string; color: string }> = {
   new:     { label: "New",         color: T.blue  },
 };
 
-// ── Aged debt buckets ─────────────────────────────────────────────────────────
-interface Bucket { label: string; min: number; max: number | null; color: string; bg: string }
-const BUCKETS: Bucket[] = [
-  { label: "Current",    min: 0,  max: 0,   color: T.muted, bg: T.surf2   },
-  { label: "1–30 days",  min: 1,  max: 30,  color: T.amber, bg: T.amberBg },
-  { label: "31–60 days", min: 31, max: 60,  color: T.red,   bg: T.redBg   },
-  { label: "61–90 days", min: 61, max: 90,  color: T.red,   bg: T.redBg   },
-  { label: "90+ days",   min: 91, max: null, color: T.red,  bg: T.redBg   },
-];
-
-function bucketAmount(invoices: readonly { overdue: number; amount: number }[], b: Bucket) {
-  return invoices
-    .filter((i) => i.overdue >= b.min && (b.max === null || i.overdue <= b.max))
-    .reduce((s, i) => s + i.amount, 0);
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -297,73 +281,6 @@ function DetailPanel({
   );
 }
 
-// ── Aged debt table ───────────────────────────────────────────────────────────
-function AgedDebt() {
-  const grandTotals = BUCKETS.map((b) => ({
-    ...b,
-    total: CUSTOMERS.reduce((s, c) => s + bucketAmount(c.invoices, b), 0),
-  }));
-  const grandTotal = CUSTOMERS.reduce((s, c) => s + c.outstanding, 0);
-
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: T.ink, margin: 0 }}>Aged debt</h2>
-        <span style={{ fontSize: 12, color: T.muted }}>All customers · {fmtGBP(grandTotal)} outstanding</span>
-      </div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${T.border}`, background: T.surf2 }}>
-              <th style={{ textAlign: "left", padding: "10px 20px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: T.muted }}>Customer</th>
-              {BUCKETS.map((b) => (
-                <th key={b.label} style={{ textAlign: "right", padding: "10px 16px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: b.min > 0 ? b.color : T.muted, whiteSpace: "nowrap" }}>
-                  {b.label}
-                </th>
-              ))}
-              <th style={{ textAlign: "right", padding: "10px 20px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: T.muted }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...CUSTOMERS].sort((a, b) => b.outstanding - a.outstanding).filter((c) => c.outstanding > 0).map((c, i, arr) => (
-              <tr key={c.id} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
-                <td style={{ padding: "12px 20px", color: T.ink, fontWeight: 500 }}>
-                  <div>{c.name}</div>
-                  <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>{c.contact}</div>
-                </td>
-                {BUCKETS.map((b) => {
-                  const amt = bucketAmount(c.invoices, b);
-                  return (
-                    <td key={b.label} style={{ padding: "12px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: amt > 0 ? (b.min > 0 ? b.color : T.ink) : T.muted }}>
-                      {amt > 0 ? fmtGBP(amt) : "—"}
-                    </td>
-                  );
-                })}
-                <td style={{ padding: "12px 20px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: T.ink }}>
-                  {fmtGBP(c.outstanding)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr style={{ borderTop: `2px solid ${T.border}`, background: T.surf2 }}>
-              <td style={{ padding: "12px 20px", fontWeight: 700, color: T.ink }}>Total</td>
-              {grandTotals.map((b) => (
-                <td key={b.label} style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: b.total > 0 ? (b.min > 0 ? b.color : T.ink) : T.muted }}>
-                  {b.total > 0 ? fmtGBP(b.total) : "—"}
-                </td>
-              ))}
-              <td style={{ padding: "12px 20px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: T.ink }}>
-                {fmtGBP(grandTotal)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DemoCustomersPage() {
   const [selectedId, setSelectedId] = useState<string | null>("pemberton");
@@ -511,8 +428,6 @@ export default function DemoCustomersPage() {
         </div>
       </div>
 
-      {/* Aged debt */}
-      <AgedDebt />
     </div>
   );
 }
