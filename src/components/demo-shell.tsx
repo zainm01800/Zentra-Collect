@@ -70,18 +70,16 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
   const allTabs = [...visibleCollections, ...visibleBooks];
   const currentTabIndex = allTabs.findIndex((t) => t.href === pathname);
 
-  // All mutable swipe state lives in a single ref so the touch handlers
-  // registered once (empty deps) always read the latest values.
+  // All mutable swipe state in one ref — handlers registered once ([] deps)
+  // always read the latest values without re-registering listeners.
   const swipeRef = useRef({ allTabs, currentTabIndex, router, navigating: false });
   swipeRef.current.allTabs = allTabs;
   swipeRef.current.currentTabIndex = currentTabIndex;
   swipeRef.current.router = router;
 
-  // "left" = swiped left (going forward), "right" = swiped right (going back)
-  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+  // Release nav lock whenever the route settles (covers both VT and fallback).
+  useEffect(() => { swipeRef.current.navigating = false; }, [pathname]);
 
-  // Register touch listeners once on mount. Using empty deps prevents
-  // re-registration on every render (which caused double-swipe firing).
   useEffect(() => {
     let startX = 0;
     let startY = 0;
@@ -92,20 +90,34 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
     }
 
     function onEnd(e: TouchEvent) {
-      if (swipeRef.current.navigating) return; // block double-fire
+      if (swipeRef.current.navigating) return;
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dy) > Math.abs(dx)) return;
       if (Math.abs(dx) < 60) return;
+
       const { allTabs: tabs, currentTabIndex: idx, router: r } = swipeRef.current;
-      if (dx < 0 && idx < tabs.length - 1) {
-        swipeRef.current.navigating = true;
-        setSlideDir("left");
-        r.push(tabs[idx + 1].href);
-      } else if (dx > 0 && idx > 0) {
-        swipeRef.current.navigating = true;
-        setSlideDir("right");
-        r.push(tabs[idx - 1].href);
+      let href = "";
+      if      (dx < 0 && idx < tabs.length - 1) { href = tabs[idx + 1].href; document.documentElement.dataset.swipeDir = "left";  }
+      else if (dx > 0 && idx > 0)               { href = tabs[idx - 1].href; document.documentElement.dataset.swipeDir = "right"; }
+      else return;
+
+      swipeRef.current.navigating = true;
+
+      const cleanup = () => { delete document.documentElement.dataset.swipeDir; };
+
+      // View Transitions API: browser snapshots the current page, lets React
+      // render the new page, then animates between the two — no flash, no blank
+      // frame, both old and new content visible simultaneously during transition.
+      const vt = (document as Document & {
+        startViewTransition?: (cb: () => void) => { finished: Promise<void> };
+      }).startViewTransition;
+
+      if (vt) {
+        vt.call(document, () => r.push(href)).finished.finally(cleanup);
+      } else {
+        r.push(href);
+        setTimeout(cleanup, 400);
       }
     }
 
@@ -116,12 +128,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("touchend",   onEnd);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // After the slide animation completes, release the navigation lock.
-  useEffect(() => {
-    swipeRef.current.navigating = false;
-    setSlideDir(null);
-  }, [pathname]);
 
   return (
     <div
@@ -244,17 +250,7 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Everything below the nav strip slides as one unit on swipe.
-            key={pathname} remounts this block on navigation so the CSS
-            animation replays. overflow-hidden on the parent column clips it. */}
-        <div
-          key={pathname}
-          className={[
-            "flex flex-col flex-1 min-h-0",
-            slideDir === "left"  ? "demo-slide-in-left"  : "",
-            slideDir === "right" ? "demo-slide-in-right" : "",
-          ].join(" ")}
-        >
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Demo notice strip */}
           <div
             className="flex items-center justify-between gap-3 px-5 py-2 border-b text-[12px]"
