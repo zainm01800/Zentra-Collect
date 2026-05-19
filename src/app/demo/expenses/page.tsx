@@ -595,6 +595,7 @@ const VAT_PRESETS = [
 function VatCell({
   lineIdx, line, isEditing, vatDraft, pendingVat,
   onStartEdit, onSaveEdit, onCancelEdit, onDraftChange, onApplyPreset,
+  card = false,
 }: {
   lineIdx:        number;
   line:           VatLine;
@@ -606,19 +607,90 @@ function VatCell({
   onCancelEdit:   () => void;
   onDraftChange:  (v: string) => void;
   onApplyPreset:  (rate: number) => void;
+  /** card=true: full-width card UI for mobile. false: compact inline for desktop table. */
+  card?:          boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (isEditing) inputRef.current?.focus(); }, [isEditing]);
 
-  const draftNum  = parseFloat(vatDraft);
-  const liveRate  = isEditing && !isNaN(draftNum) && line.net > 0
-    ? r2((draftNum / line.net) * 100)
-    : null;
+  const draftNum = parseFloat(vatDraft);
+  const liveRate = isEditing && !isNaN(draftNum) && line.net > 0
+    ? r2((draftNum / line.net) * 100) : null;
 
+  // ── Card (mobile) edit mode ────────────────────────────────────────────────
+  if (isEditing && card) {
+    return (
+      <div className="rounded-xl border space-y-0 overflow-hidden"
+        style={{ borderColor: "var(--zn-line-soft)" }}>
+        {/* Rate selector */}
+        <div className="px-3.5 pt-3 pb-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] mb-2"
+            style={{ color: "var(--zn-ink-3)" }}>Select VAT rate</p>
+          <div className="grid grid-cols-2 gap-2">
+            {VAT_PRESETS.map(p => {
+              const active = line.vatRate === p.rate;
+              return (
+                <button key={p.rate} type="button"
+                  onClick={() => onApplyPreset(p.rate)}
+                  className="py-3 rounded-xl border text-[14px] font-semibold text-center transition-colors"
+                  style={{
+                    borderColor: active ? "var(--zn-accent)" : "var(--zn-line-soft)",
+                    background:  active ? "var(--zn-accent-soft)" : "var(--zn-surface-2)",
+                    color:       active ? "var(--zn-accent)" : "var(--zn-ink-2)",
+                  }}>
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Custom amount input */}
+        <div className="px-3.5 pb-3 pt-1 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] mb-2"
+            style={{ color: "var(--zn-ink-3)" }}>Or enter custom amount</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5"
+              style={{ borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)" }}>
+              <span className="text-[14px] font-medium" style={{ color: "var(--zn-accent)" }}>£</span>
+              <input
+                ref={inputRef}
+                type="number" min="0" step="0.01"
+                value={vatDraft}
+                onChange={e => onDraftChange(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter")  onSaveEdit(lineIdx);
+                  if (e.key === "Escape") onCancelEdit();
+                }}
+                className="flex-1 text-[15px] tabular-nums min-w-0"
+                style={{ color: "var(--zn-accent)", background: "transparent",
+                         outline: "none", border: "none" }}
+              />
+              {liveRate !== null && (
+                <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--zn-ink-3)" }}>
+                  → {vatRateLabel(liveRate)}
+                </span>
+              )}
+            </div>
+            <button type="button" onClick={() => onSaveEdit(lineIdx)} title="Save"
+              className="size-11 rounded-full inline-flex items-center justify-center border shrink-0"
+              style={{ borderColor: "var(--zn-safe)", background: "var(--zn-safe-soft)" }}>
+              <Check className="size-5" style={{ color: "var(--zn-safe)" }} />
+            </button>
+            <button type="button" onClick={onCancelEdit} title="Cancel"
+              className="size-11 rounded-full inline-flex items-center justify-center border shrink-0"
+              style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface-2)" }}>
+              <X className="size-5" style={{ color: "var(--zn-ink-3)" }} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Compact (desktop) edit mode ────────────────────────────────────────────
   if (isEditing) {
     return (
       <span className="inline-flex flex-col gap-2">
-        {/* Amount input row */}
         <span className="inline-flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5"
             style={{ borderColor: "var(--zn-accent)", background: "var(--zn-accent-soft)" }}>
@@ -633,8 +705,8 @@ function VatCell({
                 if (e.key === "Escape") onCancelEdit();
               }}
               className="w-20 text-[13px] tabular-nums"
-              style={{ color: "var(--zn-accent)", background: "transparent", outline: "none",
-                       border: "none", MozAppearance: "textfield" } as React.CSSProperties}
+              style={{ color: "var(--zn-accent)", background: "transparent",
+                       outline: "none", border: "none" }}
             />
           </span>
           {liveRate !== null && (
@@ -642,26 +714,24 @@ function VatCell({
               → {vatRateLabel(liveRate)}
             </span>
           )}
-          {/* Save / cancel — large enough to tap easily */}
           <button type="button" onClick={() => onSaveEdit(lineIdx)} title="Save"
-            className="size-9 rounded-full inline-flex items-center justify-center border transition-colors"
+            className="size-7 rounded-full inline-flex items-center justify-center border"
             style={{ borderColor: "var(--zn-safe)", background: "var(--zn-safe-soft)" }}>
-            <Check className="size-4" style={{ color: "var(--zn-safe)" }} />
+            <Check className="size-3.5" style={{ color: "var(--zn-safe)" }} />
           </button>
           <button type="button" onClick={onCancelEdit} title="Cancel"
-            className="size-9 rounded-full inline-flex items-center justify-center border transition-colors"
+            className="size-7 rounded-full inline-flex items-center justify-center border"
             style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface-2)" }}>
-            <X className="size-4" style={{ color: "var(--zn-ink-3)" }} />
+            <X className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
           </button>
         </span>
-        {/* Preset chips — 2-column grid for easy tapping on mobile */}
         <span className="grid grid-cols-2 gap-1.5">
           {VAT_PRESETS.map(p => {
             const active = line.vatRate === p.rate;
             return (
               <button key={p.rate} type="button"
                 onClick={() => onApplyPreset(p.rate)}
-                className="text-[12px] font-medium px-3 py-2 rounded-lg border transition-colors text-center"
+                className="text-[11.5px] font-medium px-2 py-1.5 rounded-lg border transition-colors text-center"
                 style={{
                   borderColor: active ? "var(--zn-accent)" : "var(--zn-line-soft)",
                   background:  active ? "var(--zn-accent-soft)" : "var(--zn-surface)",
@@ -677,11 +747,54 @@ function VatCell({
     );
   }
 
+  // ── Card (mobile) view / trigger ───────────────────────────────────────────
+  if (card) {
+    const hasVat = line.vat > 0;
+    return (
+      <button
+        type="button"
+        onClick={() => onStartEdit(lineIdx, line.vat)}
+        className="w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border transition-colors active:opacity-80"
+        style={{
+          borderColor: hasVat ? "var(--zn-accent)" : "var(--zn-line-soft)",
+          background:  hasVat ? "var(--zn-accent-soft)" : "var(--zn-surface-2)",
+        }}
+      >
+        <div className="text-left">
+          {hasVat ? (
+            <>
+              <p className="text-[14px] font-bold tabular-nums"
+                style={{ color: pendingVat > 0 ? "var(--zn-warn)" : "var(--zn-accent)" }}>
+                +{fmtGBP(line.vat)} VAT
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                @ {vatRateLabel(line.vatRate)} · tap to change
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink-2)" }}>
+                {vatRateLabel(line.vatRate)} — no VAT
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                Tap to change VAT rate
+              </p>
+            </>
+          )}
+        </div>
+        <Pencil className="size-4 shrink-0" style={{ color: hasVat ? "var(--zn-accent)" : "var(--zn-ink-3)" }} />
+      </button>
+    );
+  }
+
+  // ── Compact (desktop) view / trigger ──────────────────────────────────────
   if (line.vat === 0) {
     return (
-      <span className="text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+      <button type="button" onClick={() => onStartEdit(lineIdx, 0)}
+        className="text-[11px] tabular-nums hover:opacity-70 transition-opacity"
+        style={{ color: "var(--zn-ink-3)" }}>
         {vatRateLabel(line.vatRate)} — no VAT
-      </span>
+      </button>
     );
   }
 
@@ -689,22 +802,18 @@ function VatCell({
     <button
       type="button"
       onClick={() => onStartEdit(lineIdx, line.vat)}
-      className="group inline-flex items-center gap-1.5 py-2 px-2.5 -my-1 -mx-1 rounded-lg hover:bg-[var(--zn-surface-2)] transition-colors"
+      className="group inline-flex items-center gap-1.5 py-1.5 px-2 -my-1 -mx-1 rounded-lg hover:bg-[var(--zn-surface-2)] transition-colors"
       title="Click to edit VAT amount"
     >
-      <span
-        className="text-[12px] font-semibold tabular-nums"
-        style={{ color: pendingVat > 0 ? "var(--zn-warn)" : "var(--zn-accent)" }}
-      >
+      <span className="text-[12px] font-semibold tabular-nums"
+        style={{ color: pendingVat > 0 ? "var(--zn-warn)" : "var(--zn-accent)" }}>
         +{fmtGBP(line.vat)} VAT
       </span>
       <span className="text-[10px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
         · {vatRateLabel(line.vatRate)}
       </span>
-      <Pencil
-        className="size-3 opacity-40 group-hover:opacity-100 transition-opacity"
-        style={{ color: "var(--zn-ink-3)" }}
-      />
+      <Pencil className="size-3 opacity-40 group-hover:opacity-100 transition-opacity"
+        style={{ color: "var(--zn-ink-3)" }} />
     </button>
   );
 }
@@ -1079,10 +1188,11 @@ function ExpenseRow({
                       onStartEdit={onStartVatEdit} onSaveEdit={onSaveVatEdit}
                       onCancelEdit={onCancelVatEdit} onDraftChange={onVatDraftChange}
                       onApplyPreset={(rate) => onApplyVatPreset(i, rate)}
+                      card
                     />
                     {lineModified && (
                       <button type="button" onClick={() => onResetVatLine(i)}
-                        className="mt-1 text-[10.5px] underline underline-offset-2"
+                        className="mt-2 text-[12px] underline underline-offset-2"
                         style={{ color: "var(--zn-ink-3)" }}>
                         ↩ reset to original
                       </button>
