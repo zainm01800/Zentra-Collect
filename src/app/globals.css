@@ -628,22 +628,29 @@ body::before {
 }
 
 /* ─── Demo shell swipe-between-tabs slide animation ───────────────────────── */
-/* Full-width slide: swiping left brings the next tab in from the right,
-   swiping right brings the previous tab in from the left.
-   Parent column must have overflow-hidden to clip the off-screen content. */
+/* translate3d (not translateX) always routes through the GPU compositor.
+   will-change promotes the element to its own layer before the animation
+   starts so there is no mid-animation rasterisation stall.
+   backface-visibility: hidden prevents subpixel flicker on iOS Safari. */
 @keyframes demo-slide-from-right {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
+  from { transform: translate3d(100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 @keyframes demo-slide-from-left {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(0); }
+  from { transform: translate3d(-100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+.demo-slide-in-left,
+.demo-slide-in-right {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .demo-slide-in-left {
-  animation: demo-slide-from-right 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: demo-slide-from-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .demo-slide-in-right {
-  animation: demo-slide-from-left 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: demo-slide-from-left 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Inputs on iOS — prevent zoom on focus when font-size < 16px */
