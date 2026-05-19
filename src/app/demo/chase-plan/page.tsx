@@ -1,341 +1,417 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
-import {
-  Bell,
-  BellOff,
-  CheckCircle2,
-  MessageSquare,
-  ArrowRight,
-  X,
-  Copy,
-  Check,
-  Lock,
-  Sparkles,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-} from "lucide-react";
-import dynamic from "next/dynamic";
-const DemoAiDrafter = dynamic(
-  () => import("@/components/demo-ai-drafter").then((m) => m.DemoAiDrafter),
-  { ssr: false },
-);
-import {
-  demoInvoices,
-  demoCustomers,
-  demoSingleBusiness,
-} from "@/lib/demo-data/zentra-demo-data";
-import type { Invoice } from "@/types/zentra";
-import { rankCollectionActions } from "@/lib/collections/decision-engine";
-import { buildCustomerBehaviourProfile } from "@/lib/collections/customer-behaviour";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { FileText, Copy, Check, X } from "lucide-react";
+
+// ── Color tokens ──────────────────────────────────────────────────────────────
+const T = {
+  bg:      "var(--zn-bg)",
+  card:    "var(--zn-surface)",
+  surf2:   "var(--zn-surface-2)",
+  ink:     "var(--zn-ink)",
+  muted:   "var(--zn-ink-3)",
+  border:  "var(--zn-line-soft)",
+  green:   "var(--zn-safe)",
+  amber:   "var(--zn-warn)",
+  red:     "var(--zn-risk)",
+  blue:    "var(--zn-info)",
+} as const;
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const CUSTOMERS: Record<string, {
+  name: string; contact: string; role: string;
+  email: string; phone: string; history: string;
+}> = {
+  meridian:   { name: "Meridian Studio",      contact: "Sarah Whitford",  role: "Operations Director", email: "sarah.whitford@meridianstudio.co.uk", phone: "+44 20 7946 0118", history: "Client since 2023 · 14 invoices paid on time" },
+  bluepeak:   { name: "BluePeak Ltd",          contact: "Daniel Okafor",   role: "Head of Finance",     email: "accounts@bluepeak.ltd.uk",            phone: "+44 161 555 0142", history: "Client since 2024 · 6 invoices, 2 paid late" },
+  oaktree:    { name: "Oaktree Consulting",    contact: "Priya Raman",     role: "Managing Partner",    email: "priya@oaktree-consulting.com",         phone: "+44 20 3964 7720", history: "Client since 2022 · 21 invoices, 1 dispute" },
+  harborgate: { name: "Harborgate Architects", contact: "Tom Reilly",      role: "Practice Manager",    email: "t.reilly@harborgate-arch.co.uk",       phone: "+44 117 555 0093", history: "Client since 2025 · 4 invoices, 1 disputed" },
+};
+
+type Urgency = "red" | "amber" | "grey" | "blocked";
+
+interface Invoice {
+  id: string; ref: string; customer: keyof typeof CUSTOMERS;
+  amount: number; daysOverdue: number; due: string;
+  urgency: Urgency; status: string;
+  action: string; template: string; aiDraft: string; reason: string;
+}
+
+const INVOICES: Invoice[] = [
+  { id: "i1", ref: "INV-2026-0142", customer: "oaktree",    amount: 8400.00,  daysOverdue: 47, due: "1 Apr 2026",  urgency: "red",     status: "Action now",
+    action: "Send final notice — 47 days, two reminders unanswered",
+    template: "Dear Priya,\n\nThis is a formal final notice. Invoice INV-2026-0142 for £8,400.00, dated 1 April 2026, is now 47 days overdue despite reminders on 22 April and 6 May.\n\nUnless full payment is received within 7 days (by 26 May 2026), we will commence recovery under the Late Payment of Commercial Debts (Interest) Act 1998. Statutory interest of 8% above base plus £100 compensation may apply.\n\nPlease settle to the bank details on the invoice, or reply to agree a payment plan.\n\nKind regards,\nHelen Carver",
+    aiDraft: "Hi Priya,\n\nI wanted to flag that INV-2026-0142 (£8,400) has now been outstanding for 47 days — beyond the two reminders we've sent. Before we escalate to a formal pre-action letter, I'd love to find a way through this together.\n\nCould we hop on a 15-minute call this week?\n\nHelen",
+    reason: "Two prior reminders sent (22 Apr, 6 May) with no response. At 47 days past due, this invoice crosses the threshold where statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998 begins to accrue meaningfully." },
+  { id: "i2", ref: "INV-2026-0138", customer: "bluepeak",   amount: 12250.00, daysOverdue: 23, due: "26 Apr 2026", urgency: "red",     status: "Action now",
+    action: "Chase now — largest single exposure, customer slow-paying pattern",
+    template: "Hi Daniel,\n\nA reminder that invoice INV-2026-0138 for £12,250.00, due on 26 April 2026, is now 23 days overdue.\n\nCould you confirm a payment date, or let me know if there is anything holding things up?\n\nThanks,\nHelen",
+    aiDraft: "Hi Daniel,\n\nQuick check-in on INV-2026-0138 (£12,250) — it's now 23 days past due. Happy to jump on a call to talk through options.\n\nHelen",
+    reason: "Largest single outstanding invoice. BluePeak has been late on two of six invoices this year — a chase at the 3-week mark typically resolves within 5 working days." },
+  { id: "i3", ref: "INV-2026-0119", customer: "harborgate", amount: 18500.00, daysOverdue: 89, due: "20 Feb 2026", urgency: "blocked", status: "Disputed — blocked",
+    action: "Dispute on hold — awaiting reconciliation from Tom Reilly",
+    template: "Hi Tom,\n\nFollowing up on the dispute around INV-2026-0119 (£18,500.00). Could you share the line items you're querying so we can produce a credit note or revised invoice?\n\nThanks,\nHelen",
+    aiDraft: "Hi Tom,\n\nI know we've gone back and forth on INV-2026-0119, so let me try to simplify. Could you confirm which specific lines you're contesting? If we can pin those down today I'll have a revised invoice with you by Friday.\n\nHelen",
+    reason: "Customer has formally disputed scope (email 18 Mar). Until resolved, escalation is paused. Last contact was 5 May — Tom Reilly to send line-item reconciliation." },
+  { id: "i4", ref: "INV-2026-0151", customer: "meridian",   amount: 4800.00,  daysOverdue: 14, due: "5 May 2026",  urgency: "amber",   status: "Follow up",
+    action: "Phone call recommended — strong payment history",
+    template: "Hi Sarah,\n\nHope you're well. Just a quick note — INV-2026-0151 (£4,800.00) is showing as outstanding (was due 5 May).\n\nBest,\nHelen",
+    aiDraft: "Hi Sarah,\n\nINV-2026-0151 (£4,800) drifted past its due date a fortnight ago. Meridian has paid every invoice on time for the past 14 months, so I'm sure this is just an admin slip — but a quick word would be perfect. Shall I call tomorrow at 10:30?\n\nHelen",
+    reason: "Meridian has paid 14 consecutive invoices on time, so a 14-day delay is unusual. Most such cases resolve with a single phone call." },
+  { id: "i5", ref: "INV-2026-0147", customer: "bluepeak",   amount: 3200.00,  daysOverdue: 31, due: "18 Apr 2026", urgency: "amber",   status: "Follow up",
+    action: "Second reminder — first sent 11 May",
+    template: "Hi Daniel,\n\nFollowing up on INV-2026-0147 (£3,200.00). We sent a first reminder on 11 May and have not heard back. The invoice is now 31 days overdue.\n\nCould you confirm a payment date this week?\n\nThanks,\nHelen",
+    aiDraft: "Hi Daniel,\n\nSecond reminder on INV-2026-0147 (£3,200) — now a month past due and not yet acknowledged.\n\nHelen",
+    reason: "First reminder went out 11 May with no acknowledgement. This is the second of three planned reminder steps before formal escalation." },
+  { id: "i6", ref: "INV-2026-0149", customer: "oaktree",    amount: 2900.00,  daysOverdue: 15, due: "4 May 2026",  urgency: "amber",   status: "Follow up",
+    action: "Friendly nudge — first reminder window",
+    template: "Hi Priya,\n\nJust a quick nudge on invoice INV-2026-0149 (£2,900.00), due 4 May.\n\nThanks,\nHelen",
+    aiDraft: "Hi Priya,\n\nINV-2026-0149 (£2,900) is two weeks past due. If there's anything I can do to clear it through — re-issue, split, change of payee — just say the word.\n\nHelen",
+    reason: "Standard first-reminder window. No need for escalation language at this stage." },
+  { id: "i7", ref: "INV-2026-0153", customer: "meridian",   amount: 2350.00,  daysOverdue: 62, due: "18 Mar 2026", urgency: "red",     status: "Action now",
+    action: "Escalate — past two reminder cycles",
+    template: "Dear Sarah,\n\nDespite reminders on 1 April and 24 April, invoice INV-2026-0153 for £2,350.00 (due 18 March) remains unpaid and is now 62 days overdue.\n\nPlease settle within 7 days.\n\nBest,\nHelen",
+    aiDraft: "Hi Sarah,\n\nThis is unusual — INV-2026-0153 (£2,350) has now slipped past 60 days, despite two prior reminders. Before I follow our standard escalation, I'd really rather just talk.\n\nHelen",
+    reason: "Two prior reminders went unanswered, breaking Meridian's normal pattern. At 62 days past due this would normally trigger formal escalation, but the customer's long clean history warrants a personal call first." },
+  { id: "i8", ref: "INV-2026-0156", customer: "harborgate", amount: 1200.00,  daysOverdue: 4,  due: "15 May 2026", urgency: "grey",    status: "Monitoring",
+    action: "Re-check in 3 days — within first-reminder grace",
+    template: "Hi Tom,\n\nQuick note — INV-2026-0156 (£1,200.00) became due last week. Could you confirm when we can expect payment?\n\nThanks,\nHelen",
+    aiDraft: "Hi Tom,\n\nINV-2026-0156 (£1,200) became due on 15 May — could you confirm a payment date?\n\nHelen",
+    reason: "Within standard 7-day grace window. Re-evaluate on 22 May." },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency", currency: "GBP",
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(n);
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+function fmtGBPShort(n: number) {
+  return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-type Urgency = "high" | "medium" | "low" | "blocked";
-type ActionMeta = { label: string; reason: string; urgency: Urgency };
-
-function getAction(inv: Invoice): ActionMeta {
-  switch (inv.status) {
-    case "missed_promise":
-      return {
-        label: "Follow up missed promise",
-        reason: `Payment was promised for ${fmtDate(inv.promisedPaymentDate)} and hasn't arrived. Ask for a revised date.`,
-        urgency: "high",
-      };
-    case "disputed":
-      return {
-        label: "Resolve dispute first",
-        reason: inv.disputeReason
-          ? `Active dispute: "${inv.disputeReason}". Do not demand payment until resolved.`
-          : "Active dispute on this invoice. Address the query before chasing payment.",
-        urgency: "blocked",
-      };
-    case "needs_ap_contact":
-      return {
-        label: "Find AP contact",
-        reason: "No email address in your records for this customer. Locate the right contact before drafting.",
-        urgency: "high",
-      };
-    case "overdue":
-      return inv.previousChaseCount >= 2
-        ? {
-            label: "Send firm reminder",
-            reason: `${inv.daysOverdue} days overdue with ${inv.previousChaseCount} prior chases. A firmer tone is appropriate.`,
-            urgency: "high",
-          }
-        : {
-            label: "Send first reminder",
-            reason: `${inv.daysOverdue} days overdue. No prior chases — start with a polite prompt.`,
-            urgency: "medium",
-          };
-    case "awaiting_remittance":
-      return {
-        label: "Request remittance advice",
-        reason: "Customer says they've paid but no remittance has been received. Confirm and match to bank statement.",
-        urgency: "medium",
-      };
-    case "awaiting_statement":
-      return {
-        label: "Send statement of account",
-        reason: "Customer has requested a statement. Sending one often speeds up payment approval.",
-        urgency: "medium",
-      };
-    case "promised":
-      return {
-        label: "Monitor — promise pending",
-        reason: `Payment promised for ${fmtDate(inv.promisedPaymentDate)}. Chase only if the date passes.`,
-        urgency: "low",
-      };
-    case "due_soon":
-      return {
-        label: "No action yet",
-        reason: `Invoice due ${fmtDate(inv.dueDate)}. Monitor and chase if it becomes overdue.`,
-        urgency: "low",
-      };
-    case "do_not_chase":
-      return {
-        label: "Excluded from chasing",
-        reason: "This invoice has been manually excluded. No action required.",
-        urgency: "blocked",
-      };
-    default:
-      return {
-        label: "No action",
-        reason: "No collection action needed at this time.",
-        urgency: "low",
-      };
-  }
-}
-
-const URGENCY_STYLE: Record<Urgency, { color: string; bg: string }> = {
-  high:    { color: "var(--zn-risk)",  bg: "var(--zn-risk-soft)" },
-  medium:  { color: "var(--zn-warn)",  bg: "var(--zn-warn-soft)" },
-  low:     { color: "var(--zn-ink-3)", bg: "var(--zn-surface-2)" },
-  blocked: { color: "var(--zn-ink-3)", bg: "var(--zn-surface-2)" },
+const URGENCY_DOT: Record<Urgency, string> = {
+  red:     T.red,
+  amber:   T.amber,
+  grey:    T.muted,
+  blocked: T.red,
 };
 
-const URGENCY_ORDER: Record<Urgency, number> = { high: 0, medium: 1, low: 2, blocked: 3 };
-
-type FilterTab = "all" | "action" | "monitoring" | "blocked";
-
-const FILTER_URGENCY: Record<FilterTab, Urgency[] | null> = {
-  all:        null,
-  action:     ["high", "medium"],
-  monitoring: ["low"],
-  blocked:    ["blocked"],
+const URGENCY_PILL: Record<Urgency, { bg: string; color: string }> = {
+  red:     { bg: "var(--zn-risk-soft)",  color: T.red },
+  amber:   { bg: "var(--zn-warn-soft)",  color: T.amber },
+  grey:    { bg: T.surf2,                color: T.muted },
+  blocked: { bg: "var(--zn-risk-soft)",  color: T.red },
 };
 
-function buildDraft(inv: Invoice, sender = demoSingleBusiness.senderName): string {
-  const customer = demoCustomers.find((c) => c.id === inv.customerId);
-  const contact  = customer?.apContactName ?? customer?.name ?? "there";
-  const amount   = fmtGBP(inv.amountOutstanding);
-  const due      = fmtDate(inv.dueDate);
+const URGENCY_DAYS_COLOR: Record<Urgency, string> = {
+  red:     T.red,
+  amber:   T.amber,
+  grey:    T.muted,
+  blocked: T.red,
+};
 
-  switch (inv.status) {
-    case "missed_promise":
-      return `Subject: Follow-up: Invoice ${inv.invoiceNumber} — Promised Payment\n\nHi ${contact},\n\nI'm following up on invoice ${inv.invoiceNumber} for ${amount}, due ${due}.\n\nWe had noted a payment commitment${inv.promisedPaymentDate ? ` for ${fmtDate(inv.promisedPaymentDate)}` : " you previously confirmed"}, but we haven't yet received the funds or remittance advice.\n\nCould you let me know if there's been a delay, or share a revised payment date?\n\nMany thanks,\n${sender}\n${demoSingleBusiness.name}`;
-    case "overdue":
-      if (inv.previousChaseCount >= 2) {
-        return `Subject: Invoice ${inv.invoiceNumber} — ${inv.daysOverdue} Days Overdue\n\nHi ${contact},\n\nI'm writing to follow up again on invoice ${inv.invoiceNumber} for ${amount}, which was due on ${due} and is now ${inv.daysOverdue} days overdue.\n\nWe've been in touch a couple of times and haven't yet received payment or a confirmed date. Could you please let me know when we can expect this to be settled?\n\nKind regards,\n${sender}\n${demoSingleBusiness.name}`;
-      }
-      return `Subject: Invoice ${inv.invoiceNumber} — Payment Reminder\n\nHi ${contact},\n\nI hope you're well. I'm writing to follow up on invoice ${inv.invoiceNumber} for ${amount}, which was due on ${due}.\n\nCould you let me know when we can expect payment, or if there's anything I can help clarify?\n\nMany thanks,\n${sender}\n${demoSingleBusiness.name}`;
-    case "awaiting_remittance":
-      return `Subject: Invoice ${inv.invoiceNumber} — Remittance Advice Needed\n\nHi ${contact},\n\nThank you — we understand payment has been made for invoice ${inv.invoiceNumber} (${amount}).\n\nWe haven't yet received the funds in our account or a remittance note. Could you forward the payment confirmation or remittance advice so we can match this up?\n\nMany thanks,\n${sender}\n${demoSingleBusiness.name}`;
-    case "awaiting_statement":
-      return `Subject: Statement of Account — ${demoSingleBusiness.name}\n\nHi ${contact},\n\nAs requested, please find below a summary of your current outstanding balance.\n\nInvoice ${inv.invoiceNumber} | Due: ${due} | Outstanding: ${amount}\n\nPlease let us know if you have any questions.\n\nKind regards,\n${sender}\n${demoSingleBusiness.name}`;
-    default:
-      return `Subject: Invoice ${inv.invoiceNumber} — Gentle Reminder\n\nHi ${contact},\n\nJust a quick note regarding invoice ${inv.invoiceNumber} for ${amount}, due ${due}.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards,\n${sender}\n${demoSingleBusiness.name}`;
-  }
+type FilterKey = "all" | "action" | "followup" | "monitoring" | "blocked";
+
+const FILTER_LABELS: Record<FilterKey, string> = {
+  all:        "All",
+  action:     "Action now",
+  followup:   "Follow up",
+  monitoring: "Monitoring",
+  blocked:    "Blocked",
+};
+
+function matchFilter(inv: Invoice, f: FilterKey): boolean {
+  if (f === "all") return true;
+  if (f === "action")     return inv.urgency === "red" && inv.status !== "Disputed — blocked";
+  if (f === "followup")   return inv.urgency === "amber";
+  if (f === "monitoring") return inv.urgency === "grey";
+  if (f === "blocked")    return inv.urgency === "blocked";
+  return true;
 }
 
-// Pre-sorted list of all open invoices
-const open = demoInvoices
-  .filter((inv) => inv.status !== "paid" && (inv.amountOutstanding ?? inv.amount) > 0)
-  .sort((a, b) => {
-    const ou = URGENCY_ORDER[getAction(a).urgency] - URGENCY_ORDER[getAction(b).urgency];
-    return ou !== 0 ? ou : b.amountOutstanding - a.amountOutstanding;
-  });
+const FILTER_COUNTS: Record<FilterKey, number> = {
+  all:        INVOICES.length,
+  action:     INVOICES.filter((i) => matchFilter(i, "action")).length,
+  followup:   INVOICES.filter((i) => matchFilter(i, "followup")).length,
+  monitoring: INVOICES.filter((i) => matchFilter(i, "monitoring")).length,
+  blocked:    INVOICES.filter((i) => matchFilter(i, "blocked")).length,
+};
 
-type DraftModal = { inv: Invoice; draft: string } | null;
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-// ── Detail panel content (shared by desktop panel + mobile expand) ────────────
+function UrgencyDot({ urgency, size = 8 }: { urgency: Urgency; size?: number }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: size, height: size,
+        borderRadius: "50%",
+        background: URGENCY_DOT[urgency],
+        flexShrink: 0,
+      }}
+    />
+  );
+}
 
-function InvoiceDetail({
-  inv,
-  isSnoozed,
-  isReplied,
-  onToggleSnoozed,
-  onToggleReplied,
-  onOpenDraft,
-  onOpenAi,
+function StatusPill({ urgency, status }: { urgency: Urgency; status: string }) {
+  const p = URGENCY_PILL[urgency];
+  return (
+    <span
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4,
+        background: p.bg, color: p.color,
+        borderRadius: 99, padding: "2px 8px",
+        fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+      }}
+    >
+      <UrgencyDot urgency={urgency} size={6} />
+      {status}
+    </span>
+  );
+}
+
+function Toggle({
+  on, onToggle, colorOn,
+}: { on: boolean; onToggle: () => void; colorOn: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        width: 36, height: 20, borderRadius: 10, border: "none",
+        background: on ? colorOn : "var(--zn-ink-3)",
+        position: "relative", cursor: "pointer", transition: "background 0.18s",
+        flexShrink: 0,
+      }}
+      aria-pressed={on}
+    >
+      <span
+        style={{
+          position: "absolute", top: 2, left: on ? 18 : 2,
+          width: 16, height: 16, borderRadius: "50%",
+          background: "#fff", transition: "left 0.18s",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+        }}
+      />
+    </button>
+  );
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+
+function DetailPanel({
+  inv, replied, snoozed, draftMode, bodyText,
+  onToggleReplied, onToggleSnoozed,
+  onSetDraftMode, onBodyChange,
+  onCopy, copied, onMarkChased, onSnooze,
 }: {
   inv: Invoice;
-  isSnoozed: boolean;
-  isReplied: boolean;
-  onToggleSnoozed: () => void;
+  replied: boolean; snoozed: boolean;
+  draftMode: "template" | "ai";
+  bodyText: string;
   onToggleReplied: () => void;
-  onOpenDraft: () => void;
-  onOpenAi: () => void;
+  onToggleSnoozed: () => void;
+  onSetDraftMode: (m: "template" | "ai") => void;
+  onBodyChange: (s: string) => void;
+  onCopy: () => void;
+  copied: boolean;
+  onMarkChased: () => void;
+  onSnooze: () => void;
 }) {
-  const action   = getAction(inv);
-  const customer = demoCustomers.find((c) => c.id === inv.customerId);
-  const colors   = URGENCY_STYLE[action.urgency];
-  const blocked  = inv.status === "disputed" || inv.status === "do_not_chase";
+  const cust = CUSTOMERS[inv.customer];
+  const pill = URGENCY_PILL[inv.urgency];
 
   return (
-    <div className="space-y-5">
-      {/* Invoice header */}
-      <div>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em]" style={{ color: "var(--zn-ink)" }}>
-              {customer?.name ?? inv.customerName}
-            </h2>
-            <p className="text-[12px] font-mono mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-              {inv.invoiceNumber}
-            </p>
-          </div>
-          <span
-            className="shrink-0 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
-            style={{ background: colors.bg, color: colors.color }}
-          >
-            {action.label}
-          </span>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* Key stats */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          {[
-            { label: "Outstanding", value: fmtGBP(inv.amountOutstanding) },
-            { label: "Due date",    value: fmtDate(inv.dueDate) },
-            { label: "Overdue",     value: inv.daysOverdue > 0 ? `${inv.daysOverdue} days` : "Not yet" },
-          ].map(({ label, value }) => (
-            <div key={label}
-              className="rounded-[8px] px-3 py-2.5"
-              style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
-            >
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] mb-0.5" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-              <p className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>{value}</p>
-            </div>
-          ))}
-        </div>
+      {/* Eyebrow */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <UrgencyDot urgency={inv.urgency} />
+        <span style={{ fontSize: 12, color: pill.color, fontWeight: 600 }}>{inv.status}</span>
+        <span style={{ fontSize: 12, color: T.muted }}>·</span>
+        <span style={{ fontSize: 12, color: T.muted, fontFamily: "monospace" }}>{inv.ref}</span>
       </div>
 
-      {/* Why this action */}
+      {/* Customer name */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.07em] mb-1.5" style={{ color: "var(--zn-ink-3)" }}>
-          Why this action
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: T.ink, margin: 0, letterSpacing: "-0.01em" }}>
+          {cust.name}
+        </h2>
+        <p style={{ fontSize: 12, color: T.muted, margin: "4px 0 0" }}>
+          {cust.contact} · {cust.role}
         </p>
-        <p className="text-[13px] leading-relaxed" style={{ color: "var(--zn-ink-2)" }}>
-          {action.reason}
+      </div>
+
+      {/* Summary grid 2×2 */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {[
+          { label: "Amount",       value: fmtGBP(inv.amount) },
+          { label: "Days overdue", value: `${inv.daysOverdue} days`, color: URGENCY_DAYS_COLOR[inv.urgency] },
+          { label: "Status",       value: inv.status },
+          { label: "Contact",      value: cust.contact },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            style={{
+              background: T.surf2, borderRadius: 8, padding: "10px 12px",
+              border: `1px solid ${T.border}`,
+            }}
+          >
+            <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: T.muted, margin: "0 0 3px" }}>
+              {label}
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: color ?? T.ink, margin: 0 }}>
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Why chase now */}
+      <div>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: T.muted, margin: "0 0 8px" }}>
+          Why chase now
         </p>
-        {/* Meta chips */}
-        <div className="flex flex-wrap gap-2 mt-2.5">
-          {inv.previousChaseCount > 0 && (
-            <span className="rounded-full px-2.5 py-0.5 text-[11px]"
-              style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line-soft)" }}>
-              {inv.previousChaseCount} prior chase{inv.previousChaseCount > 1 ? "s" : ""}
-            </span>
-          )}
-          {customer?.apContactName && (
-            <span className="rounded-full px-2.5 py-0.5 text-[11px]"
-              style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line-soft)" }}>
-              {customer.apContactName}
-            </span>
-          )}
-          {customer?.apEmail && (
-            <span className="rounded-full px-2.5 py-0.5 text-[11px]"
-              style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line-soft)" }}>
-              {customer.apEmail}
-            </span>
-          )}
-        </div>
+        <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: 0 }}>
+          {inv.reason}
+        </p>
       </div>
 
       {/* Draft message */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.07em] mb-2" style={{ color: "var(--zn-ink-3)" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: T.muted, margin: "0 0 10px" }}>
           Draft message
         </p>
-        {blocked ? (
-          <div className="rounded-[8px] px-3 py-2.5 text-[12.5px]"
-            style={{ background: "var(--zn-risk-soft)", color: "var(--zn-risk)" }}>
-            <strong>Blocked</strong> —{" "}
-            {inv.status === "disputed"
-              ? "Resolve the dispute before drafting a chase."
-              : "This invoice is excluded from chasing."}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+
+        {/* Tab toggle */}
+        <div
+          style={{
+            display: "inline-flex", borderRadius: 8,
+            background: T.surf2, border: `1px solid ${T.border}`,
+            padding: 3, marginBottom: 10,
+          }}
+        >
+          {(["template", "ai"] as const).map((m) => (
             <button
+              key={m}
               type="button"
-              onClick={onOpenDraft}
-              className="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium border transition-colors hover:bg-[var(--zn-surface)]"
-              style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+              onClick={() => onSetDraftMode(m)}
+              style={{
+                padding: "5px 12px", borderRadius: 6, border: "none",
+                fontSize: 12, fontWeight: 500, cursor: "pointer",
+                background: draftMode === m ? T.card : "transparent",
+                color: draftMode === m ? T.ink : T.muted,
+                boxShadow: draftMode === m ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s",
+              }}
             >
-              <MessageSquare className="size-3.5" />
-              Template draft
+              {m === "template" ? "Template" : "AI draft (Demo)"}
             </button>
-            <button
-              type="button"
-              onClick={onOpenAi}
-              className="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[12.5px] font-medium transition-colors"
-              style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
-            >
-              <Sparkles className="size-3.5" />
-              AI draft (demo)
-            </button>
-          </div>
-        )}
-        <p className="text-[11px] mt-1.5" style={{ color: "var(--zn-ink-3)" }}>
-          AI demo uses sample output — no API call. Real product drafts in your brand voice.
-        </p>
+          ))}
+        </div>
+
+        {/* Textarea */}
+        <textarea
+          rows={9}
+          value={bodyText}
+          onChange={(e) => onBodyChange(e.target.value)}
+          style={{
+            width: "100%", boxSizing: "border-box",
+            padding: "10px 12px", borderRadius: 8,
+            border: `1px solid ${T.border}`,
+            fontSize: 13, lineHeight: 1.55, color: T.ink,
+            background: T.card, resize: "vertical", outline: "none",
+            fontFamily: "inherit",
+          }}
+        />
+
+        {/* To + char count */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+          <span style={{ fontSize: 11, color: T.muted }}>
+            To: {cust.email}
+          </span>
+          <span style={{ fontSize: 11, color: T.muted }}>
+            {bodyText.length} chars
+          </span>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={onCopy}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "var(--zn-bg-inverse)", color: "#fff",
+              border: "none", borderRadius: 99,
+              padding: "8px 16px", fontSize: 13, fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? "Copied!" : "Copy message"}
+          </button>
+          <button
+            type="button"
+            onClick={onMarkChased}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "transparent", color: T.ink,
+              border: `1px solid ${T.border}`, borderRadius: 99,
+              padding: "8px 16px", fontSize: 13, fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Mark as chased
+          </button>
+          <button
+            type="button"
+            onClick={onSnooze}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "transparent", color: T.ink,
+              border: `1px solid ${T.border}`, borderRadius: 99,
+              padding: "8px 16px", fontSize: 13, fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Snooze 7 days
+          </button>
+        </div>
       </div>
 
-      {/* Row actions */}
-      <div className="flex flex-wrap gap-2 pt-4 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
-        <button
-          type="button"
-          onClick={onToggleReplied}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors"
-          style={{
-            borderColor: isReplied ? "var(--zn-safe)" : "var(--zn-line)",
-            color:       isReplied ? "var(--zn-safe)" : "var(--zn-ink-2)",
-            background:  isReplied ? "var(--zn-safe-soft)" : "transparent",
-          }}
-        >
-          <CheckCircle2 className="size-3.5" />
-          {isReplied ? "Reply received ✓" : "Mark as replied"}
-        </button>
-        <button
-          type="button"
-          onClick={onToggleSnoozed}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors"
-          style={{
-            borderColor: "var(--zn-line)",
-            color: isSnoozed ? "var(--zn-warn)" : "var(--zn-ink-2)",
-          }}
-        >
-          {isSnoozed ? <Bell className="size-3.5" /> : <BellOff className="size-3.5" />}
-          {isSnoozed ? "Unsnoozed" : "Snooze 7 days"}
-        </button>
+      {/* Customer signals */}
+      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: T.muted, margin: "0 0 12px" }}>
+          Customer signals
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 500, color: T.ink, margin: 0 }}>Reply received</p>
+              <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0" }}>
+                {replied ? "Chase paused — reply logged" : "No reply logged yet"}
+              </p>
+            </div>
+            <Toggle on={replied} onToggle={onToggleReplied} colorOn={T.green} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 500, color: T.ink, margin: 0 }}>Snoozed 7 days</p>
+              <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0" }}>
+                {snoozed ? "Re-surfaces 26 May" : "Not snoozed"}
+              </p>
+            </div>
+            <Toggle on={snoozed} onToggle={onToggleSnoozed} colorOn={T.amber} />
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <p style={{ fontSize: 11, color: T.muted, margin: 0 }}>
+              {cust.history}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -344,456 +420,495 @@ function InvoiceDetail({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DemoChasePlanPage() {
-  const [selectedId,     setSelectedId]     = useState<string | null>(null);
-  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
-  const [search,         setSearch]         = useState("");
-  const [filterTab,      setFilterTab]      = useState<FilterTab>("all");
-  const [modal,          setModal]          = useState<DraftModal>(null);
-  const [copied,         setCopied]         = useState(false);
-  const [aiInvoice,      setAiInvoice]      = useState<Invoice | null>(null);
-  const [snoozed,        setSnoozed]        = useState<Set<string>>(new Set());
-  const [replied,        setReplied]        = useState<Set<string>>(new Set());
+  const [filter,      setFilter]      = useState<FilterKey>("all");
+  const [selectedId,  setSelectedId]  = useState<string | null>("i1");
+  const [checkedIds,  setCheckedIds]  = useState<Set<string>>(new Set());
+  const [replied,     setReplied]     = useState<Set<string>>(new Set());
+  const [snoozed,     setSnoozed]     = useState<Set<string>>(new Set());
+  const [draftMode,   setDraftMode]   = useState<"template" | "ai">("template");
+  const [bodyText,    setBodyText]    = useState<string>("");
+  const [copied,      setCopied]      = useState<boolean>(false);
+  const [toast,       setToast]       = useState<string | null>(null);
 
-  // Auto-select the first invoice on desktop on first render
+  const filtered = useMemo(
+    () => INVOICES.filter((i) => matchFilter(i, filter)),
+    [filter],
+  );
+
+  const selectedInv = selectedId ? INVOICES.find((i) => i.id === selectedId) ?? null : null;
+
+  // Sync body text when selection or draft mode changes
   useEffect(() => {
-    if (open.length > 0) setSelectedId(open[0].id);
+    if (!selectedInv) { setBodyText(""); return; }
+    setBodyText(draftMode === "template" ? selectedInv.template : selectedInv.aiDraft);
+  }, [selectedInv, draftMode]);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  function toggleChecked(id: string) {
+    setCheckedIds((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  function selectAll() {
+    if (checkedIds.size === filtered.length) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(filtered.map((i) => i.id)));
+    }
+  }
+
+  const toggleReplied = useCallback((id: string) => {
+    setReplied((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    showToast("Marked as replied — chase paused");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const q = search.toLowerCase();
-  const filtered = useMemo(() => {
-    const urgencyFilter = FILTER_URGENCY[filterTab];
-    return open.filter((inv) => {
-      const customer = demoCustomers.find((c) => c.id === inv.customerId);
-      const name = (customer?.name ?? inv.customerName).toLowerCase();
-      if (q && !name.includes(q) && !inv.invoiceNumber.toLowerCase().includes(q)) return false;
-      if (urgencyFilter && !urgencyFilter.includes(getAction(inv).urgency)) return false;
-      return true;
-    });
-  }, [q, filterTab]);
-
-  const tabCounts = useMemo(() => ({
-    all:        open.length,
-    action:     open.filter((i) => { const u = getAction(i).urgency; return u === "high" || u === "medium"; }).length,
-    monitoring: open.filter((i) => getAction(i).urgency === "low").length,
-    blocked:    open.filter((i) => getAction(i).urgency === "blocked").length,
-  }), []);
-
-  // selectedId may point to an invoice not in `filtered` (different filter applied)
-  // — always resolve from the full `open` list so the panel stays populated.
-  const selectedInv = selectedId ? (open.find((i) => i.id === selectedId) ?? null) : null;
-
-  function toggleSnoozed(id: string) {
+  const toggleSnoozed = useCallback((id: string) => {
     setSnoozed((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  }
-  function toggleReplied(id: string) {
-    setReplied((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  }
-  function openDraft(inv: Invoice) { setModal({ inv, draft: buildDraft(inv) }); setCopied(false); }
-  function copyDraft() {
-    if (!modal) return;
-    navigator.clipboard.writeText(modal.draft).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    showToast("Snoozed until 26 May");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(bodyText).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
-  const TABS: { key: FilterTab; label: string }[] = [
-    { key: "all",        label: "All" },
-    { key: "action",     label: "Needs action" },
-    { key: "monitoring", label: "Monitoring" },
-    { key: "blocked",    label: "Blocked" },
-  ];
+  function handleMarkChased() {
+    if (!selectedId) return;
+    setReplied((p) => { const n = new Set(p); n.add(selectedId); return n; });
+    showToast("Marked as replied — chase paused");
+  }
+
+  function handleSnooze() {
+    if (!selectedId) return;
+    setSnoozed((p) => { const n = new Set(p); n.add(selectedId); return n; });
+    showToast("Snoozed until 26 May");
+  }
+
+  function bulkMarkChased() {
+    setReplied((p) => { const n = new Set(p); checkedIds.forEach((id) => n.add(id)); return n; });
+    setCheckedIds(new Set());
+    showToast(`${checkedIds.size} invoice${checkedIds.size > 1 ? "s" : ""} marked as chased`);
+  }
+
+  function bulkSnooze() {
+    setSnoozed((p) => { const n = new Set(p); checkedIds.forEach((id) => n.add(id)); return n; });
+    setCheckedIds(new Set());
+    showToast("Snoozed until 26 May");
+  }
+
+  const checkedTotal = Array.from(checkedIds).reduce((sum, id) => {
+    const inv = INVOICES.find((i) => i.id === id);
+    return sum + (inv?.amount ?? 0);
+  }, 0);
+
+  const urgentCount = INVOICES.filter((i) => i.urgency === "red").length;
+  const FILTER_KEYS: FilterKey[] = ["all", "action", "followup", "monitoring", "blocked"];
 
   return (
-    <div className="space-y-5">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <p className="zn-section-label">Demo chase plan</p>
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1" style={{ color: "var(--zn-ink)" }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
             Chase plan
           </h1>
-          <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-            {open.length} open invoices · ranked by recommended action
+          <p style={{ fontSize: 13.5, color: T.muted, margin: "6px 0 0" }}>
+            {INVOICES.length} invoices · {urgentCount} urgent
           </p>
         </div>
-        <Link href="/login?mode=signup" className="zn-pill">
-          Import your invoices <ArrowRight className="size-3.5" />
-        </Link>
-      </div>
-
-      {/* Upload blocker notice */}
-      <div
-        className="flex items-center gap-3 rounded-[10px] px-4 py-3"
-        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line)" }}
-      >
-        <Lock className="size-4 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
-        <p className="text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
-          <strong>Demo only</strong> — you&apos;re viewing sample invoices.{" "}
-          <Link href="/login?mode=signup" className="underline underline-offset-2 font-medium">Start a free trial</Link>
-          {" "}to upload your own AR ageing file and get a real chase plan.
-        </p>
-      </div>
-
-      {/* Smart insights */}
-      <SmartInsightsCallout />
-
-      {/* Portal preview */}
-      <Link
-        href="/demo/portal"
-        className="flex items-center justify-between gap-3 rounded-[10px] px-4 py-3 transition-colors hover:bg-[var(--zn-surface-2)]"
-        style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
-      >
-        <div className="flex items-center gap-3">
-          <MessageSquare className="size-4 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
-          <p className="text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
-            <strong>See what your customers see</strong> — preview the signed payment portal that ships with every chase.
-          </p>
-        </div>
-        <ArrowRight className="size-3.5 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
-      </Link>
-
-      {/* ── Filter bar ── */}
-      <div className="flex flex-col sm:flex-row gap-2.5">
-        {/* Search */}
-        <div className="relative flex-1 max-w-[320px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 pointer-events-none" style={{ color: "var(--zn-ink-3)" }} />
-          <input
-            type="text"
-            placeholder="Search customer or invoice…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-[12.5px] rounded-[9px] border outline-none transition-colors"
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
             style={{
-              background: "var(--zn-surface)",
-              borderColor: "var(--zn-line)",
-              color: "var(--zn-ink)",
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: T.surf2, color: T.muted,
+              border: `1px solid ${T.border}`, borderRadius: 99,
+              padding: "8px 16px", fontSize: 13, fontWeight: 500,
+              cursor: "pointer",
             }}
-          />
-        </div>
-        {/* Filter tabs */}
-        <div
-          className="flex gap-1 p-1 rounded-[10px]"
-          style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
-        >
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilterTab(key)}
-              className="rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition-colors whitespace-nowrap"
-              style={{
-                background: filterTab === key ? "var(--zn-surface)"  : "transparent",
-                color:      filterTab === key ? "var(--zn-ink)"      : "var(--zn-ink-3)",
-                boxShadow:  filterTab === key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              }}
-            >
-              {label}
-              <span
-                className="ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{
-                  background: filterTab === key ? "var(--zn-surface-2)" : "transparent",
-                  color: "var(--zn-ink-3)",
-                }}
-              >
-                {tabCounts[key]}
-              </span>
-            </button>
-          ))}
+          >
+            Export
+          </button>
+          <button
+            type="button"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "var(--zn-bg-inverse)", color: "#fff",
+              border: "none", borderRadius: 99,
+              padding: "8px 16px", fontSize: 13, fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Send selected
+          </button>
         </div>
       </div>
 
-      {/* ── Two-column layout ── */}
-      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-5 lg:items-start">
-
-        {/* ── LEFT: invoice list ── */}
+      {/* Two-panel body */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr min(400px, 47%)",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
+        {/* ── LEFT panel ── */}
         <div
-          className="zn-card overflow-hidden lg:sticky lg:top-6 lg:flex lg:flex-col"
-          style={{ maxHeight: "calc(100vh - 200px)" }}
+          style={{
+            background: T.card,
+            border: `1px solid ${T.border}`,
+            borderRadius: 12,
+            overflow: "hidden",
+          }}
         >
-          {/* Table column headers — desktop */}
+          {/* Filter tabs + select-all */}
           <div
-            className="hidden sm:grid grid-cols-[1fr_48px_80px_120px] gap-3 px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] border-b shrink-0"
-            style={{ color: "var(--zn-ink-3)", borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}
+            style={{
+              borderBottom: `1px solid ${T.border}`,
+              padding: "0 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
           >
-            <span>Customer / Invoice</span>
-            <span className="text-right">Overdue</span>
-            <span className="text-right">Amount</span>
-            <span>Action</span>
-          </div>
-
-          {/* No results */}
-          {filtered.length === 0 && (
-            <div className="px-5 py-10 text-center">
-              <FileText className="size-8 mx-auto mb-2 opacity-20" />
-              <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>No invoices match this filter.</p>
-            </div>
-          )}
-
-          {/* Rows */}
-          <div className="divide-y overflow-y-auto flex-1" style={{ borderColor: "var(--zn-line-soft)" }}>
-            {filtered.map((inv) => {
-              const action       = getAction(inv);
-              const colors       = URGENCY_STYLE[action.urgency];
-              const customer     = demoCustomers.find((c) => c.id === inv.customerId);
-              const isSelected   = selectedId === inv.id;
-              const isMobExpand  = mobileExpanded === inv.id;
-              const isSnoozed    = snoozed.has(inv.id);
-              const isReplied    = replied.has(inv.id);
-
-              const badgeLabel = isReplied ? "Reply received ✓" : isSnoozed ? "Snoozed 7d" : action.label;
-              const badgeColor = isReplied
-                ? { color: "var(--zn-safe)", bg: "var(--zn-safe-soft)" }
-                : isSnoozed
-                ? { color: "var(--zn-warn)", bg: "var(--zn-warn-soft)" }
-                : colors;
-
-              return (
-                <div key={inv.id}>
+            {/* Tabs */}
+            <div style={{ display: "flex", gap: 0 }}>
+              {FILTER_KEYS.map((key) => {
+                const active = filter === key;
+                return (
                   <button
+                    key={key}
                     type="button"
-                    onClick={() => {
-                      // Desktop: select for right panel. Mobile: toggle inline expand.
-                      setSelectedId(isSelected ? null : inv.id);
-                      setMobileExpanded(isMobExpand ? null : inv.id);
-                    }}
-                    className="w-full text-left transition-colors"
+                    onClick={() => setFilter(key)}
                     style={{
-                      background: isSelected ? "var(--zn-surface-2)" : "transparent",
-                      borderLeft: isSelected ? "2px solid var(--zn-accent)" : "2px solid transparent",
+                      padding: "13px 0",
+                      marginRight: 20,
+                      border: "none",
+                      borderBottom: active ? `2px solid ${T.ink}` : "2px solid transparent",
+                      background: "transparent",
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 400,
+                      color: active ? T.ink : T.muted,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "color 0.15s",
                     }}
                   >
-                    {/* Desktop row */}
-                    <div className="hidden sm:grid grid-cols-[1fr_48px_80px_120px] gap-3 px-4 py-3 hover:bg-[var(--zn-surface-2)] transition-colors">
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                          {customer?.name ?? inv.customerName}
-                        </p>
-                        <p className="text-[11px] font-mono mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                          {inv.invoiceNumber}
-                        </p>
-                      </div>
-                      <div className="text-right self-center">
-                        {inv.daysOverdue > 0 ? (
-                          <span className="text-[12px] font-semibold tabular-nums" style={{ color: action.urgency === "high" ? "var(--zn-risk)" : "var(--zn-warn)" }}>
-                            {inv.daysOverdue}d
-                          </span>
-                        ) : (
-                          <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>—</span>
-                        )}
-                      </div>
-                      <div className="text-right self-center text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                        {fmtGBP(inv.amountOutstanding)}
-                      </div>
-                      <div className="self-center">
-                        <span
-                          className="inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold truncate max-w-full"
-                          style={{ background: badgeColor.bg, color: badgeColor.color }}
-                        >
-                          {badgeLabel}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Mobile row */}
-                    <div className="flex sm:hidden items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--zn-surface-2)] transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                          {customer?.name ?? inv.customerName}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[11px] font-mono" style={{ color: "var(--zn-ink-3)" }}>
-                            {inv.invoiceNumber}
-                          </p>
-                          {inv.daysOverdue > 0 && (
-                            <span className="text-[11px] font-medium" style={{ color: "var(--zn-risk)" }}>
-                              · {inv.daysOverdue}d overdue
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                          {fmtGBP(inv.amountOutstanding)}
-                        </p>
-                        <span
-                          className="inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          style={{ background: badgeColor.bg, color: badgeColor.color }}
-                        >
-                          {badgeLabel}
-                        </span>
-                      </div>
-                      {isMobExpand
-                        ? <ChevronUp className="size-4 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
-                        : <ChevronDown className="size-4 shrink-0" style={{ color: "var(--zn-ink-3)" }} />
-                      }
-                    </div>
-                  </button>
-
-                  {/* Mobile inline expand */}
-                  {isMobExpand && (
-                    <div
-                      className="sm:hidden px-4 pb-5 pt-2 border-t"
-                      style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface-2)" }}
+                    {FILTER_LABELS[key]}
+                    <span
+                      style={{
+                        marginLeft: 6,
+                        fontSize: 11,
+                        color: active ? T.ink : T.muted,
+                        fontWeight: active ? 600 : 400,
+                      }}
                     >
-                      <InvoiceDetail
-                        inv={inv}
-                        isSnoozed={isSnoozed}
-                        isReplied={isReplied}
-                        onToggleSnoozed={() => toggleSnoozed(inv.id)}
-                        onToggleReplied={() => toggleReplied(inv.id)}
-                        onOpenDraft={() => openDraft(inv)}
-                        onOpenAi={() => setAiInvoice(inv)}
-                      />
+                      ({FILTER_COUNTS[key]})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Select all */}
+            <button
+              type="button"
+              onClick={selectAll}
+              style={{
+                fontSize: 12, color: T.muted, background: "none",
+                border: "none", cursor: "pointer", whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              {checkedIds.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
+            </button>
+          </div>
+
+          {/* Invoice list */}
+          <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 260px)" }}>
+            {filtered.length === 0 && (
+              <div style={{ padding: "48px 24px", textAlign: "center" }}>
+                <FileText size={36} style={{ color: T.muted, opacity: 0.3, margin: "0 auto 12px" }} />
+                <p style={{ fontSize: 13, color: T.muted }}>No invoices in this filter.</p>
+              </div>
+            )}
+
+            {filtered.map((inv, idx) => {
+              const isSelected = selectedId === inv.id;
+              const isChecked  = checkedIds.has(inv.id);
+              const isReplied  = replied.has(inv.id);
+              const isSnoozed  = snoozed.has(inv.id);
+              const cust       = CUSTOMERS[inv.customer];
+
+              return (
+                <div
+                  key={inv.id}
+                  onClick={() => setSelectedId(isSelected ? null : inv.id)}
+                  style={{
+                    borderBottom: idx < filtered.length - 1 ? `1px solid ${T.border}` : "none",
+                    borderLeft: isSelected ? `2px solid ${T.ink}` : "2px solid transparent",
+                    background: isSelected ? "var(--zn-surface-2)" : T.card,
+                    padding: "14px 16px",
+                    cursor: "pointer",
+                    display: "grid",
+                    gridTemplateColumns: "14px 8px minmax(0, 1fr) auto",
+                    alignItems: "center",
+                    columnGap: 10,
+                    transition: "background 0.12s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "var(--zn-surface-2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = T.card;
+                  }}
+                >
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => { e.stopPropagation(); toggleChecked(inv.id); }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: 14, height: 14, cursor: "pointer", accentColor: T.ink }}
+                  />
+
+                  {/* Urgency dot */}
+                  <UrgencyDot urgency={inv.urgency} />
+
+                  {/* Customer + pill + ref — flex row for name+pill, ref below */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: 13, fontWeight: 600, color: T.ink, margin: 0,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        flexShrink: 1, minWidth: 0,
+                      }}>
+                        {cust.name}
+                      </p>
+                      <StatusPill urgency={inv.urgency} status={inv.status} />
                     </div>
-                  )}
+                    <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", fontFamily: "monospace" }}>
+                      {inv.ref} · {inv.due}
+                    </p>
+                    <p style={{
+                      fontSize: 11, color: T.muted, margin: "4px 0 0",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {inv.action}
+                    </p>
+                  </div>
+
+                  {/* Right: amount + days + badges */}
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>
+                      {fmtGBP(inv.amount)}
+                    </p>
+                    <p style={{ fontSize: 11, color: URGENCY_DAYS_COLOR[inv.urgency], margin: "2px 0 0", fontWeight: 600 }}>
+                      {inv.daysOverdue}d overdue
+                    </p>
+                    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 4 }}>
+                      {isReplied && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, color: T.muted }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block" }} />
+                          Replied
+                        </span>
+                      )}
+                      {isSnoozed && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, color: T.muted }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.amber, display: "inline-block" }} />
+                          Snoozed 7d
+                        </span>
+                      )}
+                      {inv.urgency === "blocked" && !isReplied && !isSnoozed && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, color: T.muted }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.red, display: "inline-block" }} />
+                          Disputed
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* ── RIGHT: detail panel (desktop only) ── */}
-        <div className="hidden lg:block lg:sticky lg:top-6">
+        {/* ── RIGHT: detail panel ── */}
+        <div style={{ position: "sticky", top: 24 }}>
           {selectedInv ? (
             <div
-              className="zn-card p-5 relative"
-              style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 12,
+                padding: 20,
+                maxHeight: "calc(100vh - 120px)",
+                overflowY: "auto",
+                position: "relative",
+              }}
             >
-              {/* Close button */}
+              {/* Close */}
               <button
                 type="button"
                 onClick={() => setSelectedId(null)}
-                className="absolute top-4 right-4 rounded-lg p-1.5 transition-colors hover:bg-[var(--zn-surface-2)]"
-                style={{ color: "var(--zn-ink-3)" }}
+                style={{
+                  position: "absolute", top: 14, right: 14,
+                  background: "none", border: "none", cursor: "pointer",
+                  color: T.muted, padding: 4, borderRadius: 6,
+                  display: "flex", alignItems: "center",
+                }}
               >
-                <X className="size-4" />
+                <X size={16} />
               </button>
-              <InvoiceDetail
+
+              <DetailPanel
                 inv={selectedInv}
-                isSnoozed={snoozed.has(selectedInv.id)}
-                isReplied={replied.has(selectedInv.id)}
-                onToggleSnoozed={() => toggleSnoozed(selectedInv.id)}
+                replied={replied.has(selectedInv.id)}
+                snoozed={snoozed.has(selectedInv.id)}
+                draftMode={draftMode}
+                bodyText={bodyText}
                 onToggleReplied={() => toggleReplied(selectedInv.id)}
-                onOpenDraft={() => openDraft(selectedInv)}
-                onOpenAi={() => setAiInvoice(selectedInv)}
+                onToggleSnoozed={() => toggleSnoozed(selectedInv.id)}
+                onSetDraftMode={(m) => { setDraftMode(m); }}
+                onBodyChange={setBodyText}
+                onCopy={handleCopy}
+                copied={copied}
+                onMarkChased={handleMarkChased}
+                onSnooze={handleSnooze}
               />
             </div>
           ) : (
             <div
-              className="zn-card flex flex-col items-center justify-center py-16 text-center"
-              style={{ minHeight: 300 }}
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 12,
+                minHeight: 300,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "64px 24px",
+                textAlign: "center",
+              }}
             >
-              <FileText className="size-10 mb-3 opacity-20" />
-              <p className="text-[14px] font-medium" style={{ color: "var(--zn-ink-2)" }}>Select an invoice</p>
-              <p className="text-[12.5px] mt-1" style={{ color: "var(--zn-ink-3)" }}>
-                Click any row to see the reason, contact, and draft message.
+              <FileText size={40} style={{ color: T.muted, opacity: 0.2, marginBottom: 12 }} />
+              <p style={{ fontSize: 14, fontWeight: 500, color: T.ink, margin: 0 }}>
+                Select an invoice
+              </p>
+              <p style={{ fontSize: 12.5, color: T.muted, margin: "6px 0 0" }}>
+                Click a row to see the reason, contact, and draft message.
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Draft message modal ── */}
-      {modal && (
+      {/* ── Bulk action bar ── */}
+      {checkedIds.size > 0 && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.4)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 50,
+            animation: "bulkRise 0.18s ease-out both",
+          }}
         >
-          <div className="zn-card w-full max-w-[560px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
-              <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Draft message</p>
-                <p className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
-                  {modal.inv.invoiceNumber} · {fmtGBP(modal.inv.amountOutstanding)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                className="rounded-lg p-1.5 transition-colors hover:bg-[var(--zn-surface-2)]"
-                style={{ color: "var(--zn-ink-3)" }}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4">
-              <pre
-                className="text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans rounded-[8px] p-4"
-                style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)", border: "1px solid var(--zn-line-soft)" }}
-              >
-                {modal.draft}
-              </pre>
-            </div>
-            <div
-              className="flex items-center justify-between gap-3 px-5 py-3.5 border-t"
-              style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface-2)" }}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 12,
+              background: "var(--zn-bg-inverse)",
+              color: "#fff",
+              borderRadius: 99,
+              padding: "10px 20px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.24)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600 }}>
+              {checkedIds.size} selected · {fmtGBPShort(checkedTotal)}
+            </span>
+            <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.2)" }} />
+            <button
+              type="button"
+              onClick={bulkMarkChased}
+              style={{
+                background: "none", border: "none", color: "#fff",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", padding: 0,
+              }}
             >
-              <p className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
-                In your account, AI tailors this to your brand voice and customer history.
-              </p>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={copyDraft}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-colors hover:bg-[var(--zn-surface)]"
-                  style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
-                >
-                  {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-                <Link href="/login?mode=signup" className="zn-pill text-[12px]" style={{ height: 32 }}>
-                  Start trial <ArrowRight className="size-3" />
-                </Link>
-              </div>
-            </div>
+              Mark chased
+            </button>
+            <button
+              type="button"
+              onClick={bulkSnooze}
+              style={{
+                background: "none", border: "none", color: "#fff",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", padding: 0,
+              }}
+            >
+              Snooze 7 days
+            </button>
+            <button
+              type="button"
+              style={{
+                background: "none", border: "none", color: "rgba(255,255,255,0.7)",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", padding: 0,
+              }}
+            >
+              Export
+            </button>
+            <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.2)" }} />
+            <button
+              type="button"
+              onClick={() => setCheckedIds(new Set())}
+              style={{
+                background: "none", border: "none", color: "rgba(255,255,255,0.7)",
+                cursor: "pointer", padding: 0, display: "flex", alignItems: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}
 
-      {/* AI drafter */}
-      {aiInvoice && (
-        <DemoAiDrafter
-          open={true}
-          onClose={() => setAiInvoice(null)}
-          customerName={aiInvoice.customerName}
-          invoiceNumber={aiInvoice.invoiceNumber}
-          amount={fmtGBP(aiInvoice.amountOutstanding)}
-          daysOverdue={Math.max(0, aiInvoice.daysOverdue)}
-        />
+      {/* ── Toast ── */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: checkedIds.size > 0 ? 80 : 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 60,
+            background: "var(--zn-bg-inverse)",
+            color: "#fff",
+            borderRadius: 99,
+            padding: "10px 20px",
+            fontSize: 13,
+            fontWeight: 500,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+            whiteSpace: "nowrap",
+            animation: "bulkRise 0.18s ease-out both",
+          }}
+        >
+          {toast}
+        </div>
       )}
-    </div>
-  );
-}
-
-// ── Smart insights ────────────────────────────────────────────────────────────
-
-function SmartInsightsCallout() {
-  const profiles = demoCustomers.map((c) => buildCustomerBehaviourProfile(c, demoInvoices));
-  const plan = rankCollectionActions({
-    invoices: demoInvoices,
-    customers: demoCustomers,
-    customerBehaviourProfiles: profiles,
-  });
-  const insights = plan.filter((i) => i.stopChasingInsight).slice(0, 3);
-  if (insights.length === 0) return null;
-
-  return (
-    <div className="rounded-[10px] px-4 py-3.5" style={{ background: "var(--zn-safe-soft)", border: "1px solid var(--zn-safe)" }}>
-      <div className="flex items-baseline justify-between gap-3 mb-2.5">
-        <p className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: "var(--zn-safe)" }}>
-          Smart insights · Don&rsquo;t chase
-        </p>
-        <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>Live from the decision engine</p>
-      </div>
-      <ul className="space-y-1.5">
-        {insights.map((item) => (
-          <li key={item.id} className="text-[12.5px] leading-snug" style={{ color: "var(--zn-ink-2)" }}>
-            <span className="font-medium" style={{ color: "var(--zn-ink)" }}>
-              {item.customerName} ({item.invoiceNumber})
-            </span>{" "}
-            — {item.stopChasingInsight!.message}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

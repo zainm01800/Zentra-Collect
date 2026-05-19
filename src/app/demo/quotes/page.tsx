@@ -1,235 +1,548 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, X } from "lucide-react";
-import { demoQuotes } from "@/lib/demo-data/demo-books-data";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
-const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  draft:     { bg: "var(--zn-surface-2)", color: "var(--zn-ink-3)", label: "Draft" },
-  sent:      { bg: "var(--zn-warn-soft)", color: "var(--zn-warn)",  label: "Sent" },
-  accepted:  { bg: "var(--zn-safe-soft)", color: "var(--zn-safe)",  label: "Accepted" },
-  converted: { bg: "var(--zn-accent-soft)", color: "var(--zn-accent)", label: "Converted" },
-  declined:  { bg: "var(--zn-risk-soft)", color: "var(--zn-risk)",  label: "Declined" },
+// ─── Design tokens ───────────────────────────────────────────────────────────
+const T = {
+  bg:       "var(--zn-bg)",
+  card:     "var(--zn-surface)",
+  hover:    "var(--zn-surface-2)",
+  surface2: "var(--zn-surface-2)",
+  ink:      "var(--zn-ink)",
+  muted:    "var(--zn-ink-3)",
+  border:   "var(--zn-line-soft)",
+  green:    "var(--zn-safe)",
+  amber:    "var(--zn-warn)",
+  red:      "var(--zn-risk)",
+  blue:     "var(--zn-info)",
 };
 
+// ─── Data ────────────────────────────────────────────────────────────────────
+const QUOTES = [
+  {
+    id: "q1", ref: "Q-2026-018", customer: "BluePeak Ltd",
+    description: "Logistics platform discovery + UX research engagement",
+    issued: "12 May 2026", expires: "26 May 2026", status: "sent",
+    items: [
+      { desc: "Discovery workshop (2 days)", qty: 2, unit: 1800 },
+      { desc: "Stakeholder interviews (6 sessions)", qty: 6, unit: 450 },
+      { desc: "Findings report + presentation", qty: 1, unit: 1500 },
+    ],
+  },
+  {
+    id: "q2", ref: "Q-2026-019", customer: "Meridian Studio",
+    description: "Quarterly retainer — design ops support, Q3 2026",
+    issued: "14 May 2026", expires: "28 May 2026", status: "accepted",
+    items: [
+      { desc: "Senior design support (40h/mo × 3)", qty: 120, unit: 95 },
+      { desc: "Project management overhead", qty: 1, unit: 800 },
+    ],
+  },
+  {
+    id: "q3", ref: "Q-2026-020", customer: "Harrow Digital",
+    description: "Brand refresh — logo, palette, type system",
+    issued: "16 May 2026", expires: "13 Jun 2026", status: "draft",
+    items: [
+      { desc: "Brand audit + competitor scan", qty: 1, unit: 1200 },
+      { desc: "Identity exploration (3 routes)", qty: 1, unit: 3500 },
+      { desc: "Final files + brand guidelines", qty: 1, unit: 2400 },
+    ],
+  },
+  {
+    id: "q4", ref: "Q-2026-016", customer: "BluePeak Ltd",
+    description: "Driver app pilot — scoping & build (8 weeks)",
+    issued: "22 Apr 2026", expires: "20 May 2026", status: "sent",
+    items: [
+      { desc: "Discovery + scoping", qty: 1, unit: 2800 },
+      { desc: "Pilot build (8 weeks)", qty: 8, unit: 950 },
+      { desc: "Field testing & handover", qty: 1, unit: 2000 },
+    ],
+  },
+  {
+    id: "q5", ref: "Q-2026-014", customer: "Meridian Studio",
+    description: "Annual hosting & maintenance — design system platform",
+    issued: "1 Apr 2026", expires: "30 Apr 2026", status: "expired",
+    items: [
+      { desc: "Hosting (annual)", qty: 1, unit: 600 },
+      { desc: "Maintenance (annual)", qty: 1, unit: 200 },
+    ],
+  },
+];
+
+// ─── Status config ────────────────────────────────────────────────────────────
+const STATUS_CFG: Record<string, { bg: string; color: string; dot: string; label: string }> = {
+  draft:     { bg: "var(--zn-surface-2)", color: "var(--zn-ink-2)",  dot: "var(--zn-ink-3)", label: "Draft" },
+  sent:      { bg: "var(--zn-info-soft)", color: "var(--zn-info)",   dot: "var(--zn-info)",  label: "Sent" },
+  accepted:  { bg: "var(--zn-safe-soft)", color: "var(--zn-safe)",   dot: "var(--zn-safe)",  label: "Accepted" },
+  expired:   { bg: "var(--zn-surface-2)", color: "var(--zn-ink-3)",  dot: "var(--zn-ink-3)", label: "Expired" },
+  converted: { bg: "var(--zn-safe-soft)", color: "var(--zn-safe)",   dot: "var(--zn-safe)",  label: "Converted" },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtGBP(n: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency", currency: "GBP",
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(n);
+  const v = Math.abs(n).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `£${v}`;
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+function calcNet(items: { qty: number; unit: number }[]): number {
+  return items.reduce((s, i) => s + i.qty * i.unit, 0);
 }
 
+// ─── Status pill ──────────────────────────────────────────────────────────────
+function StatusPill({ status }: { status: string }) {
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
+  return (
+    <span
+      style={{
+        background: cfg.bg,
+        color: cfg.color,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        borderRadius: 999,
+        padding: "2px 9px",
+        fontSize: 10.5,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: "50%",
+          background: cfg.dot,
+          flexShrink: 0,
+        }}
+      />
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function DemoQuotesPage() {
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [newModal, setNewModal] = useState(false);
+  const [openId, setOpenId] = useState<string | null>("q1");
+  const [statuses, setStatuses] = useState<Record<string, string>>({});
 
-  const totals = {
-    draft:     demoQuotes.filter((q) => q.status === "draft").length,
-    sent:      demoQuotes.filter((q) => q.status === "sent").length,
-    accepted:  demoQuotes.filter((q) => q.status === "accepted").length,
-    converted: demoQuotes.filter((q) => q.status === "converted").length,
-  };
-  const outstandingValue = demoQuotes
-    .filter((q) => q.status === "sent" || q.status === "accepted")
-    .reduce((s, q) => s + q.amountGross, 0);
+  function getStatus(id: string, defaultStatus: string): string {
+    return statuses[id] ?? defaultStatus;
+  }
+  function setStatus(id: string, status: string) {
+    setStatuses((prev) => ({ ...prev, [id]: status }));
+  }
+
+  // KPI calculations
+  const pipeline = QUOTES.filter((q) => {
+    const s = getStatus(q.id, q.status);
+    return s === "sent" || s === "accepted";
+  });
+  const pipelineValue = pipeline.reduce((s, q) => s + calcNet(q.items) * 1.2, 0);
+
+  const acceptedQuotes = QUOTES.filter((q) => getStatus(q.id, q.status) === "accepted");
+  const acceptedValue = acceptedQuotes.reduce((s, q) => s + calcNet(q.items) * 1.2, 0);
+
+  const denominator = QUOTES.filter((q) => {
+    const s = getStatus(q.id, q.status);
+    return s === "sent" || s === "accepted" || s === "expired";
+  }).length;
+  const conversionRate = denominator > 0 ? Math.round((acceptedQuotes.length / denominator) * 100) : 0;
+
+  const netSum = QUOTES.filter((q) => {
+    const s = getStatus(q.id, q.status);
+    return s === "sent" || s === "accepted";
+  }).reduce((s, q) => s + calcNet(q.items), 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="zn-section-label">Demo · Collections</p>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1"
-            style={{ color: "var(--zn-ink)" }}>
-          Quotes
-        </h1>
-        <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>
-          Draft · sent · accepted · convert to an invoice in one click
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Stat label="Outstanding" value={fmtGBP(outstandingValue)} accent="var(--zn-accent)" />
-        <Stat label="Draft"       value={String(totals.draft)} />
-        <Stat label="Sent"        value={String(totals.sent)} />
-        <Stat label="Accepted"    value={String(totals.accepted)} accent="var(--zn-safe)" />
-        <Stat label="Converted"   value={String(totals.converted)} />
-      </div>
-
-      <div className="zn-card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b"
-             style={{ borderColor: "var(--zn-line-soft)" }}>
-          <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-            All quotes
-          </p>
-          <button type="button" onClick={() => setNewModal(true)}
-            className="zn-pill zn-pill-ghost text-[12px]"
-            style={{ height: 30 }}>
-            <FileText className="size-3.5" /> New quote
-          </button>
+    <div>
+        {/* Page header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            marginBottom: 24,
+            gap: 16,
+          }}
+        >
+          <div>
+            <h1
+              style={{
+                fontSize: 26,
+                fontWeight: 700,
+                color: T.ink,
+                margin: 0,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.15,
+              }}
+            >
+              Quotes
+            </h1>
+            <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>
+              5 quotes · {fmtGBP(netSum)} pipeline
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              style={{
+                height: 34,
+                padding: "0 14px",
+                borderRadius: 999,
+                border: `1px solid ${T.border}`,
+                background: "var(--zn-surface)",
+                fontSize: 13,
+                fontWeight: 500,
+                color: T.ink,
+                cursor: "pointer",
+              }}
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              style={{
+                height: 34,
+                padding: "0 16px",
+                borderRadius: 999,
+                border: "none",
+                background: "var(--zn-bg-inverse)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              New quote
+            </button>
+          </div>
         </div>
-        <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {demoQuotes.map((q) => {
-            const s = STATUS_STYLES[q.status];
+
+        {/* KPI row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+          <KpiCard label="Total pipeline" value={fmtGBP(pipelineValue)} sub="sent + accepted (inc. VAT)" />
+          <KpiCard
+            label="Accepted"
+            value={`${acceptedQuotes.length} quote${acceptedQuotes.length !== 1 ? "s" : ""} · ${fmtGBP(acceptedValue)}`}
+            valueColor={T.green}
+          />
+          <KpiCard label="Conversion rate" value={`${conversionRate}%`} sub="accepted / (sent + accepted + expired)" />
+        </div>
+
+        {/* Quote list */}
+        <div
+          style={{
+            background: T.card,
+            borderRadius: 12,
+            border: `1px solid ${T.border}`,
+            overflow: "hidden",
+          }}
+        >
+          {QUOTES.map((q, idx) => {
+            const status = getStatus(q.id, q.status);
+            const net = calcNet(q.items);
+            const vat = net * 0.2;
+            const gross = net + vat;
             const expanded = openId === q.id;
+
             return (
-              <div key={q.id}>
+              <div
+                key={q.id}
+                style={{ borderTop: idx === 0 ? "none" : `1px solid ${T.border}` }}
+              >
+                {/* Row header */}
                 <button
                   type="button"
                   onClick={() => setOpenId(expanded ? null : q.id)}
-                  className="w-full flex items-center gap-4 px-5 py-3 hover:bg-[var(--zn-surface-2)] transition-colors text-left"
+                  style={{
+                    width: "100%",
+                    display: "grid",
+                    gridTemplateColumns: "1.5fr 1fr auto",
+                    alignItems: "center",
+                    gap: 16,
+                    padding: "12px 20px",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = T.hover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <div className="w-6 shrink-0 flex justify-center" style={{ color: "var(--zn-ink-3)" }}>
-                    {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                  </div>
-                  <div className="w-20 text-[11.5px] tabular-nums font-medium shrink-0"
-                       style={{ color: "var(--zn-ink-2)" }}>
-                    {q.quoteNumber}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                      {q.customerName}
-                    </p>
-                    <p className="text-[11.5px] mt-0.5 truncate" style={{ color: "var(--zn-ink-3)" }}>
-                      {q.description} · {fmtDate(q.issueDate)}
-                    </p>
-                  </div>
-                  <span className="inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap shrink-0"
-                        style={{ background: s.bg, color: s.color }}>
-                    {s.label}
-                  </span>
-                  <div className="text-right shrink-0 w-24">
-                    <p className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                      {fmtGBP(q.amountGross)}
-                    </p>
-                    {q.vatAmount > 0 && (
-                      <p className="text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
-                        incl. {fmtGBP(q.vatAmount)} VAT
+                  {/* Left */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: 10.5,
+                        color: T.muted,
+                        width: 95,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {q.ref}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: T.ink, margin: 0, lineHeight: 1.3 }}>
+                        {q.customer}
                       </p>
-                    )}
+                      <p
+                        style={{
+                          fontSize: 11,
+                          color: T.muted,
+                          margin: "1px 0 0",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {q.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Middle */}
+                  <div>
+                    <p style={{ fontSize: 11, color: T.muted, margin: 0, lineHeight: 1.5 }}>
+                      <span style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Issued </span>
+                      {q.issued}
+                    </p>
+                    <p style={{ fontSize: 11, color: T.muted, margin: 0, lineHeight: 1.5 }}>
+                      <span style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>Expires </span>
+                      {q.expires}
+                    </p>
+                  </div>
+
+                  {/* Right */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                    <StatusPill status={status} />
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, margin: 0 }}>
+                        {fmtGBP(gross)}
+                      </p>
+                    </div>
+                    <span style={{ color: T.muted, lineHeight: 0 }}>
+                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </span>
                   </div>
                 </button>
 
+                {/* Expanded body */}
                 {expanded && (
-                  <div className="px-5 pb-4 pt-1 border-t"
-                       style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-surface)" }}>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12.5px] mb-3">
-                      <DetailField label="Quote number" value={q.quoteNumber} />
-                      <DetailField label="Issued" value={fmtDate(q.issueDate)} />
-                      {q.expiresOn && <DetailField label="Expires" value={fmtDate(q.expiresOn)} />}
-                      <DetailField label="Net" value={fmtGBP(q.amountGross - q.vatAmount)} />
-                    </div>
-                    <div className="rounded-lg overflow-hidden border" style={{ borderColor: "var(--zn-line-soft)" }}>
-                      <div className="grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]"
-                           style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)" }}>
-                        <span>Description</span><span className="text-right">Qty</span><span className="text-right">Total</span>
+                  <div
+                    style={{
+                      borderTop: `1px solid ${T.border}`,
+                      background: "var(--zn-surface-2)",
+                      padding: "16px 20px 20px",
+                    }}
+                  >
+                    {/* Line items table */}
+                    <div
+                      style={{
+                        borderRadius: 8,
+                        border: `1px solid ${T.border}`,
+                        overflow: "hidden",
+                        marginBottom: 16,
+                      }}
+                    >
+                      {/* Table header */}
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 60px 100px 100px",
+                          gap: 8,
+                          padding: "7px 14px",
+                          background: T.surface2,
+                          fontSize: 10.5,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          color: T.muted,
+                        }}
+                      >
+                        <span>Description</span>
+                        <span style={{ textAlign: "right" }}>Qty</span>
+                        <span style={{ textAlign: "right" }}>Unit price</span>
+                        <span style={{ textAlign: "right" }}>Total</span>
                       </div>
-                      <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-                        <div className="grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2.5 text-[12.5px]">
-                          <span style={{ color: "var(--zn-ink)" }}>{q.description}</span>
-                          <span className="text-right tabular-nums" style={{ color: "var(--zn-ink-3)" }}>1</span>
-                          <span className="text-right tabular-nums font-medium" style={{ color: "var(--zn-ink)" }}>{fmtGBP(q.amountGross - q.vatAmount)}</span>
+                      {/* Items */}
+                      {q.items.map((item, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 60px 100px 100px",
+                            gap: 8,
+                            padding: "9px 14px",
+                            borderTop: `1px solid ${T.border}`,
+                            fontSize: 12.5,
+                          }}
+                        >
+                          <span style={{ color: T.ink }}>{item.desc}</span>
+                          <span style={{ textAlign: "right", color: T.muted, fontVariantNumeric: "tabular-nums" }}>
+                            {item.qty}
+                          </span>
+                          <span style={{ textAlign: "right", color: T.muted, fontVariantNumeric: "tabular-nums" }}>
+                            {fmtGBP(item.unit)}
+                          </span>
+                          <span style={{ textAlign: "right", color: T.ink, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                            {fmtGBP(item.qty * item.unit)}
+                          </span>
                         </div>
-                        {q.vatAmount > 0 && (
-                          <div className="grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 text-[11.5px]">
-                            <span style={{ color: "var(--zn-ink-3)" }}>VAT @ 20%</span>
-                            <span className="text-right" style={{ color: "var(--zn-ink-3)" }}></span>
-                            <span className="text-right tabular-nums" style={{ color: "var(--zn-ink-3)" }}>{fmtGBP(q.vatAmount)}</span>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 text-[12.5px] font-semibold"
-                             style={{ background: "var(--zn-surface-2)" }}>
-                          <span style={{ color: "var(--zn-ink)" }}>Total</span>
-                          <span className="text-right" style={{ color: "var(--zn-ink-3)" }}></span>
-                          <span className="text-right tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP(q.amountGross)}</span>
+                      ))}
+                      {/* Totals */}
+                      <div
+                        style={{
+                          borderTop: `1px solid ${T.border}`,
+                          padding: "10px 14px",
+                          background: T.surface2,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                          <span style={{ color: T.muted }}>Net total</span>
+                          <span style={{ color: T.ink, fontVariantNumeric: "tabular-nums" }}>{fmtGBP(net)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                          <span style={{ color: T.blue }}>VAT @ 20%</span>
+                          <span style={{ color: T.blue, fontVariantNumeric: "tabular-nums" }}>{fmtGBP(vat)}</span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 18,
+                            fontWeight: 700,
+                            marginTop: 4,
+                            paddingTop: 6,
+                            borderTop: `1px solid ${T.border}`,
+                          }}
+                        >
+                          <span style={{ color: T.ink }}>Gross total</span>
+                          <span style={{ color: T.ink, fontVariantNumeric: "tabular-nums" }}>{fmtGBP(gross)}</span>
                         </div>
                       </div>
                     </div>
-                    {q.status === "accepted" && (
-                      <div className="mt-3 flex gap-2">
-                        <button type="button"
-                          onClick={() => alert("Sign up to convert quotes to invoices →")}
-                          className="zn-pill text-[12px]" style={{ height: 30 }}>
-                          Convert to invoice
-                        </button>
-                      </div>
-                    )}
-                    {q.status === "sent" && (
-                      <div className="mt-3 flex gap-2">
-                        <button type="button"
-                          onClick={() => alert("Sign up to mark quotes as accepted →")}
-                          className="zn-pill zn-pill-ghost text-[12px]" style={{ height: 30 }}>
-                          Mark as accepted
-                        </button>
-                      </div>
-                    )}
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {status === "draft" && (
+                        <>
+                          <ActionBtn primary onClick={() => setStatus(q.id, "sent")}>Mark as sent</ActionBtn>
+                          <ActionBtn ghost>Edit</ActionBtn>
+                          <ActionBtn ghost>Delete</ActionBtn>
+                        </>
+                      )}
+                      {status === "sent" && (
+                        <>
+                          <ActionBtn primary onClick={() => setStatus(q.id, "accepted")}>Mark accepted</ActionBtn>
+                          <ActionBtn ghost onClick={() => setStatus(q.id, "expired")}>Mark expired</ActionBtn>
+                          <ActionBtn ghost>Send reminder</ActionBtn>
+                        </>
+                      )}
+                      {status === "accepted" && (
+                        <>
+                          <ActionBtn
+                            style={{ background: T.green, color: "#fff", border: "none" }}
+                            onClick={() => setStatus(q.id, "converted")}
+                          >
+                            Convert to invoice
+                          </ActionBtn>
+                          <ActionBtn ghost>Download PDF</ActionBtn>
+                        </>
+                      )}
+                      {status === "expired" && (
+                        <ActionBtn ghost onClick={() => setStatus(q.id, "sent")}>Re-send</ActionBtn>
+                      )}
+                      {status === "converted" && (
+                        <span style={{ fontSize: 12, color: T.green, fontWeight: 600 }}>
+                          ✓ Converted to invoice
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-      </div>
+    </div>
+  );
+}
 
-      {/* New quote demo modal */}
-      {newModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-             style={{ background: "rgba(0,0,0,0.55)" }}
-             role="dialog" aria-modal="true">
-          <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl"
-               style={{ background: "var(--zn-bg)" }}>
-            <button type="button" onClick={() => setNewModal(false)} aria-label="Close"
-              className="absolute top-4 right-4 size-8 rounded-full inline-flex items-center justify-center hover:bg-black/5"
-              style={{ color: "var(--zn-ink-3)" }}>
-              <X className="size-4" />
-            </button>
-            <div className="px-6 pt-6 pb-5">
-              <div className="flex items-center gap-2 mb-1">
-                <FileText className="size-4" style={{ color: "var(--zn-accent)" }} />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-                   style={{ color: "var(--zn-ink-3)" }}>Demo</p>
-              </div>
-              <h2 className="text-[18px] font-semibold mb-2" style={{ color: "var(--zn-ink)" }}>Create quotes</h2>
-              <p className="text-[13.5px] leading-relaxed mb-5" style={{ color: "var(--zn-ink-2)" }}>
-                In the live product you can create professional quotes, email them directly to clients, mark them accepted, and convert them to invoices in one click. Quote data flows into your P&amp;L and credit note workflows automatically.
-              </p>
-              <div className="flex gap-2">
-                <a href="/login?mode=signup"
-                   className="zn-pill text-[13px]" style={{ height: 36 }}>
-                  Start free trial
-                </a>
-                <button type="button" onClick={() => setNewModal(false)}
-                  className="zn-pill zn-pill-ghost text-[13px]" style={{ height: 36 }}>
-                  Back to demo
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function KpiCard({
+  label,
+  value,
+  sub,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueColor?: string;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--zn-surface)",
+        borderRadius: 12,
+        border: `1px solid var(--zn-line-soft)`,
+        padding: "16px 18px",
+      }}
+    >
+      <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--zn-ink-3)", margin: 0 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: 20, fontWeight: 700, color: valueColor ?? "var(--zn-ink)", margin: "8px 0 0", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+        {value}
+      </p>
+      {sub && (
+        <p style={{ fontSize: 11, color: "var(--zn-ink-3)", margin: "4px 0 0" }}>{sub}</p>
       )}
     </div>
   );
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] mb-0.5"
-         style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-      <p className="text-[13px]" style={{ color: "var(--zn-ink)" }}>{value}</p>
-    </div>
-  );
-}
+function ActionBtn({
+  children,
+  primary,
+  ghost,
+  onClick,
+  style: extraStyle,
+}: {
+  children: React.ReactNode;
+  primary?: boolean;
+  ghost?: boolean;
+  onClick?: () => void;
+  style?: React.CSSProperties;
+}) {
+  const base: React.CSSProperties = {
+    height: 32,
+    padding: "0 14px",
+    borderRadius: 999,
+    fontSize: 12.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+  };
+  const variant: React.CSSProperties = primary
+    ? { background: "var(--zn-bg-inverse)", color: "#fff", border: "none" }
+    : ghost
+    ? { background: "transparent", color: "var(--zn-ink)", border: "1px solid var(--zn-line-soft)" }
+    : {};
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="zn-card p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]"
-         style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-      <p className="mt-2 text-[20px] font-bold tabular-nums leading-none"
-         style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ ...base, ...variant, ...extraStyle }}
+    >
+      {children}
+    </button>
   );
 }

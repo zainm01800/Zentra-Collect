@@ -66,7 +66,7 @@ export const BASE_EXPENSES: DemoExpense[] = [
   },
   {
     id: "e-4", date: "2026-05-09", description: "BP Connect — Fuel",
-    vendor: "BP plc", category: "Equipment", hasReceipt: false,
+    vendor: "BP plc", category: "Travel", hasReceipt: false,
     vatLines: [{ label: "Fuel (business mileage)", net: 52.00, vatRate: 20, vat: 10.40, gross: 62.40, reclaimable: true }],
   },
   {

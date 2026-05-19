@@ -1,84 +1,138 @@
 "use client";
 
-const demoAged = [
-  { customer: "BluePeak Design",       inv: "BB-2154", amount: 8900,  days: 64, status: "overdue"  },
-  { customer: "Northline Creative",    inv: "ACM-1009",amount: 6400,  days: 63, status: "overdue"  },
-  { customer: "Summit Ventures",       inv: "RC-5102", amount: 3600,  days: 51, status: "overdue"  },
-  { customer: "Greenstone Consulting", inv: "ACM-1015",amount: 2680,  days: 42, status: "disputed" },
-  { customer: "Clearview Recruitment", inv: "BB-2188", amount: 2180,  days: 50, status: "overdue"  },
-  { customer: "Orchard HR Ltd",        inv: "FFC-4107",amount: 1760,  days: 20, status: "overdue"  },
-  { customer: "Delta Media",           inv: "DM-0031", amount: 4200,  days: 7,  status: "chased"   },
-  { customer: "Pinnacle Events",       inv: "PE-118",  amount: 1100,  days: 3,  status: "chased"   },
+import { DEMO_AR_CUSTOMERS, DEMO_AR_TOTALS } from "@/lib/demo-data/demo-ar-data";
+
+// ── Tokens ────────────────────────────────────────────────────────────────────
+const T = {
+  card:    "var(--zn-surface)",
+  surf2:   "var(--zn-surface-2)",
+  ink:     "var(--zn-ink)",
+  muted:   "var(--zn-ink-3)",
+  border:  "var(--zn-line-soft)",
+  amber:   "var(--zn-warn)",
+  red:     "var(--zn-risk)",
+  amberBg: "var(--zn-warn-soft)",
+  redBg:   "var(--zn-risk-soft)",
+} as const;
+
+// ── Buckets ───────────────────────────────────────────────────────────────────
+interface Bucket { label: string; min: number; max: number | null; color: string; bg: string }
+const BUCKETS: Bucket[] = [
+  { label: "Current",    min: 0,  max: 0,    color: T.muted, bg: T.surf2   },
+  { label: "1–30 days",  min: 1,  max: 30,   color: T.amber, bg: T.amberBg },
+  { label: "31–60 days", min: 31, max: 60,   color: T.red,   bg: T.redBg   },
+  { label: "61–90 days", min: 61, max: 90,   color: T.red,   bg: T.redBg   },
+  { label: "90+ days",   min: 91, max: null, color: T.red,   bg: T.redBg   },
 ];
 
-function fmtGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0 }).format(n);
+function bucketAmount(invoices: readonly { overdue: number; amount: number }[], b: Bucket) {
+  return invoices
+    .filter((i) => i.overdue >= b.min && (b.max === null || i.overdue <= b.max))
+    .reduce((s, i) => s + i.amount, 0);
 }
 
-const total = demoAged.reduce((s, i) => s + i.amount, 0);
-const oldest = Math.max(...demoAged.map(i => i.days));
+function fmtGBP(n: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+}
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function DemoAgedDebtPage() {
+  const grandTotals = BUCKETS.map((b) => ({
+    ...b,
+    total: DEMO_AR_CUSTOMERS.reduce((s, c) => s + bucketAmount(c.invoices, b), 0),
+  }));
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="zn-section-label">Demo · Collections</p>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.1] mt-1" style={{ color: "var(--zn-ink)" }}>
-          Aged debt
-        </h1>
-        <p className="mt-1 text-[13.5px]" style={{ color: "var(--zn-ink-3)" }}>All open invoices sorted by age · Acme Studio Ltd</p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total open"    value={fmtGBP(total)} accent="var(--zn-risk)" />
-        <Stat label="Open invoices" value={`${demoAged.length}`} />
-        <Stat label="Oldest"        value={`${oldest} days`} accent="var(--zn-risk)" />
-        <Stat label="Disputed"      value="1" />
-      </div>
-
-      <div className="zn-card overflow-hidden">
-        <div className="hidden sm:grid grid-cols-[2fr_1fr_80px_90px_100px] gap-4 px-5 py-2.5 border-b text-[11px] font-semibold uppercase tracking-[0.06em]"
-             style={{ borderColor: "var(--zn-line-soft)", color: "var(--zn-ink-3)" }}>
-          <span>Customer / Invoice</span><span>Days</span><span>Status</span><span className="text-right">Amount</span><span />
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: T.ink, margin: 0 }}>Aged debt</h1>
+          <p style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>
+            All customers · {fmtGBP(DEMO_AR_TOTALS.totalOutstanding)} outstanding
+          </p>
         </div>
-        <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {demoAged.map((inv) => (
-            <div key={inv.inv} className="flex sm:grid sm:grid-cols-[2fr_1fr_80px_90px_100px] items-center gap-4 px-5 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium" style={{ color: "var(--zn-ink)" }}>{inv.customer}</p>
-                <p className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>{inv.inv}</p>
-              </div>
-              <p className="text-[13px] tabular-nums hidden sm:block"
-                 style={{ color: inv.days > 30 ? "var(--zn-risk)" : "var(--zn-ink-3)" }}>
-                {inv.days}d
-              </p>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap hidden sm:inline-flex" style={{
-                background: inv.status === "disputed" ? "var(--zn-warn-soft)" : inv.status === "chased" ? "var(--zn-surface-2)" : "var(--zn-risk-soft)",
-                color: inv.status === "disputed" ? "var(--zn-warn)" : inv.status === "chased" ? "var(--zn-ink-3)" : "var(--zn-risk)",
-              }}>
-                {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
-              </span>
-              <p className="text-[13px] font-semibold tabular-nums text-right" style={{ color: "var(--zn-ink)" }}>
-                {fmtGBP(inv.amount)}
-              </p>
-              <div className="hidden sm:flex justify-end">
-                <button disabled className="zn-pill zn-pill-ghost opacity-40 cursor-not-allowed text-[11.5px]" style={{ height: 28 }}>
-                  Chase
-                </button>
-              </div>
-            </div>
-          ))}
+        <button style={{
+          background: "transparent", color: T.ink, border: `1px solid ${T.border}`,
+          borderRadius: 999, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>
+          Export CSV
+        </button>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        <KpiCard label="Total outstanding" value={fmtGBP(DEMO_AR_TOTALS.totalOutstanding)} valueColor={T.red} />
+        <KpiCard label="Overdue amount"    value={fmtGBP(DEMO_AR_TOTALS.totalOverdue)} valueColor={T.amber} />
+        <KpiCard label="Overdue invoices"  value={String(DEMO_AR_TOTALS.overdueCount)} />
+        <KpiCard label="Oldest invoice"    value={`${DEMO_AR_TOTALS.oldestOverdue} days`} valueColor={T.red} />
+      </div>
+
+      {/* Aging table */}
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: T.ink, margin: 0 }}>Aging analysis</h2>
+          <span style={{ fontSize: 12, color: T.muted }}>{DEMO_AR_TOTALS.customerCount} customers</span>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${T.border}`, background: T.surf2 }}>
+                <th style={{ textAlign: "left", padding: "10px 20px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: T.muted }}>Customer</th>
+                {BUCKETS.map((b) => (
+                  <th key={b.label} style={{ textAlign: "right", padding: "10px 16px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: b.min > 0 ? b.color : T.muted, whiteSpace: "nowrap" }}>
+                    {b.label}
+                  </th>
+                ))}
+                <th style={{ textAlign: "right", padding: "10px 20px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: T.muted }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...DEMO_AR_CUSTOMERS].sort((a, b) => b.outstanding - a.outstanding).map((c, i, arr) => (
+                <tr key={c.id} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none" }}>
+                  <td style={{ padding: "12px 20px", color: T.ink, fontWeight: 500 }}>
+                    <div>{c.name}</div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>{c.contact}</div>
+                  </td>
+                  {BUCKETS.map((b) => {
+                    const amt = bucketAmount(c.invoices, b);
+                    return (
+                      <td key={b.label} style={{ padding: "12px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: amt > 0 ? (b.min > 0 ? b.color : T.ink) : T.muted }}>
+                        {amt > 0 ? fmtGBP(amt) : "—"}
+                      </td>
+                    );
+                  })}
+                  <td style={{ padding: "12px 20px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: T.ink }}>
+                    {fmtGBP(c.outstanding)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: `2px solid ${T.border}`, background: T.surf2 }}>
+                <td style={{ padding: "12px 20px", fontWeight: 700, color: T.ink }}>Total</td>
+                {grandTotals.map((b) => (
+                  <td key={b.label} style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: b.total > 0 ? (b.min > 0 ? b.color : T.ink) : T.muted }}>
+                    {b.total > 0 ? fmtGBP(b.total) : "—"}
+                  </td>
+                ))}
+                <td style={{ padding: "12px 20px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: T.ink }}>
+                  {fmtGBP(DEMO_AR_TOTALS.totalOutstanding)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function KpiCard({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div className="zn-card p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-      <p className="mt-2 text-[22px] font-bold tabular-nums leading-none" style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px" }}>
+      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: T.muted, margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 22, fontWeight: 700, color: valueColor ?? T.ink, marginTop: 8, marginBottom: 0 }}>{value}</p>
     </div>
   );
 }
