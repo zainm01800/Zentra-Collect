@@ -8,9 +8,18 @@
  *
  * Motorcycles and bicycles have different rates and are out of scope here.
  *
- * Storage: localStorage "zentra.mileage.v1" — one entry per trip.
- * Aggregates feed into lib/tax/summary.ts as allowable expense.
+ * Persistence model:
+ *   - localStorage is the synchronous cache used for instant reads/writes.
+ *   - When the user is authenticated and Supabase is configured, writes
+ *     also fire to the server action `addMileage` (best-effort, fire-and-
+ *     forget). On page mount, `hydrateMileageFromServer()` pulls the
+ *     authoritative server set and overwrites the local cache so the user
+ *     sees the same trips on every device they sign in from.
+ *   - For unauthenticated/demo flows, only localStorage is used — same
+ *     UX as before, no behavior change.
  */
+
+import * as serverActions from "@/actions/mileage";
 
 const STORAGE_KEY = "zentra.mileage.v1";
 
@@ -62,11 +71,68 @@ export function addTrip(input: Omit<MileageTrip, "id" | "createdAt">): MileageTr
     createdAt: new Date().toISOString(),
   };
   safeWrite([...safeRead(), trip]);
+  // Best-effort server persist. We don't await — the UI updates from the
+  // local cache immediately. If the server write fails (offline, not
+  // signed in) the trip still exists locally and will sync on next
+  // hydrateMileageFromServer() or bulk migration.
+  void serverActions.addMileage({
+    date:       trip.date,
+    miles:      trip.miles,
+    purpose:    trip.purpose,
+    fromTo:     trip.fromTo,
+    clientUuid: trip.id,
+  }).then((r) => {
+    if (r.ok && r.trip) {
+      // Reconcile local id with server id so deletes target the right row.
+      const items = safeRead();
+      const idx = items.findIndex((t) => t.id === trip.id);
+      if (idx >= 0) { items[idx] = { ...items[idx], id: r.trip.id }; safeWrite(items); }
+    }
+  }).catch(() => { /* offline / unauthenticated — local copy is enough */ });
   return trip;
 }
 
 export function deleteTrip(id: string): void {
   safeWrite(safeRead().filter((t) => t.id !== id));
+  void serverActions.deleteMileage(id).catch(() => { /* local delete already happened */ });
+}
+
+/**
+ * Pull mileage trips from Supabase and overwrite the local cache. Call
+ * this on app mount once the user is known to be authenticated. No-op
+ * when Supabase isn't configured or the user isn't signed in.
+ */
+export async function hydrateMileageFromServer(): Promise<void> {
+  try {
+    const trips = await serverActions.getMileageTrips();
+    if (!Array.isArray(trips)) return;
+    if (trips.length === 0) return;  // don't blow away local-only trips
+    const mapped: MileageTrip[] = trips.map((t) => ({
+      id:        t.id,
+      date:      t.date,
+      miles:     t.miles,
+      purpose:   t.purpose,
+      fromTo:    t.fromTo,
+      createdAt: t.createdAt,
+    }));
+    safeWrite(mapped);
+  } catch { /* hydration is best-effort */ }
+}
+
+/**
+ * Push every local trip to the server in one batch. Used by the
+ * onboarding sync helper on first authenticated load.
+ */
+export async function pushLocalMileageToServer(): Promise<number> {
+  const trips = safeRead();
+  if (!trips.length) return 0;
+  try {
+    const r = await serverActions.bulkImportMileage(trips.map((t) => ({
+      date: t.date, miles: t.miles, purpose: t.purpose, fromTo: t.fromTo,
+      clientUuid: t.id,
+    })));
+    return r.inserted ?? 0;
+  } catch { return 0; }
 }
 
 // ── Calc ──────────────────────────────────────────────────────────────────────

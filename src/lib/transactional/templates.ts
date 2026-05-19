@@ -29,6 +29,71 @@ function cta(label: string, href: string): string {
 
 // ── Welcome ───────────────────────────────────────────────────────────────────
 
+// ── Monthly recap ─────────────────────────────────────────────────────────────
+
+export interface MonthlyRecapStats {
+  monthLabel:        string;   // "May 2026"
+  chasesSent:        number;
+  recovered:         number;   // GBP
+  opens:             number;
+  clicks:            number;
+  invoicesAdded:     number;
+  mileageMiles:      number;
+  mileageAllowance:  number;   // GBP
+}
+
+export function monthlyRecapEmail(opts: { businessName: string; stats: MonthlyRecapStats }) {
+  const { monthLabel } = opts.stats;
+  const fmtGBP = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(n);
+  const recoveredLabel = opts.stats.recovered > 0 ? fmtGBP(opts.stats.recovered) : "—";
+  const heroLine = opts.stats.recovered > 0
+    ? `You recovered <strong>${recoveredLabel}</strong> in ${monthLabel}.`
+    : `Here's what Zentra Collect did for ${opts.businessName} in ${monthLabel}.`;
+
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:8px 0;color:#6b6253;font-size:14px">${label}</td>
+         <td style="padding:8px 0;color:#1d1813;font-size:14px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums">${value}</td></tr>`;
+
+  const html = shell(`
+    <h1 style="font-size:24px;font-weight:700;margin:0 0 8px">${monthLabel} recap</h1>
+    <p style="font-size:15px;line-height:1.7;color:#4a4236;margin:0 0 20px">${heroLine}</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
+      <tbody>
+        ${row("Chase messages sent",      String(opts.stats.chasesSent))}
+        ${row("Recovered",                recoveredLabel)}
+        ${row("Email opens",              String(opts.stats.opens))}
+        ${row("Email clicks",             String(opts.stats.clicks))}
+        ${row("Invoices added",           String(opts.stats.invoicesAdded))}
+        ${row("Mileage logged",           `${opts.stats.mileageMiles.toLocaleString()} mi · ${fmtGBP(opts.stats.mileageAllowance)}`)}
+      </tbody>
+    </table>
+    ${cta("Open Zentra Collect →", `${SITE}/today`)}
+    <p style="font-size:12px;color:#8d8472;margin-top:24px">
+      You're receiving this because monthly recaps are on. Turn them off in <a href="${SITE}/settings/account" style="color:#1d1813">your account settings</a>.
+    </p>
+  `);
+
+  const text = `${monthLabel} recap
+${opts.stats.recovered > 0 ? `You recovered ${recoveredLabel} in ${monthLabel}.` : `Here's what Zentra Collect did for ${opts.businessName} in ${monthLabel}.`}
+
+Chase messages sent: ${opts.stats.chasesSent}
+Recovered:           ${recoveredLabel}
+Email opens:         ${opts.stats.opens}
+Email clicks:        ${opts.stats.clicks}
+Invoices added:      ${opts.stats.invoicesAdded}
+Mileage logged:      ${opts.stats.mileageMiles} mi · ${fmtGBP(opts.stats.mileageAllowance)}
+
+Open: ${SITE}/today
+
+Turn off monthly recaps: ${SITE}/settings/account`;
+
+  return {
+    subject: `${monthLabel} recap — ${opts.businessName}`,
+    html,
+    text,
+  };
+}
+
 export function welcomeEmail(opts: { businessName: string; trialEndsAt: Date }) {
   const days = Math.ceil((opts.trialEndsAt.getTime() - Date.now()) / 86_400_000);
 

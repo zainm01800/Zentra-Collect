@@ -15,8 +15,16 @@ import { createClient } from "@supabase/supabase-js";
 export const GET = (req: NextRequest) => POST(req);
 
 export async function POST(req: NextRequest) {
+  // Require CRON_SECRET to be configured AND match the request header.
+  // Previously this guard was `if (cronSecret && ...)` which silently
+  // disabled auth when the env var was unset — letting anyone flip
+  // every trialing account to expired by hitting the URL.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    console.error("[expire-trials] CRON_SECRET is not configured — refusing to run");
+    return NextResponse.json({ ok: false, error: "Not configured" }, { status: 500 });
+  }
+  if (req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

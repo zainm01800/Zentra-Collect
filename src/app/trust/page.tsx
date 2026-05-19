@@ -62,6 +62,8 @@ export default function TrustPage() {
         <Fact label="Encryption at rest" value="AES-256 encryption on all stored invoice and customer data." />
         <Fact label="Backups" value="Daily automated backups with 30-day retention." />
         <Fact label="Who can see your data" value="Only you and the systems you explicitly connect (Xero, QuickBooks, etc.). Zentra staff access requires your consent." />
+        <Fact label="Account isolation" value="Postgres row-level security (RLS) policies enforce that one account can never query another account's invoices, customers, mileage, quotes, or credit notes — even with a leaked database key." />
+        <Fact label="Status & uptime" value="Live system status at status.zentracollect.co.uk — updated automatically on every incident." />
       </Section>
 
       {/* What AI does — and doesn't */}
@@ -154,6 +156,7 @@ export default function TrustPage() {
         <Link href="/privacy" className="hover:underline">Privacy policy</Link>
         <Link href="/terms" className="hover:underline">Terms of service</Link>
         <Link href="/cookies" className="hover:underline">Cookie policy</Link>
+        <a href="https://status.zentracollect.co.uk" target="_blank" rel="noopener noreferrer" className="hover:underline">System status</a>
         <Link href="/settings" className="hover:underline">Your account settings</Link>
       </div>
     </div>

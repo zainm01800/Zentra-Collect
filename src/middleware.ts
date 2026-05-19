@@ -23,7 +23,11 @@ const PROTECTED_PREFIXES = [
   "/mtd",
   "/pl",
   "/tax",
+  "/tax-estimate",
   "/year-end",
+  "/mileage",
+  "/quotes",
+  "/credit-notes",
   "/admin",
 ];
 

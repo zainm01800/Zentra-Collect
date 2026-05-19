@@ -15,6 +15,8 @@
  * "what specific revenue line?".
  */
 
+import * as serverActions from "@/actions/direct-income";
+
 const STORAGE_KEY = "zentra.directIncome.v1";
 
 export type IncomeCategory =
@@ -73,12 +75,43 @@ export function tagAsIncome(input: Omit<TaggedIncome, "taggedAt">): TaggedIncome
 
   const next: TaggedIncome = { ...input, taggedAt: new Date().toISOString() };
   safeWrite([...items, next]);
+  void serverActions.tagAsIncome({
+    transactionId: input.transactionId,
+    amount:        input.amount,
+    date:          input.date,
+    description:   input.description,
+    category:      input.category,
+  }).catch(() => { /* best-effort — local copy is enough */ });
   return next;
 }
 
 export function untagIncome(transactionId: string): void {
   const items = safeRead().filter((t) => t.transactionId !== transactionId);
   safeWrite(items);
+  void serverActions.untagIncome(transactionId).catch(() => { /* best-effort */ });
+}
+
+export async function hydrateDirectIncomeFromServer(): Promise<void> {
+  try {
+    const items = await serverActions.getTaggedIncome();
+    if (!Array.isArray(items) || items.length === 0) return;
+    safeWrite(items);
+  } catch { /* best-effort */ }
+}
+
+export async function pushLocalDirectIncomeToServer(): Promise<number> {
+  const items = safeRead();
+  if (!items.length) return 0;
+  try {
+    const r = await serverActions.bulkImportDirectIncome(items.map((t) => ({
+      transactionId: t.transactionId,
+      amount:        t.amount,
+      date:          t.date,
+      description:   t.description,
+      category:      t.category,
+    })));
+    return r.inserted ?? 0;
+  } catch { return 0; }
 }
 
 // ── Aggregates used elsewhere (P&L, tax estimate, dashboard hero) ───────────

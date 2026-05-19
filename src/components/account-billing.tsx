@@ -36,6 +36,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CancelSurveyModal } from "@/components/cancel-survey-modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { buildMeter, type UsageMeter, type UsageSnapshot } from "@/lib/usage/tracker";
 import { getPlan, PLANS, type Plan, type PlanId } from "@/lib/billing/plans";
@@ -442,6 +443,7 @@ function DevPlanSwitcher({ user }: { user: DemoUser }) {
 function StripePortalButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   async function openPortal() {
     setLoading(true);
@@ -481,6 +483,15 @@ function StripePortalButton() {
       {error && (
         <p className="text-xs text-red-600">{error}</p>
       )}
+      <button
+        type="button"
+        onClick={() => setCancelOpen(true)}
+        className="block w-full text-center text-[11.5px] py-1 hover:underline"
+        style={{ color: "var(--zn-ink-3)" }}
+      >
+        Thinking about cancelling?
+      </button>
+      <CancelSurveyModal open={cancelOpen} onClose={() => setCancelOpen(false)} />
     </div>
   );
 }

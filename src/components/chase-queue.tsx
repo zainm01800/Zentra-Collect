@@ -188,6 +188,12 @@ export function ChaseQueue({
         freeSlot(invoiceId, outcome === "paid" ? "paid" : "dismissed");
         refreshWaiting();
       }
+
+      // Celebrate paid + sent outcomes. checkAndCelebrate handles
+      // milestones (first paid, first chase, 100 chases, etc.) and
+      // duplicates by event so it's safe to call on every outcome.
+      if (outcome === "paid")  void import("@/components/celebration").then((m) => m.checkAndCelebrate("paid"));
+      if (outcome === "sent")  void import("@/components/celebration").then((m) => m.checkAndCelebrate("chase"));
     });
     // Depend only on the stable callback identity, not the whole context value.
     // Including `review` here would re-register on every provider render, which

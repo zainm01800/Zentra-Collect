@@ -13,6 +13,8 @@
  * Supabase configuration.
  */
 
+import * as serverActions from "@/actions/quotes";
+
 const STORAGE_KEY = "zentra.quotes.v1";
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "converted";
@@ -124,6 +126,26 @@ export function createQuote(input: CreateQuoteInput): Quote {
     updatedAt:     now,
   };
   safeWrite([...safeRead(), quote]);
+  void serverActions.addQuote({
+    customerName:  input.customerName,
+    customerEmail: input.customerEmail,
+    issueDate:     input.issueDate,
+    expiresOn:     input.expiresOn,
+    amountNet:     input.amountNet,
+    vatRate:       input.vatRate,
+    description:   input.description,
+    notes:         input.notes,
+    clientUuid:    quote.id,
+  }).then((r) => {
+    if (r.ok && r.quote) {
+      const items = safeRead();
+      const idx = items.findIndex((q) => q.id === quote.id);
+      if (idx >= 0) {
+        items[idx] = { ...items[idx], id: r.quote.id, quoteNumber: r.quote.quoteNumber };
+        safeWrite(items);
+      }
+    }
+  }).catch(() => { /* best-effort */ });
   return quote;
 }
 
@@ -133,11 +155,13 @@ export function setQuoteStatus(id: string, status: QuoteStatus): Quote | null {
   if (idx < 0) return null;
   items[idx] = { ...items[idx], status, updatedAt: new Date().toISOString() };
   safeWrite(items);
+  void serverActions.setQuoteStatus(id, status).catch(() => { /* best-effort */ });
   return items[idx];
 }
 
 export function deleteQuote(id: string): void {
   safeWrite(safeRead().filter((q) => q.id !== id));
+  void serverActions.deleteQuote(id).catch(() => { /* best-effort */ });
 }
 
 export function markConverted(id: string, invoiceId: string): Quote | null {
@@ -151,7 +175,48 @@ export function markConverted(id: string, invoiceId: string): Quote | null {
     updatedAt: new Date().toISOString(),
   };
   safeWrite(items);
+  void serverActions.markQuoteConverted(id, invoiceId).catch(() => { /* best-effort */ });
   return items[idx];
+}
+
+export async function hydrateQuotesFromServer(): Promise<void> {
+  try {
+    const items = await serverActions.getQuotes();
+    if (!Array.isArray(items) || items.length === 0) return;
+    safeWrite(items.map((q) => ({
+      id:                   q.id,
+      quoteNumber:          q.quoteNumber,
+      customerName:         q.customerName,
+      customerEmail:        q.customerEmail,
+      issueDate:            q.issueDate,
+      expiresOn:            q.expiresOn,
+      status:               q.status,
+      lineItems:            q.lineItems,
+      notes:                q.notes,
+      convertedToInvoiceId: q.convertedToInvoiceId,
+      createdAt:            q.createdAt,
+      updatedAt:            q.updatedAt,
+    })));
+  } catch { /* best-effort */ }
+}
+
+export async function pushLocalQuotesToServer(): Promise<number> {
+  const items = safeRead();
+  if (!items.length) return 0;
+  try {
+    const r = await serverActions.bulkImportQuotes(items.map((q) => ({
+      customerName:  q.customerName,
+      customerEmail: q.customerEmail,
+      issueDate:     q.issueDate,
+      expiresOn:     q.expiresOn,
+      amountNet:     q.lineItems[0]?.amount ?? 0,
+      vatRate:       q.lineItems[0]?.vatRate ?? 0,
+      description:   q.lineItems[0]?.description ?? "Quote",
+      notes:         q.notes,
+      clientUuid:    q.id,
+    })));
+    return r.inserted ?? 0;
+  } catch { return 0; }
 }
 
 // ── Totals helpers used by the UI ────────────────────────────────────────────

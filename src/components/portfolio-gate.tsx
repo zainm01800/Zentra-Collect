@@ -365,9 +365,14 @@ function LiveBookkeeperPortfolio() {
     overdueAmount: number;
     exceptions: number;
     risk: "high" | "med" | "low";
+    /** Days overdue of the single oldest open invoice (0 if none overdue). */
+    oldestDays: number;
   };
 
+  type SortKey = "risk" | "overdue" | "oldest" | "name";
+
   const [clientStats, setClientStats] = useState<ClientWithStats[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>("risk");
 
   useEffect(() => {
     const stored = readBookkeeperClients();
@@ -381,8 +386,10 @@ function LiveBookkeeperPortfolio() {
       const missed   = invoices.filter((i) => i.status === "missed_promise").length;
       const exceptions = disputed + missed;
       const overdueAmount = overdue.reduce((s, i) => s + i.amountOutstanding, 0);
+      const oldestDays = overdue.reduce((m, i) => Math.max(m, i.daysOverdue), 0);
       const risk: "high" | "med" | "low" =
-        exceptions >= 3 ? "high" : exceptions >= 1 ? "med" : "low";
+        exceptions >= 3 || oldestDays > 90 ? "high" :
+        exceptions >= 1 || oldestDays > 30 ? "med"  : "low";
       return {
         ...c,
         invoiceCount: invoices.length,
@@ -390,11 +397,27 @@ function LiveBookkeeperPortfolio() {
         overdueAmount,
         exceptions,
         risk,
+        oldestDays,
       };
     });
     setClientStats(withStats);
     setLoaded(true);
   }, []);
+
+  // Sort by the user's chosen key so bookkeepers can triage 10+ clients
+  // by whichever signal matters today.
+  const sortedClients = useMemo(() => {
+    const rankRisk = (r: "high" | "med" | "low") => r === "high" ? 2 : r === "med" ? 1 : 0;
+    return [...clientStats].sort((a, b) => {
+      switch (sortKey) {
+        case "overdue": return b.overdueAmount - a.overdueAmount;
+        case "oldest":  return b.oldestDays    - a.oldestDays;
+        case "name":    return a.name.localeCompare(b.name);
+        case "risk":
+        default:        return rankRisk(b.risk) - rankRisk(a.risk) || b.overdueAmount - a.overdueAmount;
+      }
+    });
+  }, [clientStats, sortKey]);
 
   const totals = useMemo(() => ({
     totalClients:    clientStats.length,
@@ -484,9 +507,26 @@ function LiveBookkeeperPortfolio() {
         ))}
       </div>
 
+      {/* Sort selector — bookkeepers with many clients triage by
+          whichever signal matters today (risk, overdue value, age) */}
+      <div className="flex items-center justify-end gap-2 -mb-1">
+        <label className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>Sort by</label>
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+          className="rounded-md px-2 py-1 text-[12px] border bg-transparent"
+          style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+        >
+          <option value="risk">Risk (default)</option>
+          <option value="overdue">Overdue value</option>
+          <option value="oldest">Oldest invoice</option>
+          <option value="name">Client name</option>
+        </select>
+      </div>
+
       {/* Client cards grid */}
       <section className="grid gap-3.5 lg:grid-cols-2">
-        {clientStats.map((client) => {
+        {sortedClients.map((client) => {
           const initials = client.name
             .split(/\s+/)
             .slice(0, 2)
@@ -523,10 +563,24 @@ function LiveBookkeeperPortfolio() {
                     </div>
                   </div>
                 </div>
-                <span className={`zn-risk-chip ${riskClass} flex-shrink-0`}>
-                  <span className="zn-risk-dot" />
-                  {riskLabel}
-                </span>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`zn-risk-chip ${riskClass}`}>
+                    <span className="zn-risk-dot" />
+                    {riskLabel}
+                  </span>
+                  {client.oldestDays > 0 && (
+                    <span
+                      className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums"
+                      style={{
+                        background: client.oldestDays > 60 ? "var(--zn-risk-soft)" : "var(--zn-warn-soft)",
+                        color:      client.oldestDays > 60 ? "var(--zn-risk)"      : "var(--zn-warn)",
+                      }}
+                      title="Days overdue of the oldest open invoice"
+                    >
+                      {client.oldestDays}d oldest
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2.5 mb-3.5">
