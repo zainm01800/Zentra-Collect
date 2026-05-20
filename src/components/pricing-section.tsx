@@ -261,14 +261,6 @@ export function PricingSection({
                   <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost w-full justify-center">
                     Start free trial
                   </Link>
-                ) : (planId === "TRADER" || planId === "FREELANCE") ? (
-                  // Trader / Freelance are waitlist plans — no Stripe price yet
-                  <Link
-                    href="/request-access"
-                    className="zn-pill zn-pill-ghost w-full justify-center"
-                  >
-                    Join waitlist
-                  </Link>
                 ) : effectivePriceId ? (
                   <CheckoutButton
                     priceId={effectivePriceId}
@@ -276,10 +268,16 @@ export function PricingSection({
                     cta={annual ? "Get started (annual)" : "Get started"}
                     variant={isFeatured ? "primary" : "secondary"}
                   />
+                ) : (planId === "TRADER" || planId === "FREELANCE") ? (
+                  // Trader / Freelance on waitlist — no Stripe price configured yet
+                  <Link
+                    href="/request-access"
+                    className="zn-pill zn-pill-ghost w-full justify-center"
+                  >
+                    Join waitlist
+                  </Link>
                 ) : (
-                  // No Stripe price configured for this plan in env. Send
-                  // people to the trial signup instead of a dead waitlist
-                  // — they can pick the right plan after the trial.
+                  // Other unpriced plans — route to trial signup
                   <Link
                     href="/login?mode=signup"
                     className="zn-pill zn-pill-ghost w-full justify-center"

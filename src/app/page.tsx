@@ -193,7 +193,7 @@ export default function Home() {
               UK-hosted data
             </span>
           </div>
-          <p className="mt-4 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+          <p className="mt-4 text-[12px]" style={{ color: "var(--zn-ink-2)" }}>
             Trusted by UK bookkeepers &amp; sole traders · Backed by the UK Late Payment Act
           </p>
         </div>
