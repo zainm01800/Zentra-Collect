@@ -1,5 +1,7 @@
 "use client";
 
+import { TrendingDown, TrendingUp } from "lucide-react";
+
 const demoInvoices = [
   { customer: "BluePeak Design",       amount: 8900,  status: "overdue",  daysOverdue: 64 },
   { customer: "Northline Creative",    amount: 6400,  status: "overdue",  daysOverdue: 63 },
@@ -31,14 +33,50 @@ export default function DemoReportsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Outstanding"   value={fmtGBP(totalOutstanding)} accent="var(--zn-risk)" />
         <Stat label="Collected"     value={fmtGBP(totalPaid)} accent="var(--zn-safe)" />
-        <Stat label="Recovery rate" value={`${recoveryRate}%`} accent="var(--zn-accent)" />
-        <Stat label="Chases sent"   value="14" />
+        <Stat
+          label="Recovery rate"
+          value={`${recoveryRate}%`}
+          accent={recoveryRate >= 50 ? "var(--zn-safe)" : "var(--zn-ink)"}
+          trend={recoveryRate >= 50 ? "up" : recoveryRate < 30 ? "down" : undefined}
+        />
+        <Stat label="Chases sent" value="14" sub="across all invoices" />
       </div>
 
       {/* Aged debt bands */}
       <div className="zn-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
-          <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Aged debt summary</p>
+        <div className="px-5 py-3.5 border-b flex items-start justify-between gap-3" style={{ borderColor: "var(--zn-line-soft)" }}>
+          <div>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>Aged debt summary</p>
+            <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+              1 invoice 90+ days overdue — review for write-off or escalation
+            </p>
+          </div>
+          <button
+            className="zn-pill zn-pill-ghost flex-shrink-0"
+            style={{ height: 30, fontSize: 12, padding: "0 12px" }}
+            onClick={() => {
+              const rows = [
+                ["Bucket", "Amount (£)", "Invoices"],
+                ["0–30 days", "0", "0"],
+                ["31–60 days", "2180", "1"],
+                ["61–90 days", "15300", "2"],
+                ["90+ days", "2680", "1"],
+                ["", "", ""],
+                ["Recovery rate", `${recoveryRate}%`, ""],
+                ["Chases sent", "14", ""],
+              ];
+              const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `zentra-report-demo.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Export CSV
+          </button>
         </div>
         {[
           { band: "0–30 days",  amount: 0,     count: 0 },
@@ -96,11 +134,22 @@ export default function DemoReportsPage() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function Stat({ label, value, accent, trend, sub }: {
+  label: string;
+  value: string;
+  accent?: string;
+  trend?: "up" | "down";
+  sub?: string;
+}) {
   return (
     <div className="zn-card p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
+      <div className="flex items-center justify-between gap-1">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
+        {trend === "up" && <TrendingUp className="size-3 flex-shrink-0" style={{ color: "var(--zn-safe)" }} />}
+        {trend === "down" && <TrendingDown className="size-3 flex-shrink-0" style={{ color: "var(--zn-risk)" }} />}
+      </div>
       <p className="mt-2 text-[22px] font-bold tabular-nums leading-none" style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
+      {sub && <p className="mt-1 text-[10.5px]" style={{ color: "var(--zn-ink-3)" }}>{sub}</p>}
     </div>
   );
 }
