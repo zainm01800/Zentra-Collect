@@ -147,11 +147,11 @@ export default function Home() {
       <MarketingNav />
 
       {/* ─── Hero ─── */}
-      <section className="mx-auto grid max-w-7xl items-start gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.85fr)] lg:px-8 lg:pb-20 lg:pt-20">
+      <section className="mx-auto grid max-w-7xl items-start gap-6 sm:gap-10 px-3 pb-12 pt-8 sm:px-4 sm:pb-14 sm:pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.85fr)] lg:px-8 lg:pb-20 lg:pt-20">
         <div className="min-w-0">
           <div className="zn-label !p-0 mb-3">Books for UK sole traders &amp; small businesses</div>
           <h1
-            className="max-w-3xl tracking-[-0.015em] text-[44px] leading-[1.02] sm:text-[60px] lg:text-[72px]"
+            className="max-w-3xl tracking-[-0.015em] text-[34px] leading-[1.05] sm:text-[44px] sm:leading-[1.02] md:text-[60px] lg:text-[72px]"
             style={{
               fontFamily: "var(--font-newsreader), ui-serif, Georgia, serif",
               fontWeight: 500,

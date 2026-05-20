@@ -216,7 +216,7 @@ export default function DemoPortalPage() {
         )}
 
         {/* Secondary action buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {(["promise", "reason", "forward", "plan"] as const).map((form) => {
             const Icon = form === "promise" ? Calendar : form === "reason" ? MessageSquare : form === "forward" ? Forward : LayoutList;
             const label = form === "promise" ? "Promise date" : form === "reason" ? "Tell us why" : form === "forward" ? "Forward to AP" : "Payment plan";
