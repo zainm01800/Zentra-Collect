@@ -447,3 +447,15 @@ export interface WeeklyDigest {
   }>;
   safetyWarnings: SafetyCheckResult[];
 }
+
+// ── Reminder / chase email types (migrated from legacy cashpilot.ts) ──────────
+
+export type ReminderTone = "Friendly" | "Neutral" | "Firm" | "Final notice";
+
+export type ReminderOptions = {
+  mentionPreviousReminder: boolean;
+  askForPaymentDate: boolean;
+  includePaymentLink: boolean;
+  avoidLateFeeWording: boolean;
+  keepRelationshipWarm: boolean;
+};

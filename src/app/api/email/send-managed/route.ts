@@ -15,10 +15,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { requireActiveAccount } from "@/lib/server/account-guard";
 
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS ?? "Zentra Collect <chase@zentracollect.co.uk>";
 
 export async function POST(req: NextRequest) {
+  // Auth guard — only authenticated active accounts can send managed emails
+  const guard = await requireActiveAccount();
+  if (guard.error) return guard.error;
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

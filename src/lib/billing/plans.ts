@@ -240,7 +240,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: "Unlimited (sample)",
       trial: "100",
-      trader: "50",
+      free: "3",
+      trader: "25",
       freelance: "100",
       starter_solo: "200",
       single_business: "500",
@@ -253,6 +254,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 1,
       trial: 1,
+      free: 1,
       trader: 1,
       freelance: 1,
       starter_solo: 1,
@@ -266,6 +268,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: 3,
       trial: 25,
+      free: 0,
       trader: 0,
       freelance: 0,
       starter_solo: 50,
@@ -279,7 +282,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: true,
-      trader: false,
+      free: true,
+      trader: true,
       freelance: true,
       starter_solo: true,
       single_business: true,
@@ -292,6 +296,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: true,
+      free: false,
       trader: false,
       freelance: false,
       starter_solo: true,
@@ -305,6 +310,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: false,
+      free: false,
       trader: false,
       freelance: false,
       starter_solo: false,
@@ -318,6 +324,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: false,
+      free: false,
       trader: false,
       freelance: false,
       starter_solo: false,
@@ -331,6 +338,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     values: {
       demo: false,
       trial: false,
+      free: false,
       trader: false,
       freelance: false,
       starter_solo: true,

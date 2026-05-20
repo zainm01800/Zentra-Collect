@@ -20,6 +20,7 @@ const pricingDescriptions: Record<string, string> = {
   DEMO:             "Sample data only.",
   FREE:             "For very small sole traders. 3 active invoices, real bank feed, real Self-Assessment estimate — forever free.",
   TRIAL:            "14 days, no card required. Real bank feed, real chase plan — at full power.",
+  TRADER:           "For tiny sole traders who want real books and up to 25 active invoices — no AI needed.",
   FREELANCE:        "For sole traders billing 5–15 invoices a month. Templates, customer portal, full books.",
   STARTER_SOLO:     "For sole traders ready for AI-drafted chases and a fuller workflow.",
   SINGLE_BUSINESS:  "For one small business running a practical chase process.",
