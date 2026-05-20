@@ -151,7 +151,29 @@ export function ReportsContent() {
         actions={
           <>
             <button className="zn-pill zn-pill-ghost">Last 90 days</button>
-            <button className="zn-pill">Export</button>
+            <button
+              className="zn-pill"
+              onClick={() => {
+                const rows = [
+                  ["Bucket", "Invoices", "Amount (£)"],
+                  ...m.ageing.map((b) => [b.label, String(b.count), b.amount.toFixed(2)]),
+                  ["", "", ""],
+                  ["Recovery rate", `${m.recoveryRate}%`, ""],
+                  ["Chases sent", String(m.totalChases), ""],
+                  ["Open disputes", String(m.disputeCount), ""],
+                ];
+                const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `zentra-report-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              Export CSV
+            </button>
           </>
         }
       />
@@ -232,7 +254,18 @@ export function ReportsContent() {
               <div className="text-[12px] text-[#6b6253] mt-1">awaiting resolution</div>
             </div>
             <div className="zn-stat">
-              <div className="zn-label">Recovery rate</div>
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="zn-label">Recovery rate</div>
+                {m.recoveryRate >= 50 ? (
+                  <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--zn-safe)" }}>
+                    <TrendingUp className="size-3" /> Good
+                  </span>
+                ) : m.recoveryRate < 30 ? (
+                  <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--zn-risk)" }}>
+                    <TrendingDown className="size-3" /> Low
+                  </span>
+                ) : null}
+              </div>
               <div className="zn-stat-num mt-2" style={{ color: m.recoveryRate >= 50 ? "var(--zn-safe)" : "var(--zn-ink)" }}>
                 {m.recoveryRate}<span className="text-[16px] text-[#8d8472]">%</span>
               </div>
@@ -241,7 +274,7 @@ export function ReportsContent() {
             <div className="zn-stat">
               <div className="zn-label">Chases sent</div>
               <div className="zn-stat-num mt-2">{m.totalChases}</div>
-              <div className="text-[12px] text-[#6b6253] mt-1">total chase actions logged</div>
+              <div className="text-[12px] text-[#6b6253] mt-1">across all imported invoices</div>
             </div>
           </div>
 
@@ -250,6 +283,11 @@ export function ReportsContent() {
             <div className="mb-4">
               <div className="zn-label mb-1">Ageing</div>
               <h2 className="text-[18px] font-semibold">Where the open balance sits</h2>
+              <p className="text-[12px] mt-1" style={{ color: "var(--zn-ink-3)" }}>
+                {m.ageing.find(b => b.label === "90+ days" && b.count > 0)
+                  ? `${m.ageing.find(b => b.label === "90+ days")!.count} invoice${m.ageing.find(b => b.label === "90+ days")!.count === 1 ? "" : "s"} 90+ days overdue — review for write-off or escalation`
+                  : "No invoices over 90 days — healthy ageing profile"}
+              </p>
             </div>
             <div className="flex flex-col gap-3">
               {m.ageing.map((d) => (

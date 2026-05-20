@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  Briefcase,
   Building2,
   BarChart2,
   Car,
@@ -43,6 +44,7 @@ const collectionsNav = [
   { href: "/demo/quotes",       label: "Quotes",       icon: FileText },
   { href: "/demo/credit-notes", label: "Credit notes", icon: Receipt },
   { href: "/demo/reports",      label: "Reports",      icon: TrendingUp },
+  { href: "/demo/portfolio",    label: "Portfolio",    icon: Briefcase },
 ];
 
 const booksNav = [

@@ -261,6 +261,14 @@ export function PricingSection({
                   <Link href="/login?mode=signup" className="zn-pill zn-pill-ghost w-full justify-center">
                     Start free trial
                   </Link>
+                ) : (planId === "TRADER" || planId === "FREELANCE") ? (
+                  // Trader / Freelance are waitlist plans — no Stripe price yet
+                  <Link
+                    href="/request-access"
+                    className="zn-pill zn-pill-ghost w-full justify-center"
+                  >
+                    Join waitlist
+                  </Link>
                 ) : effectivePriceId ? (
                   <CheckoutButton
                     priceId={effectivePriceId}

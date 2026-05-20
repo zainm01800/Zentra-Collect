@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Mail, Phone, WalletCards } from "lucide-react";
+import { FileText, Info, Mail, Phone, WalletCards } from "lucide-react";
 import type { ElementType } from "react";
 import {
   Sheet,
@@ -115,6 +115,16 @@ export function CustomerProfileDrawer({
               <Phone className="size-4" />
               Mark needs call
             </Button>
+            <a
+              href={`/customers/${encodeURIComponent(customerName)}/statement`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" type="button">
+                <FileText className="size-4" />
+                Statement
+              </Button>
+            </a>
           </div>
 
           <Separator className="my-6" />

@@ -91,7 +91,7 @@ export const DEMO_PLANS: DemoPlanInfo[] = [
     tagline: "Multi-client portfolio for bookkeepers",
     description: "For bookkeepers managing collections across multiple client ledgers.",
     bestFor: "Bookkeepers · accounting practices · anyone with 5+ small business clients",
-    navHrefs: [...COLLECTIONS_HREFS, ...BOOKS_HREFS],
+    navHrefs: [...COLLECTIONS_HREFS, ...BOOKS_HREFS, "/demo/portfolio"],
     features: [
       "Everything in Business",
       "Portfolio overview across all clients",
@@ -107,7 +107,7 @@ export const DEMO_PLANS: DemoPlanInfo[] = [
     tagline: "All features unlocked",
     description: "See every page across every tier in one demo. Best for an evaluation walkthrough.",
     bestFor: "Anyone evaluating the product end-to-end",
-    navHrefs: [...COLLECTIONS_HREFS, ...BOOKS_HREFS],
+    navHrefs: [...COLLECTIONS_HREFS, ...BOOKS_HREFS, "/demo/portfolio"],
     features: [
       "Every nav item visible",
       "Every interactive demo enabled",
