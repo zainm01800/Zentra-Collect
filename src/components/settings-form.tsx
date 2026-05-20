@@ -577,7 +577,7 @@ function OutboundEmailCard() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              For Gmail use an App Password (requires 2FA). For Outlook use your regular password.
+              Gmail and Outlook both require an App Password — enable 2FA first, then generate one in your account security settings.
             </p>
           </div>
           <div className="space-y-1.5">
