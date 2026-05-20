@@ -51,9 +51,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { to, subject, html, text, replyTo, invoiceId, invoiceNumber, customerName } = body;
+  const { to, subject, html, text, replyTo: bodyReplyTo, invoiceId, invoiceNumber, customerName } = body;
   if (!to || !subject || !html) {
     return NextResponse.json({ ok: false, error: "Missing required fields: to, subject, html" }, { status: 400 });
+  }
+
+  // Look up the user's business reply-to email so replies land in their inbox
+  // Priority: caller-supplied replyTo → business reply_to_email → contact_email → none
+  let resolvedReplyTo = bodyReplyTo;
+  if (!resolvedReplyTo && guard.user?.id) {
+    const supabase = await createSupabaseServerClient();
+    const { data: memberRow } = await supabase
+      .from("zentra_account_members")
+      .select("account_id")
+      .eq("user_id", guard.user.id)
+      .maybeSingle();
+    if (memberRow?.account_id) {
+      const { data: biz } = await supabase
+        .from("zentra_businesses")
+        .select("reply_to_email, contact_email")
+        .eq("account_id", memberRow.account_id)
+        .maybeSingle();
+      resolvedReplyTo = biz?.reply_to_email || biz?.contact_email || undefined;
+    }
   }
 
   try {
@@ -64,7 +84,7 @@ export async function POST(req: NextRequest) {
       subject,
       html,
       text: text ?? "",
-      replyTo: replyTo ? [replyTo] : undefined,
+      replyTo: resolvedReplyTo ? [resolvedReplyTo] : undefined,
     });
 
     if (result.error) {
@@ -72,24 +92,32 @@ export async function POST(req: NextRequest) {
     }
 
     // Log email event for open/click tracking (fire-and-forget)
-    if (result.data?.id && guard.user?.id) {
-      const supabase = await createSupabaseServerClient();
-      // Look up the account_id for this user
-      const { data: memberRow } = await supabase
-        .from("zentra_account_members")
-        .select("account_id")
-        .eq("user_id", guard.user.id)
-        .maybeSingle();
-      if (memberRow?.account_id) {
-        await supabase.from("zentra_email_events").insert({
-          account_id:      memberRow.account_id,
-          resend_email_id: result.data.id,
-          invoice_id:      invoiceId ?? null,
-          invoice_number:  invoiceNumber ?? null,
-          customer_name:   customerName ?? null,
-          sent_at:         new Date().toISOString(),
-        }).then(() => {/* ignore error — tracking is non-critical */});
-      }
+    // Re-use the memberRow already fetched above for reply-to lookup
+    if (result.data?.id) {
+      (async () => {
+        try {
+          const supabase = await createSupabaseServerClient();
+          let accountId: string | undefined;
+          if (guard.user?.id) {
+            const { data: m } = await supabase
+              .from("zentra_account_members")
+              .select("account_id")
+              .eq("user_id", guard.user.id)
+              .maybeSingle();
+            accountId = m?.account_id;
+          }
+          if (accountId) {
+            await supabase.from("zentra_email_events").insert({
+              account_id:      accountId,
+              resend_email_id: result.data!.id,
+              invoice_id:      invoiceId ?? null,
+              invoice_number:  invoiceNumber ?? null,
+              customer_name:   customerName ?? null,
+              sent_at:         new Date().toISOString(),
+            });
+          }
+        } catch { /* tracking is non-critical */ }
+      })();
     }
 
     return NextResponse.json({ ok: true, messageId: result.data?.id });

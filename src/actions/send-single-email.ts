@@ -117,12 +117,19 @@ export async function sendSingleEmail(
     const accountId = account.id as string;
     const messageId = randomUUID();
 
-    // Load SMTP settings
-    const { data: settings } = await supabase
-      .from("zentra_email_settings")
-      .select("smtp_host, smtp_port, smtp_user, smtp_password_enc, from_name")
-      .eq("account_id", accountId)
-      .maybeSingle();
+    // Load SMTP settings and business reply-to email in parallel
+    const [{ data: settings }, { data: business }] = await Promise.all([
+      supabase
+        .from("zentra_email_settings")
+        .select("smtp_host, smtp_port, smtp_user, smtp_password_enc, from_name")
+        .eq("account_id", accountId)
+        .maybeSingle(),
+      supabase
+        .from("zentra_businesses")
+        .select("reply_to_email, contact_email")
+        .eq("account_id", accountId)
+        .maybeSingle(),
+    ]);
 
     if (!settings || !settings.smtp_user || !settings.smtp_password_enc) {
       return {
@@ -137,12 +144,16 @@ export async function sendSingleEmail(
       return { ok: false, error: "Could not decrypt SMTP password. Re-save your email settings." };
     }
 
+    // reply_to_email takes priority; fall back to contact_email; fall back to the SMTP from address
+    const replyTo = business?.reply_to_email || business?.contact_email || undefined;
+
     const config = {
       host:     settings.smtp_host,
       port:     settings.smtp_port ?? 587,
       user:     settings.smtp_user,
       password,
       fromName: settings.from_name ?? "Zentra Collect",
+      replyTo,
     };
 
     // Plain-text → HTML wrapper

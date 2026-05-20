@@ -6,6 +6,8 @@ export type SmtpConfig = {
   user: string;
   password: string;
   fromName: string;
+  /** Optional reply-to address — defaults to the from address if not set */
+  replyTo?: string;
 };
 
 export type SendResult =
@@ -73,6 +75,7 @@ export async function sendEmail(
       subject,
       html: bodyHtml,
       text: bodyText,
+      replyTo: config.replyTo ?? config.user,
     });
     return { ok: true, messageId: info.messageId };
   } catch (err) {
