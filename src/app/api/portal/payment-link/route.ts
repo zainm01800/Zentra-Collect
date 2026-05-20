@@ -8,10 +8,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { signPaymentToken } from "@/lib/customer-portal/token";
+import { requireActiveAccount } from "@/lib/server/account-guard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zentracollect.co.uk";
 
 export async function POST(req: NextRequest) {
+  const guard = await requireActiveAccount();
+  if (guard.error) return guard.error;
   let body: {
     invoiceId: string;
     invoiceNumber: string;
