@@ -28,6 +28,6 @@ ALTER TABLE public.zentra_payment_plan_proposals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner_select_proposals" ON public.zentra_payment_plan_proposals
   FOR SELECT USING (
     account_id IN (
-      SELECT id FROM public.zentra_accounts WHERE user_id = auth.uid()
+      SELECT id FROM public.zentra_accounts WHERE owner_user_id = auth.uid()
     )
   );
