@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { requireActiveAccount } from "@/lib/server/account-guard";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS ?? "Zentra Collect <chase@zentracollect.co.uk>";
 
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
     html: string;
     text?: string;
     replyTo?: string;
+    /** Optional — stored in email_events for open tracking */
+    invoiceId?: string;
+    invoiceNumber?: string;
+    customerName?: string;
   };
 
   try {
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { to, subject, html, text, replyTo } = body;
+  const { to, subject, html, text, replyTo, invoiceId, invoiceNumber, customerName } = body;
   if (!to || !subject || !html) {
     return NextResponse.json({ ok: false, error: "Missing required fields: to, subject, html" }, { status: 400 });
   }
@@ -64,6 +69,27 @@ export async function POST(req: NextRequest) {
 
     if (result.error) {
       return NextResponse.json({ ok: false, error: result.error.message }, { status: 500 });
+    }
+
+    // Log email event for open/click tracking (fire-and-forget)
+    if (result.data?.id && guard.user?.id) {
+      const supabase = await createSupabaseServerClient();
+      // Look up the account_id for this user
+      const { data: memberRow } = await supabase
+        .from("zentra_account_members")
+        .select("account_id")
+        .eq("user_id", guard.user.id)
+        .maybeSingle();
+      if (memberRow?.account_id) {
+        await supabase.from("zentra_email_events").insert({
+          account_id:      memberRow.account_id,
+          resend_email_id: result.data.id,
+          invoice_id:      invoiceId ?? null,
+          invoice_number:  invoiceNumber ?? null,
+          customer_name:   customerName ?? null,
+          sent_at:         new Date().toISOString(),
+        }).then(() => {/* ignore error — tracking is non-critical */});
+      }
     }
 
     return NextResponse.json({ ok: true, messageId: result.data?.id });

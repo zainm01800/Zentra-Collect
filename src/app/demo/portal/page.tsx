@@ -6,6 +6,7 @@ import {
   Calendar,
   CreditCard,
   Forward,
+  LayoutList,
   MessageSquare,
   ShieldCheck,
   ArrowLeft,
@@ -16,6 +17,7 @@ import {
   calculateStatutoryInterest,
   isInterestMaterial,
 } from "@/lib/statutory-interest";
+import { PaymentPlanForm } from "@/components/payment-plan-form";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -35,7 +37,7 @@ const SAMPLE = {
   businessEmail: "billing@acmestudio.example",
 };
 
-type OpenForm = "promise" | "reason" | "forward" | null;
+type OpenForm = "promise" | "reason" | "forward" | "plan" | null;
 
 export default function DemoPortalPage() {
   const dueDateMs = new Date(SAMPLE.dueDate).getTime();
@@ -214,10 +216,10 @@ export default function DemoPortalPage() {
         )}
 
         {/* Secondary action buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
-          {(["promise", "reason", "forward"] as const).map((form) => {
-            const Icon = form === "promise" ? Calendar : form === "reason" ? MessageSquare : Forward;
-            const label = form === "promise" ? "Promise date" : form === "reason" ? "Tell us why" : "Forward to AP";
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
+          {(["promise", "reason", "forward", "plan"] as const).map((form) => {
+            const Icon = form === "promise" ? Calendar : form === "reason" ? MessageSquare : form === "forward" ? Forward : LayoutList;
+            const label = form === "promise" ? "Promise date" : form === "reason" ? "Tell us why" : form === "forward" ? "Forward to AP" : "Payment plan";
             const done = submitted?.type === form;
             const active = openForm === form;
             return (
@@ -293,6 +295,17 @@ export default function DemoPortalPage() {
               submitLabel="Forward invoice"
             />
           </InlineForm>
+        )}
+
+        {openForm === "plan" && (
+          <div style={{ marginBottom: 16 }}>
+            <PaymentPlanForm
+              totalAmount={SAMPLE.amount}
+              businessName={SAMPLE.businessName}
+              invoiceNumber={SAMPLE.invoiceNumber}
+              onClose={() => setOpenForm(null)}
+            />
+          </div>
         )}
 
         {/* Trust footer */}

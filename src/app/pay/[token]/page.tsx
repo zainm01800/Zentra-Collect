@@ -26,6 +26,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { verifyPaymentToken, quoteEarlyPay } from "@/lib/customer-portal/token";
+import { PaymentPlanButton } from "./payment-plan-button";
 import {
   calculateStatutoryInterest,
   isInterestMaterial,
@@ -291,8 +292,16 @@ export default async function PayPage({
           <ForwardToApLink token={token} inv={inv} />
         </div>
 
+        {/* Payment plan proposal */}
+        <PaymentPlanButton
+          token={token}
+          totalAmount={inv.amount}
+          businessName={inv.businessName}
+          invoiceNumber={inv.invoiceNumber}
+        />
+
         {/* Invoice PDF download */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-4 mt-4">
           <Link
             href={`/pay/${token}/invoice`}
             className="text-[12px] text-neutral-500 dark:text-neutral-400 dark:text-neutral-500 underline hover:text-neutral-700"

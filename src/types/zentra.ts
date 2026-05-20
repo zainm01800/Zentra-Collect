@@ -151,7 +151,10 @@ export type ActivityEventType =
   | "statement_requested"
   | "paid"
   | "note_added"
-  | "safety_blocked";
+  | "safety_blocked"
+  | "email_opened"
+  | "email_clicked"
+  | "payment_plan_proposed";
 
 export interface Business {
   id: string;
