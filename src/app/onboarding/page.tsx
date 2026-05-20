@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import {
   createSupabaseServerClient,
+  getSupabaseAdminClient,
+  hasSupabaseAdminConfig,
   hasSupabaseServerConfig,
 } from "@/lib/supabase/server";
 
@@ -21,7 +23,10 @@ export default async function OnboardingPage() {
     } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: member } = await supabase
+      // Use the admin client (service role) so RLS never blocks this check.
+      // If the admin client isn't configured, fall back to the anon client.
+      const db = hasSupabaseAdminConfig() ? getSupabaseAdminClient() : supabase;
+      const { data: member } = await db
         .from("zentra_account_members")
         .select("account_id")
         .eq("user_id", user.id)

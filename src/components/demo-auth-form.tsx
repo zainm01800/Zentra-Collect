@@ -144,27 +144,16 @@ export function DemoAuthForm() {
             setBusinessName(metadata.business_name);
           }
 
-          // Returning user check — if they already have an account row, skip
-          // onboarding and go straight to the dashboard.
+          // Returning user check — call the server-side lookup route which
+          // uses the admin client (bypasses RLS) to reliably find the account.
           if (data.user) {
-            // Two separate queries to avoid RLS blocking nested joins.
-            const { data: member } = await supabase
-              .from("zentra_account_members")
-              .select("account_id")
-              .eq("user_id", data.user.id)
-              .limit(1)
-              .maybeSingle<{ account_id: string }>();
+            const lookupRes = await fetch("/api/auth/account-lookup").catch(() => null);
+            const lookup = lookupRes?.ok ? await lookupRes.json().catch(() => null) : null;
 
-            if (member?.account_id) {
-              const { data: accountRow } = await supabase
-                .from("zentra_accounts")
-                .select("plan_id")
-                .eq("id", member.account_id)
-                .maybeSingle<{ plan_id: string }>();
-
+            if (lookup?.found && lookup.accountId) {
               // DB stores uppercase plan IDs (e.g. "BOOKKEEPER_STARTER") but
               // billing/plans.ts uses lowercase keys — normalise here.
-              const planId = ((accountRow?.plan_id ?? "trial").toLowerCase()) as PlanId;
+              const planId = ((lookup.planId ?? "trial").toLowerCase()) as PlanId;
               const account = createLocalAccount({
                 name: nextName || data.user.email?.split("@")[0] || "User",
                 email: data.user.email ?? email,
