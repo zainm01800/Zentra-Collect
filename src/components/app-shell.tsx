@@ -15,6 +15,7 @@ import {
   ChevronRight,
   CreditCard,
   FileText,
+  Grid3X3,
   Home,
   HelpCircle,
   LayoutDashboard,
@@ -115,15 +116,14 @@ const financeNav: NavItem[] = [
 ];
 
 /**
- * The four fixed tabs shown in the mobile bottom navigation bar.
- * Kept deliberately small — secondary pages are reachable from desktop
- * or via Settings on mobile.
+ * The four primary tabs always visible in the mobile bottom bar.
+ * A fifth "More" tab opens a drawer with all remaining nav items.
  */
-const mobileBottomNav: NavItem[] = [
-  { href: "/today",     label: "Today",     icon: Home       },
-  { href: "/invoices",  label: "Invoices",  icon: Receipt    },
-  { href: "/customers", label: "Customers", icon: Users      },
-  { href: "/settings",  label: "Settings",  icon: Settings   },
+const mobileBottomNavPrimary: NavItem[] = [
+  { href: "/today",     label: "Today",     icon: Home    },
+  { href: "/invoices",  label: "Invoices",  icon: Receipt },
+  { href: "/customers", label: "Customers", icon: Users   },
+  { href: "/aged-debt", label: "Aged debt", icon: TableProperties },
 ];
 
 // ── Nav hidden-items helpers ──────────────────────────────────────────────────
@@ -330,6 +330,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   // Sync invoices from Supabase for authenticated real users on mount
   useSupabaseInvoiceSync();
+
+  // Mobile "More" drawer state
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  // Close the drawer when the route changes
+  useEffect(() => { setMobileMoreOpen(false); }, [pathname]);
 
   // Collapsible section state — Finance collapses by default
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ overview: false, collections: false, finance: true });
@@ -810,7 +815,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         {/* ── Mobile bottom navigation bar ──────────────────────────────── */}
         {/*
-          Four fixed tabs: Home · Invoices · Customers · Settings.
+          4 primary tabs + "More" drawer.
           An accent bar (2 px, top edge) marks the active tab.
           safe-area-inset-bottom keeps it clear of the iPhone home indicator.
         */}
@@ -823,7 +828,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           }}
           aria-label="Main navigation"
         >
-          {mobileBottomNav.map((item) => {
+          {mobileBottomNavPrimary.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
@@ -833,7 +838,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
                 className="relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors"
                 style={{ color: active ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
               >
-                {/* Accent indicator bar at top edge of active tab */}
                 {active && (
                   <span
                     className="absolute top-0 inset-x-0 h-0.5 rounded-b-full"
@@ -846,7 +850,128 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {/* "More" tab — opens the full nav drawer */}
+          <button
+            type="button"
+            onClick={() => setMobileMoreOpen(true)}
+            className="relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors"
+            style={{ color: mobileMoreOpen ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
+            aria-label="More navigation options"
+          >
+            {mobileMoreOpen && (
+              <span
+                className="absolute top-0 inset-x-0 h-0.5 rounded-b-full"
+                style={{ background: "var(--zn-accent)" }}
+                aria-hidden
+              />
+            )}
+            <Grid3X3 className="size-5" />
+            <span>More</span>
+          </button>
         </nav>
+
+        {/* ── Mobile "More" drawer ───────────────────────────────────────── */}
+        {mobileMoreOpen && (
+          <>
+            {/* Backdrop */}
+            <button
+              type="button"
+              className="md:hidden fixed inset-0 z-40"
+              style={{ background: "rgba(29,24,19,0.4)", backdropFilter: "blur(2px)" }}
+              onClick={() => setMobileMoreOpen(false)}
+              aria-label="Close menu"
+            />
+            {/* Drawer sheet */}
+            <div
+              className="md:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl border-t shadow-2xl"
+              style={{
+                background:     "var(--zn-surface)",
+                borderColor:    "var(--zn-line)",
+                paddingBottom:  "calc(env(safe-area-inset-bottom) + 1rem)",
+                animation:      "slideUp 220ms cubic-bezier(0.32,0.72,0,1)",
+                maxHeight:      "80dvh",
+                overflowY:      "auto",
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full" style={{ background: "var(--zn-line)" }} />
+              </div>
+
+              <div className="px-4 pb-2 pt-1 flex items-center justify-between">
+                <span className="text-sm font-semibold" style={{ color: "var(--zn-ink)" }}>Navigation</span>
+                <button
+                  type="button"
+                  onClick={() => setMobileMoreOpen(false)}
+                  className="size-7 flex items-center justify-center rounded-full"
+                  style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-3)" }}
+                  aria-label="Close"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              {/* Nav sections */}
+              {[
+                {
+                  title: "Collections",
+                  items: [
+                    { href: "/reports",      label: "Reports",       icon: BarChart3        },
+                    { href: "/quotes",        label: "Quotes",        icon: FileText         },
+                    { href: "/credit-notes",  label: "Credit notes",  icon: Receipt          },
+                    { href: "/chase-today",   label: "Chase plan",    icon: CalendarClock    },
+                    { href: "/banking",       label: "Bank feed",     icon: Building2        },
+                  ],
+                },
+                {
+                  title: "Finance",
+                  items: [
+                    { href: "/expenses",     label: "Expenses",      icon: Receipt          },
+                    { href: "/mileage",      label: "Mileage",       icon: Car              },
+                    { href: "/pl",           label: "P&L",           icon: TrendingUp       },
+                    { href: "/bills",        label: "Bills",         icon: FileText         },
+                    { href: "/tax",          label: "Tax & VAT",     icon: PiggyBank        },
+                  ],
+                },
+                {
+                  title: "Account",
+                  items: [
+                    { href: "/settings",     label: "Settings",      icon: Settings         },
+                    { href: "/settings/integrations", label: "Integrations", icon: Plug     },
+                  ],
+                },
+              ].map(({ title, items }) => (
+                <div key={title} className="px-4 mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--zn-ink-3)" }}>
+                    {title}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileMoreOpen(false)}
+                          className="flex flex-col items-center gap-1.5 rounded-xl py-3 px-1 text-center transition-colors"
+                          style={{
+                            background:  active ? "var(--zn-surface-2)" : "transparent",
+                            color:       active ? "var(--zn-accent)"    : "var(--zn-ink-2)",
+                            border:      active ? "1px solid var(--zn-line)" : "1px solid transparent",
+                          }}
+                        >
+                          <item.icon className="size-5" />
+                          <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Syncs Supabase session → localStorage once per mount */}
         <AccountSync />
