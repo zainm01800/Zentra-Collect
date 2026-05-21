@@ -60,7 +60,7 @@ async function extractWithGemini(
   mimeType:    string,
   apiKey:      string,
 ): Promise<ExtractedReceipt> {
-  const model = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -81,7 +81,10 @@ async function extractWithGemini(
       }),
     },
   );
-  if (!res.ok) throw new Error(`Gemini Vision error ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(`Gemini Vision error ${res.status}: ${errBody.slice(0, 200)}`);
+  }
   const data = await res.json() as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
@@ -165,18 +168,28 @@ export async function POST(req: NextRequest) {
     }
 
     // Gemini takes priority; OpenAI is the fallback.
-    const geminiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (geminiKey) {
-      const parsed = await extractWithGemini(imageBase64, mimeType, geminiKey);
-      return NextResponse.json({ receipt: parsed, source: "gemini" });
+      try {
+        const parsed = await extractWithGemini(imageBase64, mimeType, geminiKey);
+        return NextResponse.json({ receipt: parsed, source: "gemini" });
+      } catch (geminiErr) {
+        console.error("[receipts/extract] Gemini failed, trying OpenAI fallback:", geminiErr);
+        // Fall through to OpenAI
+      }
     }
     const openai = getOpenAI();
     if (openai) {
-      const parsed = await extractWithOpenAI(imageBase64, mimeType, openai);
-      return NextResponse.json({ receipt: parsed, source: "openai" });
+      try {
+        const parsed = await extractWithOpenAI(imageBase64, mimeType, openai);
+        return NextResponse.json({ receipt: parsed, source: "openai" });
+      } catch (openaiErr) {
+        console.error("[receipts/extract] OpenAI also failed:", openaiErr);
+        return NextResponse.json({ error: "AI extraction failed. Please check your API keys." }, { status: 500 });
+      }
     }
     return NextResponse.json(
-      { error: "No vision provider configured. Set GEMINI_API_KEY or OPENAI_API_KEY." },
+      { error: "No vision provider configured. Set GEMINI_API_KEY or OPENAI_API_KEY in your environment variables." },
       { status: 503 },
     );
   } catch (err) {

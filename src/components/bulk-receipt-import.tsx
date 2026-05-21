@@ -69,11 +69,16 @@ function fmtGBP(n: number) {
   }).format(n);
 }
 
+class AiNotConfiguredError extends Error {
+  constructor() { super("AI vision provider not configured. Add GEMINI_API_KEY or OPENAI_API_KEY to your environment."); this.name = "AiNotConfiguredError"; }
+}
+
 async function extractFromFile(file: File): Promise<ExtractedReceiptFull> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch("/api/receipts/extract", { method: "POST", body: form });
   if (!res.ok) {
+    if (res.status === 503) throw new AiNotConfiguredError();
     const data = await res.json().catch(() => ({})) as { error?: string };
     throw new Error(data.error ?? `Server error ${res.status}`);
   }
@@ -140,11 +145,12 @@ function InlineField({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function BulkReceiptImport({ onImport }: Props) {
-  const [open, setOpen]       = useState(false);
-  const [queue, setQueue]     = useState<QueuedFile[]>([]);
-  const [running, setRunning] = useState(false);
-  const [done, setDone]       = useState(false);
-  const inputRef              = useRef<HTMLInputElement>(null);
+  const [open, setOpen]             = useState(false);
+  const [queue, setQueue]           = useState<QueuedFile[]>([]);
+  const [running, setRunning]       = useState(false);
+  const [done, setDone]             = useState(false);
+  const [aiMissing, setAiMissing]   = useState(false);
+  const inputRef                    = useRef<HTMLInputElement>(null);
 
   // Editable copies of the extracted results
   const [edits, setEdits]     = useState<Record<string, Partial<ExtractedReceiptFull>>>({});
@@ -154,6 +160,7 @@ export function BulkReceiptImport({ onImport }: Props) {
     setEdits({});
     setRunning(false);
     setDone(false);
+    setAiMissing(false);
   }
 
   function close() {
@@ -195,13 +202,16 @@ export function BulkReceiptImport({ onImport }: Props) {
           ),
         );
       } catch (err) {
+        if (err instanceof AiNotConfiguredError) setAiMissing(true);
         setQueue((prev) =>
           prev.map((q) =>
             q.id === item.id
-              ? { ...q, status: "error", error: err instanceof Error ? err.message : "Extraction failed" }
+              ? { ...q, status: "error", error: "AI not configured" }
               : q,
           ),
         );
+        // Stop processing further files if AI isn't configured
+        if (err instanceof AiNotConfiguredError) break;
       }
     }
     setRunning(false);
@@ -316,6 +326,22 @@ export function BulkReceiptImport({ onImport }: Props) {
                 className="hidden"
                 onChange={(e) => handleFiles(e.target.files)}
               />
+            </div>
+          )}
+
+          {/* AI not configured banner */}
+          {aiMissing && (
+            <div
+              className="rounded-xl border px-4 py-3 text-sm"
+              style={{ borderColor: "var(--zn-risk)", background: "color-mix(in srgb, var(--zn-risk) 8%, transparent)" }}
+            >
+              <p className="font-semibold" style={{ color: "var(--zn-risk)" }}>AI vision provider not set up</p>
+              <p className="text-xs mt-1" style={{ color: "var(--zn-ink-2)" }}>
+                Receipt scanning requires a <strong>Gemini</strong> or <strong>OpenAI</strong> API key.
+                Add <code className="font-mono bg-black/5 px-1 rounded">GEMINI_API_KEY</code> or{" "}
+                <code className="font-mono bg-black/5 px-1 rounded">OPENAI_API_KEY</code> to your
+                Vercel environment variables, then redeploy.
+              </p>
             </div>
           )}
 
