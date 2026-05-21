@@ -175,10 +175,31 @@ export function AgedDebtReport() {
     );
   }
 
+  const oldestDays  = open.length > 0 ? Math.max(...open.map((i) => i.daysOverdue)) : 0;
+  const overdueCount = open.filter((i) => i.daysOverdue > 0).length;
+
   return (
     <div className="space-y-6">
 
-      {/* Summary cards */}
+      {/* Top-line KPI strip — matches demo layout */}
+      {open.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Total outstanding", value: fmtGBP(grandTotal),   sub: `${open.length} invoice${open.length === 1 ? "" : "s"}`, color: "var(--zn-ink)" },
+            { label: "Overdue amount",    value: fmtGBP(overdueTotal),  sub: `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`, color: "var(--zn-risk)" },
+            { label: "Overdue invoices",  value: String(overdueCount),  sub: "Open and past due", color: overdueCount > 0 ? "var(--zn-risk)" : "var(--zn-ink)" },
+            { label: "Oldest invoice",    value: oldestDays > 0 ? `${oldestDays} days` : "—", sub: "Days outstanding", color: oldestDays > 90 ? "var(--zn-risk)" : oldestDays > 30 ? "var(--zn-warn)" : "var(--zn-ink)" },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} className="rounded-[12px] px-4 py-4" style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
+              <p className="mt-1.5 text-[22px] font-bold tabular-nums leading-none" style={{ color }}>{value}</p>
+              <p className="mt-1 text-[11px]" style={{ color: "var(--zn-ink-3)" }}>{sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bucket summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {bucketSummaries.map(({ bucket, count, total }) => (
           <div
