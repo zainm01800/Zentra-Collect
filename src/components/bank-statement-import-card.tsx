@@ -7,10 +7,11 @@
  * transaction feed that survives page refreshes.
  *
  * State flow:
- *   1. No data in localStorage  → import drop-zone only
+ *   1. No data in localStorage  → full drop-zone shown inside the card
  *   2. File uploaded (preview)  → preview + "Import N" button inside BankStatementImport
- *   3. After "Import" clicked   → success banner + feed of all transactions below
- *   4. Page refresh             → drop-zone at top + feed reloaded from localStorage
+ *   3. After "Import" clicked   → compact header pill only; full feed below
+ *   4. Page refresh             → compact header pill + feed reloaded from localStorage
+ *   5. User clicks "Replace"    → full drop-zone re-appears above the existing feed
  */
 
 import { useEffect, useState } from "react";
@@ -20,7 +21,7 @@ import {
   BANK_STATEMENT_BANK_KEY,
   type ParsedTransaction,
 } from "@/components/bank-statement-import";
-import { ArrowDownLeft, ArrowUpRight, Landmark, Upload } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Landmark, RefreshCw, Upload } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -44,8 +45,9 @@ function fmtDate(iso: string) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function BankStatementImportCard() {
-  const [saved, setSaved] = useState<ParsedTransaction[]>([]);
-  const [bank,  setBank]  = useState<string | null>(null);
+  const [saved,       setSaved]       = useState<ParsedTransaction[]>([]);
+  const [bank,        setBank]        = useState<string | null>(null);
+  const [showImport,  setShowImport]  = useState(false);   // true = drop-zone visible
 
   // Load persisted transactions on mount
   useEffect(() => {
@@ -53,7 +55,10 @@ export function BankStatementImportCard() {
       const raw = localStorage.getItem(BANK_STATEMENT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as ParsedTransaction[];
-        if (Array.isArray(parsed) && parsed.length > 0) setSaved(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSaved(parsed);
+          // Data already exists → keep drop-zone hidden
+        }
       }
       const b = localStorage.getItem(BANK_STATEMENT_BANK_KEY);
       if (b) setBank(b);
@@ -65,8 +70,8 @@ export function BankStatementImportCard() {
   /** Called after the user clicks "Import N transactions" in BankStatementImport. */
   function handleImported(rows: ParsedTransaction[]) {
     setSaved(rows);
-    // Bank name was just written to localStorage by BankStatementImport — read it back.
     setBank(localStorage.getItem(BANK_STATEMENT_BANK_KEY));
+    setShowImport(false);   // collapse back to compact mode
   }
 
   /**
@@ -91,36 +96,69 @@ export function BankStatementImportCard() {
     <div className="zn-card px-5 py-5 space-y-4">
 
       {/* ── Card header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5">
-        <div
-          className="size-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "var(--zn-bg-2)" }}
-        >
-          <Upload className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="size-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--zn-bg-2)" }}
+          >
+            <Upload className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              Import bank statement
+            </p>
+            <p className="text-[12px] flex items-center gap-1" style={{ color: "var(--zn-ink-3)" }}>
+              {hasFeed && bank ? (
+                <>
+                  <Landmark className="size-3 flex-shrink-0" />
+                  {bank} · {visible.length} transactions
+                </>
+              ) : hasFeed ? (
+                `${visible.length} transactions imported`
+              ) : (
+                "CSV, Excel (.xlsx / .xls), TSV or TXT — auto-detects every major UK bank."
+              )}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-            Import bank statement
-          </p>
-          <p className="text-[12px] flex items-center gap-1" style={{ color: "var(--zn-ink-3)" }}>
-            {hasFeed && bank ? (
-              <>
-                <Landmark className="size-3 flex-shrink-0" />
-                {bank} · {visible.length} transactions
-              </>
-            ) : hasFeed ? (
-              `${visible.length} transactions imported`
-            ) : (
-              "CSV, Excel (.xlsx / .xls), TSV or TXT — auto-detects every major UK bank."
-            )}
-          </p>
-        </div>
+
+        {/* Compact "Replace" pill — only visible once data exists */}
+        {hasFeed && !showImport && (
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium transition-colors flex-shrink-0"
+            style={{
+              background:  "var(--zn-surface-2)",
+              border:      "1px solid var(--zn-line-soft)",
+              color:       "var(--zn-ink-2)",
+            }}
+          >
+            <RefreshCw className="size-3" />
+            Replace
+          </button>
+        )}
+
+        {/* Cancel button — shown while replace drop-zone is open */}
+        {hasFeed && showImport && (
+          <button
+            type="button"
+            onClick={() => setShowImport(false)}
+            className="text-[11.5px] font-medium flex-shrink-0"
+            style={{ color: "var(--zn-ink-3)" }}
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
-      {/* ── Import component (always visible — handles its own drop / preview / saved states) */}
-      <div style={{ borderTop: "1px solid var(--zn-line-soft)", paddingTop: "1rem" }}>
-        <BankStatementImport onImported={handleImported} onCleared={handleCleared} />
-      </div>
+      {/* ── Import component — shown when no data, or user clicked "Replace" ── */}
+      {(!hasFeed || showImport) && (
+        <div style={{ borderTop: "1px solid var(--zn-line-soft)", paddingTop: "1rem" }}>
+          <BankStatementImport onImported={handleImported} onCleared={handleCleared} />
+        </div>
+      )}
 
       {/* ── Persistent transaction feed (shown once data is saved) ───────── */}
       {hasFeed && (
@@ -217,7 +255,7 @@ export function BankStatementImportCard() {
           </div>
 
           <p className="text-[11px] text-center" style={{ color: "var(--zn-ink-3)" }}>
-            {visible.length} transactions · upload a new file above to replace
+            {visible.length} transactions · click &quot;Replace&quot; above to upload a new file
           </p>
         </div>
       )}
