@@ -20,30 +20,37 @@ import OpenAI from "openai";
 import { requireActiveAccount } from "@/lib/server/account-guard";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
-const EXTRACTION_PROMPT = `Extract the key fields from this receipt photo.
+const EXTRACTION_PROMPT = `Extract the key fields from this receipt or invoice image.
 
 Return ONLY valid JSON in this exact shape:
 {
-  "vendor": "string — the merchant / shop name",
-  "date": "string — YYYY-MM-DD, the receipt date",
-  "amount": number — total paid (positive, no currency symbols),
+  "vendor": "string — the merchant / supplier name",
+  "date": "string — YYYY-MM-DD, the receipt or invoice date",
+  "amount": number — the GROSS total paid including VAT (positive, no currency symbols),
   "currency": "string — 'GBP', 'EUR', 'USD'… inferred from the symbol or country, default 'GBP'",
-  "category": "string — one of: travel, fuel, meals, software, office, professional, marketing, utilities, supplies, other"
+  "category": "string — one of: travel, fuel, meals, software, office, professional, marketing, utilities, supplies, other",
+  "vatAmount": number or null — the VAT amount shown on the receipt (e.g. if it says 'VAT: £18.00' return 18.00),
+  "vatRate": number or null — the UK VAT rate: 0, 5, or 20. Infer from vatAmount/net if not explicitly stated. Null if not a VAT receipt,
+  "invoiceNumber": "string or null — invoice or receipt reference number if shown"
 }
 
 Rules:
-- If a field is illegible or missing, omit it from the response.
+- If a field is illegible or missing, use null (not omit) for optional fields, omit only vendor/date/amount if truly unreadable.
 - Date format MUST be YYYY-MM-DD. Convert from any other format.
-- amount is the FINAL total paid (after tax/tip), not subtotal.
-- category should be your best guess based on vendor + line items.
+- amount is the GROSS total (inc. VAT). If only net + VAT shown, sum them.
+- vatAmount should be the actual VAT £ figure shown, NOT the rate.
+- vatRate: if the receipt shows '20% VAT' set 20; if it shows '5% VAT' set 5; if zero-rated or no VAT set 0; if unclear but vatAmount > 0 infer from net.
 - Return JSON only — no commentary, no markdown fences.`;
 
 interface ExtractedReceipt {
-  vendor?:   string;
-  date?:     string;
-  amount?:   number;
-  currency?: string;
-  category?: string;
+  vendor?:         string;
+  date?:           string;
+  amount?:         number;
+  currency?:       string;
+  category?:       string;
+  vatAmount?:      number | null;
+  vatRate?:        number | null;
+  invoiceNumber?:  string | null;
 }
 
 // ── Gemini Vision ────────────────────────────────────────────────────────────
