@@ -251,6 +251,25 @@ function LiabilityBreakdown({ annualIncome, allowableExpenses, incomeTaxAmount, 
   );
 }
 
+function KpiSummaryTile({ label, value, sub, valueColor }: {
+  label: string; value: string; sub?: string; valueColor?: string;
+}) {
+  return (
+    <div
+      className="rounded-[10px] px-4 py-3.5"
+      style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--zn-ink-3)" }}>
+        {label}
+      </p>
+      <p className="mt-1.5 text-[20px] font-bold tabular-nums leading-none" style={{ color: valueColor ?? "var(--zn-ink)" }}>
+        {value}
+      </p>
+      {sub && <p className="mt-1 text-[11px]" style={{ color: "var(--zn-ink-3)" }}>{sub}</p>}
+    </div>
+  );
+}
+
 function VatSection({ annualIncome, annualExpenses }: { annualIncome: number; annualExpenses: number }) {
   const VAT_THRESHOLD = 90_000;
   const STANDARD_RATE = 0.20;
@@ -450,6 +469,12 @@ export default function TaxPageClient() {
     isGB,
   };
 
+  const outputVatTop   = annualIncome  * 0.20;
+  const inputVatTop    = annualExpenses * 0.20;
+  const vatPayableTop  = Math.max(0, outputVatTop - inputVatTop);
+  const marginPctTop   = annualIncome > 0 ? Math.round((taxableProfit / annualIncome) * 100) : 0;
+  const hasData        = annualIncome > 0 || annualExpenses > 0;
+
   return (
     <div className="space-y-5">
       <div>
@@ -460,6 +485,46 @@ export default function TaxPageClient() {
           What you&rsquo;ll owe and how much to set aside. Estimate only — file via HMRC.
         </p>
       </div>
+
+      {/* 6-KPI summary strip — only shown when data exists */}
+      {hasData && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <KpiSummaryTile
+            label="Total income"
+            value={fmtGBP(annualIncome)}
+            sub="Invoiced this tax year"
+            valueColor="var(--zn-safe)"
+          />
+          <KpiSummaryTile
+            label="Business expenses"
+            value={fmtGBP(annualExpenses)}
+            sub="Allowable expenses"
+          />
+          <KpiSummaryTile
+            label="Net profit"
+            value={fmtGBP(taxableProfit)}
+            sub={`${marginPctTop}% margin`}
+            valueColor={taxableProfit >= 0 ? "var(--zn-safe)" : "var(--zn-risk)"}
+          />
+          <KpiSummaryTile
+            label="Est. tax owed"
+            value={fmtGBP(totalLiability)}
+            sub={`@ ${taxRatePercent}% basic rate`}
+            valueColor="var(--zn-warn)"
+          />
+          <KpiSummaryTile
+            label="VAT reclaimable"
+            value={fmtGBP(inputVatTop)}
+            sub="Input VAT on expenses"
+          />
+          <KpiSummaryTile
+            label="VAT to pay HMRC"
+            value={fmtGBP(vatPayableTop)}
+            sub="Net of reclaimable"
+            valueColor={vatPayableTop > 0 ? "var(--zn-risk)" : undefined}
+          />
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/tax-estimate"
