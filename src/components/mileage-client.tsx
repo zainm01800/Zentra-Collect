@@ -149,6 +149,13 @@ export function MileageClient() {
             ]}
             onImport={handleCsvImport}
             example="Date, Miles, Purpose, From/To"
+            sampleRows={[
+              ["15/04/2026", "42", "Client meeting — Hargreaves Joinery", "London → Birmingham"],
+              ["10/04/2026", "18", "Site survey — BluePeak Ltd", "Office → Canary Wharf"],
+              ["03/04/2026", "67", "Quarterly review — Oaktree", "London → Manchester"],
+              ["28/03/2026", "12", "Workshop — Meridian Studio", "Office → Hoxton"],
+              ["20/03/2026", "94", "Training day — Apex Conference Centre", "London → Bristol"],
+            ]}
           />
         </div>
       ) : (

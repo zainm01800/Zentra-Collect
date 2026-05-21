@@ -202,6 +202,13 @@ export function QuotesClient() {
             ]}
             onImport={handleCsvImport}
             example="Customer name, Amount (net), Issue date, Expires on"
+            sampleRows={[
+              ["Hargreaves Joinery Ltd",  "4800", "05/05/2026", "04/06/2026", "accounts@hargreavesjoinery.co.uk", "Website redesign & CMS build"],
+              ["BluePeak Media",          "2200", "12/05/2026", "11/06/2026", "hello@bluepeak.co.uk",             "Brand identity refresh"],
+              ["Oaktree Consulting",      "8500", "20/05/2026", "19/06/2026", "projects@oaktreeconsult.co.uk",    "Digital transformation audit"],
+              ["Meridian Studio",         "1650", "28/05/2026", "27/06/2026", "studio@meridian.co.uk",            "Photography — product shoot Q2"],
+              ["Apex Logistics UK",       "3100", "03/06/2026", "03/07/2026", "ap@apexlogistics.co.uk",           "SEO & content strategy — 3 months"],
+            ]}
           />
         </div>
       ) : (

@@ -302,6 +302,14 @@ export function BillsClient() {
             ]}
             onImport={handleCsvImport}
             example="Supplier, Amount, Due date, Description"
+            sampleRows={[
+              ["AWS Cloud Services",       "£142.80", "28/05/2026", "Monthly hosting — May 2026",         "Subscriptions"],
+              ["Hiscox Business Insurance","£320.00", "15/06/2026", "Professional indemnity Q2 2026",      "Insurance"],
+              ["WeWork Moorgate",          "£650.00", "01/06/2026", "Office desk rental — June 2026",      "Rent & rates"],
+              ["Vodafone Business",        "£54.99",  "20/05/2026", "Mobile plan — May 2026",              "Utilities"],
+              ["Adobe Creative Cloud",     "£84.98",  "10/06/2026", "Creative suite annual renewal",       "Subscriptions"],
+              ["Royal Mail Business",      "£38.50",  "30/05/2026", "Postage account top-up",              "Other"],
+            ]}
           />
           <button
             type="button"

@@ -13,7 +13,7 @@
  */
 
 import { useRef, useState } from "react";
-import { Upload, X, CheckCircle2, AlertTriangle, FileSpreadsheet } from "lucide-react";
+import { Upload, X, CheckCircle2, AlertTriangle, FileSpreadsheet, Download } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,6 +43,8 @@ interface Props {
   onImport:  (result: ImportResult) => void;
   /** Human-readable example of an expected row (shown as a hint). */
   example?:  string;
+  /** Sample rows to include in the downloadable template (excluding header). */
+  sampleRows?: string[][];
 }
 
 // ── CSV / XLSX parser ─────────────────────────────────────────────────────────
@@ -97,9 +99,30 @@ function mapColumns(headers: string[], fields: FieldSpec[]): Record<string, numb
   return map;
 }
 
+// ── Template download ─────────────────────────────────────────────────────────
+
+function buildCsvString(headers: string[], rows: string[][]): string {
+  const escape = (v: string) => v.includes(",") || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+  const lines = [headers.map(escape).join(","), ...rows.map(r => r.map(escape).join(","))];
+  return lines.join("\r\n");
+}
+
+function downloadTemplate(title: string, fields: FieldSpec[], sampleRows?: string[][]) {
+  const headers = fields.map(f => f.label);
+  const rows = sampleRows ?? [];
+  const csv = buildCsvString(headers, rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `zentra-${title.toLowerCase().replace(/\s+/g, "-")}-template.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function SectionCsvImport({ title, fields, onImport, example }: Props) {
+export function SectionCsvImport({ title, fields, onImport, example, sampleRows }: Props) {
   const [open, setOpen]           = useState(false);
   const [rows, setRows]           = useState<string[][]>([]);
   const [headers, setHeaders]     = useState<string[]>([]);
@@ -196,22 +219,36 @@ export function SectionCsvImport({ title, fields, onImport, example }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Upload zone */}
           {rows.length === 0 ? (
-            <div
-              onDragOver={e => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-              onClick={() => inputRef.current?.click()}
-              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed py-10 cursor-pointer transition-colors"
-              style={{ borderColor: dragging ? "var(--zn-accent)" : "var(--zn-line)", background: dragging ? "var(--zn-surface-2)" : "transparent" }}
-            >
-              <Upload className="size-8" style={{ color: "var(--zn-ink-3)" }} />
-              <div className="text-center">
-                <p className="text-sm font-medium" style={{ color: "var(--zn-ink)" }}>Drop a file here or click to browse</p>
-                <p className="text-xs mt-1" style={{ color: "var(--zn-ink-3)" }}>CSV or Excel (.xlsx) · {fields.filter(f => f.required).map(f => f.label).join(", ")} required</p>
-                {example && <p className="text-xs mt-2 font-mono px-3 py-1.5 rounded-lg inline-block" style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)" }}>{example}</p>}
+            <>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                onClick={() => inputRef.current?.click()}
+                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed py-10 cursor-pointer transition-colors"
+                style={{ borderColor: dragging ? "var(--zn-accent)" : "var(--zn-line)", background: dragging ? "var(--zn-surface-2)" : "transparent" }}
+              >
+                <Upload className="size-8" style={{ color: "var(--zn-ink-3)" }} />
+                <div className="text-center">
+                  <p className="text-sm font-medium" style={{ color: "var(--zn-ink)" }}>Drop a file here or click to browse</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--zn-ink-3)" }}>CSV or Excel (.xlsx) · {fields.filter(f => f.required).map(f => f.label).join(", ")} required</p>
+                  {example && <p className="text-xs mt-2 font-mono px-3 py-1.5 rounded-lg inline-block" style={{ background: "var(--zn-surface-2)", color: "var(--zn-ink-2)" }}>{example}</p>}
+                </div>
+                <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               </div>
-              <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-            </div>
+              {/* Download template link */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); downloadTemplate(title, fields, sampleRows); }}
+                  className="inline-flex items-center gap-1.5 text-xs underline underline-offset-2"
+                  style={{ color: "var(--zn-ink-3)" }}
+                >
+                  <Download className="size-3" />
+                  Download sample template (.csv)
+                </button>
+              </div>
+            </>
           ) : (
             <>
               {/* Column mapping summary */}
