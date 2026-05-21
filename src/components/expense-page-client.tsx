@@ -170,6 +170,11 @@ function loadFromStorage(): RichEntry[] {
 function saveToStorage(entries: RichEntry[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  // Best-effort cloud sync
+  void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+    const id = getLocalSupabaseAccountId();
+    if (id) return pushDataType("expenses", id);
+  }).catch(() => {});
 }
 
 function loadDeletedFromStorage(): DeletedEntry[] {

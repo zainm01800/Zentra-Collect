@@ -36,6 +36,7 @@ export type DemoUser = {
   usage: UsageCounters;
   betaApprovedAt?: string;
   emailAddon?: boolean;
+  supabaseAccountId?: string;  // UUID from zentra_accounts.id — used for cloud sync
 };
 
 export type BetaAccessRequest = {

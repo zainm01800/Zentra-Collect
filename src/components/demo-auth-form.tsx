@@ -160,7 +160,19 @@ export function DemoAuthForm() {
                 businessName: nextBusinessName || "My Business",
                 planId,
               });
+              // Store the Supabase account ID so sync functions can reference it
+              (account as typeof account & { supabaseAccountId: string }).supabaseAccountId = lookup.accountId;
               writeLocalAccount(account);
+
+              // Pull cloud data → localStorage so this device has all the user's data.
+              // Also push any data already on this device up to the cloud (merge).
+              // Both are best-effort — a network failure must never block navigation.
+              try {
+                const { pullAllData, pushAllData } = await import("@/lib/sync/workspace-sync");
+                await pullAllData(lookup.accountId);
+                void pushAllData(lookup.accountId); // fire-and-forget upload of local data
+              } catch { /* sync failure is non-fatal */ }
+
               setIsSubmitting(false);
               router.push("/dashboard");
               return;

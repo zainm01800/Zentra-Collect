@@ -84,6 +84,16 @@ export function writeInvoices(invoices: Invoice[]): void {
     // localStorage quota — silently ignore, at least the in-memory state is fresh
   }
   window.dispatchEvent(new CustomEvent(INVOICE_CHANGE_EVENT));
+
+  // Best-effort cloud sync — only for non-demo, non-bookkeeper-client contexts
+  // (bookkeeper client invoices use a different key per client, not synced yet).
+  const account = readLocalAccount();
+  const supabaseAccountId = (account as typeof account & { supabaseAccountId?: string })?.supabaseAccountId;
+  if (supabaseAccountId && account?.planId !== "demo" && key === importedInvoicesStorageKey) {
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType }) =>
+      pushDataType("invoices", supabaseAccountId)
+    ).catch(() => {});
+  }
 }
 
 /**

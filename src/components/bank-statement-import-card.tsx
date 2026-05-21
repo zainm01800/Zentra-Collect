@@ -85,6 +85,11 @@ function loadStatements(): SavedStatement[] {
 
 function persistStatements(stmts: SavedStatement[]) {
   localStorage.setItem(STATEMENTS_KEY, JSON.stringify(stmts));
+  // Best-effort cloud sync
+  void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+    const id = getLocalSupabaseAccountId();
+    if (id) return pushDataType("bank_statements", id);
+  }).catch(() => {});
 }
 
 // ── Plan limits ───────────────────────────────────────────────────────────────
