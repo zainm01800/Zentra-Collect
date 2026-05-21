@@ -128,6 +128,74 @@ export const BANK_PRESETS: Record<string, BankPreset> = {
       amount:      "Amount",
     },
   },
+  santander_split: {
+    name: "Santander",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+    },
+    debitColumn:  "Money Out",
+    creditColumn: "Money In",
+  },
+  nationwide: {
+    name: "Nationwide",
+    mappings: {
+      date:        "Date",
+      merchant:    "Transactions",
+      description: "Transactions",
+      amount:      "Paid out",
+    },
+    debitColumn:  "Paid out",
+    creditColumn: "Paid in",
+  },
+  tsb: {
+    name: "TSB",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+    },
+    debitColumn:  "Debit",
+    creditColumn: "Credit",
+  },
+  metro: {
+    name: "Metro Bank",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+      amount:      "Credit/Debit",
+    },
+  },
+  firstdirect: {
+    name: "First Direct",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+    },
+    debitColumn:  "Debit",
+    creditColumn: "Credit",
+  },
+  co_op: {
+    name: "Co-op Bank",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+      amount:      "Amount",
+    },
+  },
+  virgin: {
+    name: "Virgin Money",
+    mappings: {
+      date:        "Date",
+      merchant:    "Description",
+      description: "Description",
+      amount:      "Amount",
+    },
+  },
   paypal: {
     name: "PayPal",
     mappings: {
@@ -164,18 +232,25 @@ export function detectBankPreset(
 ): { key: string; preset: BankPreset; detectedFrom: "headers" | "filename" } | undefined {
   // Unique header combinations that identify each bank
   const FINGERPRINTS: Array<{ key: string; uniqueHeaders: string[] }> = [
-    { key: "monzo",     uniqueHeaders: ["Name", "Notes and #tags"] },
-    { key: "starling",  uniqueHeaders: ["Counter Party", "Spending Category"] },
-    { key: "revolut",   uniqueHeaders: ["Started Date", "Completed Date", "State"] },
-    { key: "lloyds",    uniqueHeaders: ["Transaction Date", "Debit Amount", "Credit Amount"] },
-    { key: "halifax",   uniqueHeaders: ["Transaction Date", "Debit Amount", "Credit Amount"] },
-    { key: "hsbc",      uniqueHeaders: ["Debit", "Credit", "Balance"] },
-    { key: "natwest",   uniqueHeaders: ["Value", "Account Name", "Account Number"] },
-    { key: "rbs",       uniqueHeaders: ["Value", "Account Name", "Account Number"] },
-    { key: "paypal",    uniqueHeaders: ["TimeZone", "Gross", "Net", "From Email Address"] },
-    { key: "amex",      uniqueHeaders: ["Reference", "Amount", "Description"] },
-    { key: "barclays",  uniqueHeaders: ["Subcategory", "Memo"] },
-    { key: "santander", uniqueHeaders: ["Description", "Amount", "Balance"] },
+    { key: "monzo",          uniqueHeaders: ["Name", "Notes and #tags"] },
+    { key: "starling",       uniqueHeaders: ["Counter Party", "Spending Category"] },
+    { key: "revolut",        uniqueHeaders: ["Started Date", "Completed Date", "State"] },
+    { key: "lloyds",         uniqueHeaders: ["Transaction Date", "Debit Amount", "Credit Amount"] },
+    { key: "halifax",        uniqueHeaders: ["Transaction Date", "Debit Amount", "Credit Amount"] },
+    { key: "hsbc",           uniqueHeaders: ["Debit", "Credit", "Balance"] },
+    { key: "natwest",        uniqueHeaders: ["Value", "Account Name", "Account Number"] },
+    { key: "rbs",            uniqueHeaders: ["Value", "Account Name", "Account Number"] },
+    { key: "paypal",         uniqueHeaders: ["TimeZone", "Gross", "Net", "From Email Address"] },
+    { key: "amex",           uniqueHeaders: ["Reference", "Amount", "Description"] },
+    { key: "barclays",       uniqueHeaders: ["Subcategory", "Memo"] },
+    { key: "santander_split",uniqueHeaders: ["Description", "Money In", "Money Out", "Balance"] },
+    { key: "santander",      uniqueHeaders: ["Description", "Amount", "Balance"] },
+    { key: "nationwide",     uniqueHeaders: ["Transactions", "Paid in", "Paid out"] },
+    { key: "tsb",            uniqueHeaders: ["Date", "Description", "Debit", "Credit", "Balance"] },
+    { key: "metro",          uniqueHeaders: ["Date", "Description", "Credit/Debit"] },
+    { key: "firstdirect",    uniqueHeaders: ["Date", "Description", "Debit", "Credit"] },
+    { key: "co_op",          uniqueHeaders: ["Date", "Description", "Amount"] },
+    { key: "virgin",         uniqueHeaders: ["Date", "Description", "Amount"] },
   ];
 
   const headerSet = new Set(headers);
@@ -195,6 +270,10 @@ export function detectBankPreset(
     barclays: "barclays", lloyds: "lloyds", hsbc: "hsbc",
     natwest: "natwest", halifax: "halifax", santander: "santander",
     paypal: "paypal", amex: "amex", "american express": "amex", rbs: "rbs",
+    nationwide: "nationwide", tsb: "tsb", metro: "metro",
+    firstdirect: "firstdirect", "first direct": "firstdirect",
+    "co-op": "co_op", coop: "co_op", cooperative: "co_op",
+    virgin: "virgin",
   };
   for (const [keyword, key] of Object.entries(FILE_KEYWORDS)) {
     if (lower.includes(keyword)) {

@@ -133,10 +133,28 @@ export function parseStatement(
   const lines = csv.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return { rows: [], warning: "File appears empty." };
 
-  // Find header row
+  // Detect Santander statement-document format (bank letters / full statement PDF export)
+  // These contain account info, news, legal text — but NOT parseable transaction rows.
+  const first200 = lines.slice(0, 20).join(" ").toLowerCase();
+  const isSantanderDoc =
+    (first200.includes("santander") || fileName.toLowerCase().includes("santander")) &&
+    (first200.includes("total money in") || first200.includes("balance brought forward") ||
+     first200.includes("account summary") || first200.includes("news and information"));
+  if (isSantanderDoc) {
+    return {
+      rows: [],
+      warning:
+        "This looks like a Santander statement letter (PDF export), not a transaction export. " +
+        "To get the right file: log in to Santander Online Banking → My Accounts → select account → " +
+        "Export → choose CSV → pick a date range. That gives a clean transaction list.",
+      detectedBank: "Santander",
+    };
+  }
+
+  // Find header row — scan up to 60 lines to handle banks with large preambles
   let headerIdx = 0;
   let rawHeaders: string[] = [];
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
+  for (let i = 0; i < Math.min(60, lines.length); i++) {
     const cols = parseCSVRow(lines[i]);
     if (cols.length >= 3 && colIdx(cols, "date") !== -1) {
       rawHeaders = cols.map((h) => h.replace(/^"|"$/g, ""));
@@ -145,7 +163,16 @@ export function parseStatement(
     }
   }
   if (rawHeaders.length === 0) {
-    return { rows: [], warning: "Could not find a header row with a date column." };
+    // Provide a bank-specific tip if we can identify the bank from the filename
+    const lowerFile = fileName.toLowerCase();
+    const bankHint = lowerFile.includes("santander") ? " For Santander: use Account → Export → CSV (not Download Statement)."
+      : lowerFile.includes("natwest") ? " For NatWest: go to Statements → Export → CSV."
+      : lowerFile.includes("hsbc")    ? " For HSBC: go to View Transactions → Download → CSV."
+      : lowerFile.includes("lloyds")  ? " For Lloyds: go to Transactions → Export → CSV."
+      : lowerFile.includes("barclays")? " For Barclays: go to Statement → Download → CSV."
+      : lowerFile.includes("halifax") ? " For Halifax: go to Statements → Download → CSV."
+      : "";
+    return { rows: [], warning: `Could not find a header row with a date column.${bankHint} Make sure you export a transaction list (not a PDF or statement letter).` };
   }
 
   // Try bank preset detection
