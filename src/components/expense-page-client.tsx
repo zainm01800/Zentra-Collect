@@ -784,7 +784,14 @@ function ExpenseRow({
         <div className="flex-1 min-w-0">
           {/* Title + category pill + VAT badge */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="text-[12.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+            <p
+              className="text-[12.5px] font-semibold"
+              style={{
+                color:          "var(--zn-ink)",
+                textDecoration: isNotAllowable ? "line-through" : "none",
+                opacity:        isNotAllowable ? 0.6 : 1,
+              }}
+            >
               {entry.description || entry.category}
             </p>
             {/* Category pill */}
@@ -829,12 +836,18 @@ function ExpenseRow({
           </p>
         </div>
 
-        {/* Right: amount + secondary line + delete */}
+        {/* Right: amount + secondary line + receipt icon + delete */}
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
           <div className="flex items-center gap-1">
             <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
               {fmtGBP(entry.amount)}
             </span>
+            {/* Receipt status icon: warning triangle if VAT with no receipt, else hidden */}
+            {hasVat && (
+              <span title="Attach invoice to confirm VAT reclaim">
+                <AlertTriangle className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-warn)" }} />
+              </span>
+            )}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
@@ -887,20 +900,20 @@ function ExpenseRow({
         </div>
       )}
 
-      {/* Warning strip — VAT logged but no receipt confirmed */}
+      {/* Warning strip — VAT logged, attach invoice to confirm reclaim */}
       {hasVat && !vatEditing && (
         <div
-          className="ml-5 mt-2 flex items-center gap-2 rounded-[8px] px-3 py-2"
-          style={{ background: "var(--zn-warn-soft)", border: "1px solid color-mix(in srgb, var(--zn-warn) 35%, transparent)" }}
+          className="ml-5 mt-1.5 flex items-center gap-2 rounded-[7px] px-2.5 py-1.5"
+          style={{ background: "var(--zn-warn-soft)", border: "1px solid color-mix(in srgb, var(--zn-warn) 30%, transparent)" }}
           onClick={(e) => e.stopPropagation()}
         >
           <AlertTriangle className="size-3 flex-shrink-0" style={{ color: "var(--zn-warn)" }} />
-          <span className="text-[11px] flex-1" style={{ color: "var(--zn-warn)" }}>
+          <span className="text-[10.5px] flex-1" style={{ color: "var(--zn-warn)" }}>
             Attach invoice to confirm {fmtGBP2(entry.vatAmount!)} VAT reclaim
           </span>
           <button
             type="button"
-            className="text-[10.5px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 transition-opacity hover:opacity-80"
+            className="text-[10px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0 transition-opacity hover:opacity-80"
             style={{ background: "var(--zn-warn)", color: "var(--zn-surface)" }}
           >
             Attach

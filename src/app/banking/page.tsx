@@ -59,7 +59,7 @@ export default async function BankingPage({
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-6 max-w-2xl">
 
         {/* ── Page header ───────────────────────────────────────────────── */}
         <div>
@@ -71,13 +71,12 @@ export default async function BankingPage({
             Bank feed
           </h1>
           <p className="mt-1 text-[14px]" style={{ color: "var(--zn-ink-2)" }}>
-            Upload a statement export from any major UK bank — CSV, Excel, TSV
-            or TXT all work. Zentra parses it client-side and matches credits
-            to your outstanding invoices.
+            Import bank statement exports — CSV, Excel, TSV or TXT — and match
+            credits to your outstanding invoices automatically.
           </p>
         </div>
 
-        {/* ── Success banner ────────────────────────────────────────────── */}
+        {/* ── Success / error banners ───────────────────────────────────── */}
         {justConnected && (
           <div
             className="flex items-center gap-2 rounded-[10px] px-4 py-3"
@@ -88,8 +87,6 @@ export default async function BankingPage({
             </span>
           </div>
         )}
-
-        {/* ── Error banner ──────────────────────────────────────────────── */}
         {errorMsg && (
           <div
             className="rounded-[10px] px-4 py-3"
@@ -101,92 +98,81 @@ export default async function BankingPage({
           </div>
         )}
 
-        {/* ── Connection card ───────────────────────────────────────────── */}
-        <div
-          className="zn-card px-5 py-5"
-        >
-          {connection ? (
+        {/* ── Manual CSV import — PRIMARY feed ─────────────────────────── */}
+        <BankStatementImportCard />
+
+        {/* ── Live bank connection (TrueLayer) — secondary / optional ───── */}
+        {isConfigured && (
+          connection ? (
             /* Connected state */
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="zn-label">Connected bank</p>
-                <p
-                  className="mt-1.5 text-[17px] font-semibold"
-                  style={{ color: "var(--zn-ink)" }}
-                >
-                  {connection.providerName ?? "Bank account"}
-                </p>
-                {connection.bankAccountName && (
-                  <p className="text-[13px] mt-0.5" style={{ color: "var(--zn-ink-2)" }}>
-                    {connection.bankAccountName}
-                  </p>
-                )}
-                <p className="text-[12px] mt-2" style={{ color: "var(--zn-ink-3)" }}>
-                  Last synced{" "}
-                  {new Date(connection.updatedAt).toLocaleString("en-GB", {
-                    day: "numeric", month: "short",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
-                  style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
-                >
-                  <span className="size-1.5 rounded-full" style={{ background: "var(--zn-safe)" }} />
-                  Connected
-                </span>
-                <form action="/api/banking/connect" method="GET">
-                  <button
-                    type="submit"
-                    className="text-[11.5px] font-medium"
-                    style={{ color: "var(--zn-ink-3)" }}
+            <div className="zn-card px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="zn-label">Open Banking connection</p>
+                  <p
+                    className="mt-1.5 text-[17px] font-semibold"
+                    style={{ color: "var(--zn-ink)" }}
                   >
-                    Reconnect
-                  </button>
-                </form>
+                    {connection.providerName ?? "Bank account"}
+                  </p>
+                  {connection.bankAccountName && (
+                    <p className="text-[13px] mt-0.5" style={{ color: "var(--zn-ink-2)" }}>
+                      {connection.bankAccountName}
+                    </p>
+                  )}
+                  <p className="text-[12px] mt-2" style={{ color: "var(--zn-ink-3)" }}>
+                    Last synced{" "}
+                    {new Date(connection.updatedAt).toLocaleString("en-GB", {
+                      day: "numeric", month: "short",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
+                    style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                  >
+                    <span className="size-1.5 rounded-full" style={{ background: "var(--zn-safe)" }} />
+                    Connected
+                  </span>
+                  <form action="/api/banking/connect" method="GET">
+                    <button
+                      type="submit"
+                      className="text-[11.5px] font-medium"
+                      style={{ color: "var(--zn-ink-3)" }}
+                    >
+                      Reconnect
+                    </button>
+                  </form>
+                </div>
               </div>
-            </div>
-          ) : isConfigured ? (
-            /* Configured but not yet connected */
-            <div className="flex flex-col items-center gap-4 py-4 text-center">
-              <div>
-                <p
-                  className="text-[15px] font-semibold"
-                  style={{ color: "var(--zn-ink)" }}
-                >
-                  Connect your business bank
-                </p>
-                <p
-                  className="mt-1 text-[13px] max-w-sm mx-auto"
-                  style={{ color: "var(--zn-ink-2)" }}
-                >
-                  Zentra will read your last 30 days of transactions and match
-                  credits to outstanding invoices — no manual reconciliation.
-                </p>
-              </div>
-              <a
-                href="/api/banking/connect"
-                className="zn-pill"
-                style={{
-                  background: "var(--zn-accent)",
-                  color:      "var(--zn-accent-ink)",
-                }}
-              >
-                Connect bank account
-              </a>
-              <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-                Read-only access · secured via Open Banking · powered by TrueLayer
-              </p>
             </div>
           ) : (
-            /* TrueLayer not configured */
-            <SetupInstructions />
-          )}
-        </div>
+            /* Configured but not yet connected */
+            <div className="zn-card px-5 py-5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                    Connect via Open Banking
+                  </p>
+                  <p className="mt-0.5 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+                    Read-only · auto-syncs daily · powered by TrueLayer
+                  </p>
+                </div>
+                <a
+                  href="/api/banking/connect"
+                  className="zn-pill flex-shrink-0"
+                  style={{ background: "var(--zn-ink)", color: "var(--zn-surface)", fontSize: 12 }}
+                >
+                  Connect bank
+                </a>
+              </div>
+            </div>
+          )
+        )}
 
-        {/* ── Transactions ──────────────────────────────────────────────── */}
+        {/* ── Live transaction list (when Open Banking connected) ────────── */}
         {connection && (
           <BankTransactionsList
             transactions={transactions.transactions}
@@ -194,32 +180,7 @@ export default async function BankingPage({
           />
         )}
 
-        {/* ── Manual CSV import ─────────────────────────────────────────── */}
-        <BankStatementImportCard />
-
     </div>
   );
 }
 
-// ── Setup instructions sub-component ─────────────────────────────────────────
-
-function SetupInstructions() {
-  return (
-    <div className="flex flex-col items-center gap-3 py-4 text-center">
-      <div>
-        <p className="text-[15px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-          Upload your bank statement below
-        </p>
-        <p className="mt-1 text-[13px] max-w-sm mx-auto" style={{ color: "var(--zn-ink-2)" }}>
-          Zentra accepts CSV, Excel, TSV, and TXT exports from every major UK
-          bank. Drag-and-drop the file you exported from your bank&apos;s
-          online banking — Zentra detects the format and shows a preview
-          before saving.
-        </p>
-      </div>
-      <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-        Files are parsed in your browser · nothing leaves your device unless you save
-      </p>
-    </div>
-  );
-}

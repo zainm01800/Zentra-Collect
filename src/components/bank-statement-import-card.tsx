@@ -129,10 +129,12 @@ function stmtLabel(s: SavedStatement): string {
 export function BankStatementImportCard() {
   const [statements, setStatements] = useState<SavedStatement[]>([]);
   const [showImport, setShowImport] = useState(false);
+  const [hydrated,   setHydrated]   = useState(false);
 
   // Load on mount (after hydration)
   useEffect(() => {
     setStatements(loadStatements());
+    setHydrated(true);
   }, []);
 
   const limit    = getStatementLimit();
@@ -180,7 +182,7 @@ export function BankStatementImportCard() {
       {/* ── Card header (always visible) ─────────────────────────────── */}
       <div
         className="flex items-center justify-between gap-3 px-5 py-4"
-        style={{ borderBottom: (hasFeed || showImport) ? "1px solid var(--zn-line-soft)" : "none" }}
+        style={{ borderBottom: (hydrated && (hasFeed || showImport)) ? "1px solid var(--zn-line-soft)" : "none" }}
       >
         {/* Left: icon + title */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -195,15 +197,15 @@ export function BankStatementImportCard() {
               Bank statements
             </p>
             <p className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
-              {hasFeed
+              {hydrated && hasFeed
                 ? `${statements.length} of ${limit} imported · ${allTx.length} transactions`
                 : "CSV, Excel, TSV or TXT — auto-detects all major UK banks"}
             </p>
           </div>
         </div>
 
-        {/* Right: action button */}
-        {showImport ? (
+        {/* Right: action button — hidden until hydrated to avoid flash */}
+        {hydrated && (showImport ? (
           <button
             type="button"
             onClick={() => setShowImport(false)}
@@ -230,10 +232,10 @@ export function BankStatementImportCard() {
             <Plus className="size-3" />
             {hasFeed ? "Add month" : "Import"}
           </button>
-        )}
+        ))}
       </div>
 
-      {/* ── Import panel (appears when button clicked) ───────────────── */}
+      {/* ── Import panel (appears when "Add month" / "Import" clicked) ── */}
       {showImport && (
         <div
           className="px-5 py-5"
@@ -244,7 +246,7 @@ export function BankStatementImportCard() {
       )}
 
       {/* ── Statement chips ───────────────────────────────────────────── */}
-      {hasFeed && (
+      {hydrated && hasFeed && (
         <div
           className="px-5 py-3 flex flex-wrap gap-2"
           style={{ borderBottom: "1px solid var(--zn-line-soft)" }}
@@ -278,15 +280,15 @@ export function BankStatementImportCard() {
         </div>
       )}
 
-      {/* ── Empty state: full drop zone when no data and panel not open ─ */}
-      {!hasFeed && !showImport && (
+      {/* ── Empty state: full drop zone — only shown after hydration when no data */}
+      {hydrated && !hasFeed && !showImport && (
         <div className="px-5 py-5">
           <BankStatementImport onImported={handleImported} onCleared={handleCleared} />
         </div>
       )}
 
       {/* ── Aggregated feed ───────────────────────────────────────────── */}
-      {hasFeed && (
+      {hydrated && hasFeed && (
         <div className="px-5 py-5 space-y-4">
 
           {/* Summary strip */}
