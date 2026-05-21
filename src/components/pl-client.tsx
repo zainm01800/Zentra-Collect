@@ -371,18 +371,19 @@ export function PLClient() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard label="Income" value={GBP(grossIncome)} sub={`${invoiceBrk?.count ?? 0} invoices`} />
-            <StatCard label="Allowable expenses" value={GBP(totalAllowable)} sub={`${expenseRows.filter(r => r.allowable > 0).length} categories`} />
+            <StatCard label="Revenue" value={GBP(grossIncome)} sub={`${invoiceBrk?.count ?? 0} invoices`} />
+            <StatCard label="Expenses" value={GBP(totalAllowable)} sub={`${expenseRows.filter(r => r.allowable > 0).length} categories`} />
             <StatCard
               label="Net profit"
               value={GBP(netProfit)}
-              sub={`${PCT(marginPct)} margin`}
+              sub={`${PCT(Math.abs(marginPct))} margin`}
               positive={netProfit >= 0}
             />
             <StatCard
-              label="Not allowable"
-              value={GBP(totalNotAllowable + totalReview)}
-              sub="Excluded from tax calc"
+              label="Margin"
+              value={grossIncome > 0 ? `${Math.round(marginPct * 100)}%` : "—"}
+              sub={grossIncome > 0 ? (netProfit >= 0 ? "Profit margin" : "Loss margin") : "No revenue yet"}
+              positive={grossIncome > 0 ? netProfit >= 0 : undefined}
             />
           </div>
 
