@@ -63,7 +63,7 @@ type RichEntry = ExpenseEntry & {
   vatAmount?: number;
 };
 
-type ActiveTab = "all" | "allowable" | "not-allowable";
+type ActiveTab = "all" | "review" | "not-allowable";
 
 interface PendingDeletion {
   entry:   RichEntry;
@@ -82,6 +82,19 @@ const CAT_COLOURS = [
   "#c88a1e", "#3b82f6", "#10b981", "#f43f5e",
   "#8b5cf6", "#f97316", "#06b6d4", "#84cc16", "#ec4899", "#6b7280",
 ];
+
+const CATEGORY_HMRC: Record<string, { short: string; hint: string; allowablePct: number }> = {
+  "Office & stationery":    { short: "Fully allowable",                    allowablePct: 100, hint: "Office supplies used wholly for business are fully deductible. VAT is reclaimable with a valid VAT receipt." },
+  "Travel & mileage":       { short: "Fully allowable — business travel",  allowablePct: 100, hint: "Business travel is fully allowable. Use HMRC approved mileage rates for your own vehicle. VAT on fuel can be reclaimed with a fuel receipt." },
+  "Professional fees":      { short: "Fully allowable",                    allowablePct: 100, hint: "Accountancy, legal and professional fees are fully allowable. VAT is reclaimable where a valid VAT invoice is held." },
+  "Equipment & software":   { short: "Fully allowable",                    allowablePct: 100, hint: "Software and equipment used wholly for business are fully deductible. VAT is reclaimable with a valid invoice." },
+  "Phone & internet":       { short: "50% mixed-use rule",                 allowablePct: 50,  hint: "HMRC allows 50% for mixed personal/business use of phone and broadband. 50% of the VAT is reclaimable." },
+  "Marketing & advertising":{ short: "Fully allowable",                    allowablePct: 100, hint: "Advertising and marketing spend is fully allowable. VAT is reclaimable where a valid invoice is held." },
+  "Training & development": { short: "Fully allowable if existing trade",  allowablePct: 100, hint: "Training that improves skills for your current trade is fully allowable. Training for a completely new career is not." },
+  "Bank charges":           { short: "Fully allowable",                    allowablePct: 100, hint: "Business bank charges and interest are fully allowable as a business expense. UK banks do not charge VAT." },
+  "Premises & utilities":   { short: "Fully allowable",                    allowablePct: 100, hint: "Business premises rent, rates and utilities are fully allowable. For home office use, HMRC's simplified flat rate may apply." },
+  "Other":                  { short: "Review required",                    allowablePct: 100, hint: "Review this expense to confirm it qualifies as wholly and exclusively for your trade under HMRC rules (s34 ITTOIA 2005)." },
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -236,6 +249,16 @@ function countImportable(debits: ParsedTransaction[], existing: RichEntry[]): nu
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, accent, sub }: { label: string; value: string; accent?: string; sub?: string }) {
+  return (
+    <div className="zn-card px-4 py-3.5">
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
+      <p className="mt-1.5 text-[22px] font-bold tabular-nums leading-none" style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
+      {sub && <p className="mt-1 text-[11px]" style={{ color: "var(--zn-ink-3)" }}>{sub}</p>}
+    </div>
+  );
+}
 
 /** Clickable pill that cycles an expense between Allowable / Not allowable. */
 function AllowabilityBadge({
@@ -720,17 +743,24 @@ function CategoryBreakdown({ entries }: { entries: RichEntry[] }) {
 /** Single expense row with allowability badge + VAT + delete. */
 function ExpenseRow({
   entry,
+  isActive,
   onDelete,
   onAllowabilityChange,
   onVatChange,
+  onRowClick,
 }: {
   entry:                  RichEntry;
+  isActive?:              boolean;
   onDelete:               (id: string) => void;
   onAllowabilityChange:   (id: string, v: Allowability) => void;
   onVatChange:            (id: string, vatRate: number, vatAmount: number) => void;
+  onRowClick?:            () => void;
 }) {
   return (
-    <div className="px-4 py-3 group">
+    <div className="px-4 py-3 group cursor-pointer transition-colors"
+      style={{ background: isActive ? "var(--zn-surface-2)" : undefined }}
+      onClick={onRowClick}
+    >
       <div className="flex items-center gap-3">
         {/* Category colour dot */}
         <span
@@ -751,6 +781,9 @@ function ExpenseRow({
             {entry.source === "bank-import" && (
               <span className="ml-1 opacity-60">· from bank</span>
             )}
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+            HMRC: {entry.allowability === "not-allowable" ? "Not allowable" : (CATEGORY_HMRC[entry.category]?.short ?? "Fully allowable")}
           </p>
         </div>
 
@@ -795,15 +828,20 @@ function MonthGroup({
   onDelete,
   onAllowabilityChange,
   onVatChange,
+  onRowClick,
+  selectedId,
 }: {
   ym:                   string;
   entries:              RichEntry[];
   onDelete:             (id: string) => void;
   onAllowabilityChange: (id: string, v: Allowability) => void;
   onVatChange:          (id: string, vatRate: number, vatAmount: number) => void;
+  onRowClick?:          (id: string) => void;
+  selectedId?:          string | null;
 }) {
   const [open, setOpen] = useState(true);
   const total = entries.reduce((s, e) => s + e.amount, 0);
+  const allowableMonthTotal = entries.filter(e => e.allowability === "allowable").reduce((s, e) => s + e.amount, 0);
 
   return (
     <div
@@ -815,33 +853,37 @@ function MonthGroup({
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-[#f3ecd8] dark:hover:bg-[#2d2820]"
       >
-        <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-          {monthLabel(ym)}
-        </span>
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-            {fmtGBP(total)}
-          </span>
+        <div className="flex items-center gap-2">
           {open
             ? <ChevronUp   className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
             : <ChevronDown className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />}
+          <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+            {monthLabel(ym)}
+          </span>
+          <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+            {entries.length} item{entries.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className="shrink-0 text-right text-[11px] tabular-nums" style={{ color: "var(--zn-ink-3)" }}>
+          <span style={{ color: "var(--zn-safe)", fontWeight: 600 }}>{fmtGBP(allowableMonthTotal)}</span>
+          {" allowable · "}
+          <span style={{ color: "var(--zn-ink-2)" }}>{fmtGBP(total)} net</span>
         </div>
       </button>
 
       {open && (
         <div className="border-t divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
-          {entries
-            .slice()
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .map((e) => (
-              <ExpenseRow
-                key={e.id}
-                entry={e}
-                onDelete={onDelete}
-                onAllowabilityChange={onAllowabilityChange}
-                onVatChange={onVatChange}
-              />
-            ))}
+          {entries.map((e) => (
+            <ExpenseRow
+              key={e.id}
+              entry={e}
+              isActive={selectedId === e.id}
+              onDelete={onDelete}
+              onAllowabilityChange={onAllowabilityChange}
+              onVatChange={onVatChange}
+              onRowClick={() => onRowClick?.(e.id)}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -975,78 +1017,100 @@ function BankImportBanner({
   );
 }
 
-/** Three-tab bar: All / Allowable / Not allowable */
-function TabBar({
-  active,
-  allCount,
-  allowableCount,
-  allowableTotal,
-  notAllowableCount,
-  reviewCount,
-  onSelect,
+/** Detail panel shown on the right column when an expense row is selected. */
+function DetailPanel({
+  expense,
+  onCategoryChange,
+  onAllowabilityChange,
 }: {
-  active:             ActiveTab;
-  allCount:           number;
-  allowableCount:     number;
-  allowableTotal:     number;
-  notAllowableCount:  number;
-  reviewCount:        number;
-  onSelect:           (t: ActiveTab) => void;
+  expense: RichEntry;
+  onCategoryChange: (id: string, cat: string) => void;
+  onAllowabilityChange: (id: string, v: Allowability) => void;
 }) {
-  const tabs: Array<{ id: ActiveTab; label: string; badge: React.ReactNode }> = [
-    {
-      id: "all",
-      label: "All",
-      badge: (
-        <span className="ml-1.5 tabular-nums">
-          {allCount}
-          {reviewCount > 0 && (
-            <span
-              className="ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold"
-              style={{ background: "var(--zn-warn-soft)", color: "var(--zn-warn)" }}
-            >
-              {reviewCount} to classify
-            </span>
-          )}
-        </span>
-      ),
-    },
-    {
-      id: "allowable",
-      label: "Allowable",
-      badge: (
-        <span className="ml-1.5 tabular-nums">
-          {allowableCount > 0 ? `${allowableCount} · ${fmtGBP(allowableTotal)}` : "0"}
-        </span>
-      ),
-    },
-    {
-      id: "not-allowable",
-      label: "Not allowable",
-      badge: (
-        <span className="ml-1.5 tabular-nums">{notAllowableCount}</span>
-      ),
-    },
-  ];
+  const hmrc = CATEGORY_HMRC[expense.category];
+  const allowable = expense.allowability === "allowable";
+  const net = expense.vatAmount !== undefined ? expense.amount - expense.vatAmount : expense.amount;
 
   return (
-    <div className="flex items-center gap-1 p-1 rounded-[10px]" style={{ background: "var(--zn-bg-2)", border: "1px solid var(--zn-line-soft)" }}>
-      {tabs.map((tab) => (
+    <div className="zn-card px-5 py-5 space-y-4 lg:sticky lg:top-6">
+      {/* Header */}
+      <div>
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>
+          {expense.category} · {fmtDate(expense.date)}
+        </p>
+        <p className="mt-1 text-[16px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+          {expense.description || expense.category}
+        </p>
+        {expense.source === "bank-import" && (
+          <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>from bank statement</span>
+        )}
+      </div>
+
+      {/* Amounts */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Gross</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(expense.amount)}</p>
+        </div>
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: allowable ? "var(--zn-safe-soft)" : "var(--zn-risk-soft)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: allowable ? "var(--zn-safe)" : "var(--zn-risk)" }}>Allowable</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: allowable ? "var(--zn-safe)" : "var(--zn-risk)" }}>
+            {allowable ? fmtGBP2(expense.amount) : "£0.00"}
+          </p>
+        </div>
+      </div>
+
+      {/* VAT if set */}
+      {expense.vatAmount !== undefined && expense.vatAmount > 0 && (
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--zn-ink-3)" }}>VAT breakdown</p>
+          <div className="grid grid-cols-3 gap-2 text-[12px]">
+            <div><p style={{ color: "var(--zn-ink-3)" }}>Gross</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(expense.amount)}</p></div>
+            <div><p style={{ color: "var(--zn-ink-3)" }}>Net</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(net)}</p></div>
+            <div><p style={{ color: "var(--zn-ink-3)" }}>VAT</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-info)" }}>{fmtGBP2(expense.vatAmount)}</p></div>
+          </div>
+        </div>
+      )}
+
+      {/* HMRC Rule */}
+      {hmrc && (
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>HMRC Rule</p>
+          <p className="mt-1 text-[12px] leading-[1.6]" style={{ color: "var(--zn-ink-2)" }}>{hmrc.hint}</p>
+        </div>
+      )}
+
+      {/* Force not allowable toggle */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[12.5px] font-medium" style={{ color: "var(--zn-ink)" }}>Force not claimable</p>
+          <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>Exclude from your tax calculation</p>
+        </div>
         <button
-          key={tab.id}
           type="button"
-          onClick={() => onSelect(tab.id)}
-          className="flex-1 flex items-center justify-center rounded-[8px] px-3 py-2 text-[12.5px] font-medium transition-all"
-          style={{
-            background: active === tab.id ? "var(--zn-surface)" : "transparent",
-            color:      active === tab.id ? "var(--zn-ink)" : "var(--zn-ink-3)",
-            boxShadow:  active === tab.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-          }}
+          onClick={() => onAllowabilityChange(expense.id, allowable ? "not-allowable" : "allowable")}
+          className="relative inline-flex h-6 w-10 items-center rounded-full transition-colors"
+          style={{ background: !allowable ? "var(--zn-risk)" : "var(--zn-line)" }}
         >
-          {tab.label}
-          {tab.badge}
+          <span
+            className="inline-block size-4 rounded-full bg-white shadow-sm transition-transform"
+            style={{ transform: !allowable ? "translateX(20px)" : "translateX(4px)" }}
+          />
         </button>
-      ))}
+      </div>
+
+      {/* Category change */}
+      <div>
+        <p className="text-[10.5px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--zn-ink-3)" }}>Category</p>
+        <select
+          value={expense.category}
+          onChange={e => onCategoryChange(expense.id, e.target.value)}
+          className="w-full rounded-[8px] border px-3 py-2 text-[13px]"
+          style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
+        >
+          {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
     </div>
   );
 }
@@ -1140,6 +1204,8 @@ export function ExpensePageClient() {
   const [importedCount, setImportedCount] = useState<number | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null);
   const [deletedEntries, setDeletedEntries]   = useState<DeletedEntry[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sort, setSort] = useState<"newest" | "oldest" | "highest">("newest");
 
   useEffect(() => {
     const loaded = loadFromStorage();
@@ -1210,6 +1276,10 @@ export function ExpensePageClient() {
     setEntries((prev) =>
       prev.map((e) => (e.id === id ? { ...e, vatRate, vatAmount } : e)),
     );
+  }, []);
+
+  const handleCategoryChange = useCallback((id: string, cat: string) => {
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, category: cat } : e));
   }, []);
 
   function handleRestore(id: string) {
@@ -1294,13 +1364,27 @@ export function ExpensePageClient() {
   const reviewEntries       = entries.filter((e) => e.allowability === "review");
   const allowableTotal      = allowableEntries.reduce((s, e) => s + e.amount, 0);
 
+  const totalGross      = entries.reduce((s, e) => s + e.amount, 0);
+  const totalVatReclaim = allowableEntries.reduce((s, e) => s + (e.vatAmount ?? 0), 0);
+  const totalNotAllow   = notAllowableEntries.reduce((s, e) => s + e.amount, 0);
+  const taxSaving       = allowableTotal * 0.20;
+  const pctClaimable    = totalGross > 0 ? Math.round((allowableTotal / totalGross) * 100) : 0;
+
+  const selectedExpense = selectedId ? entries.find(e => e.id === selectedId) ?? null : null;
+
   // What to render in the list area based on active tab
   const displayEntries: RichEntry[] =
-    activeTab === "allowable"     ? allowableEntries :
+    activeTab === "review"        ? reviewEntries :
     activeTab === "not-allowable" ? notAllowableEntries :
     entries; // "all"
 
-  const grouped = groupByMonth(displayEntries.filter((e) => e.allowability !== "review" || activeTab !== "all"));
+  const sortedEntries = [...displayEntries].sort((a, b) => {
+    if (sort === "oldest")  return a.date.localeCompare(b.date);
+    if (sort === "highest") return b.amount - a.amount;
+    return b.date.localeCompare(a.date); // newest
+  });
+
+  const grouped = groupByMonth(sortedEntries.filter((e) => e.allowability !== "review" || activeTab !== "all"));
 
   return (
     <div className="space-y-5">
@@ -1346,36 +1430,14 @@ export function ExpensePageClient() {
         </>
       )}
 
-      {/* ── Hero total (allowable only) ───────────────────────────────────── */}
+      {/* ── KPI stat cards ────────────────────────────────────────────────── */}
       {entries.length > 0 && (
-        <div
-          className="rounded-[14px] border px-5 py-4 flex items-center justify-between"
-          style={{ borderColor: "var(--zn-line)", background: "var(--zn-bg-2)" }}
-        >
-          <div>
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>
-              Total allowable
-            </p>
-            <p
-              className="mt-1 text-[36px] font-bold leading-none tabular-nums"
-              style={{ color: "var(--zn-safe)" }}
-            >
-              {fmtGBP(allowableTotal)}
-            </p>
-            <p className="mt-1.5 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-              Deducted from taxable income · estimated tax saving{" "}
-              <span className="font-medium" style={{ color: "var(--zn-ink-2)" }}>
-                {fmtGBP(allowableTotal * 0.2)}–{fmtGBP(allowableTotal * 0.4)}
-              </span>
-            </p>
-          </div>
-          <div
-            className="hidden sm:flex items-center justify-center size-14 rounded-full text-[22px]"
-            style={{ background: "var(--zn-safe-soft)" }}
-            aria-hidden
-          >
-            📉
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatCard label="Total gross"      value={fmtGBP(totalGross)} />
+          <StatCard label="Claimable net"    value={fmtGBP(allowableTotal)}  accent="var(--zn-safe)" sub={`${pctClaimable}% of expenditure`} />
+          <StatCard label="Est. tax saving"  value={fmtGBP(taxSaving)}       accent="var(--zn-safe)" sub="@ 20% basic rate" />
+          <StatCard label="VAT reclaimable"  value={fmtGBP(totalVatReclaim)} accent="var(--zn-info)" sub={totalVatReclaim > 0 ? "confirmed reclaimable" : "No VAT logged yet"} />
+          <StatCard label="Not allowable"    value={fmtGBP(totalNotAllow)}   accent={totalNotAllow > 0 ? "var(--zn-risk)" : "var(--zn-ink-3)"} sub={`${notAllowableEntries.length} item${notAllowableEntries.length !== 1 ? "s" : ""}`} />
         </div>
       )}
 
@@ -1407,50 +1469,98 @@ export function ExpensePageClient() {
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       {entries.length > 0 && (
-        <TabBar
-          active={activeTab}
-          allCount={entries.length}
-          allowableCount={allowableEntries.length}
-          allowableTotal={allowableTotal}
-          notAllowableCount={notAllowableEntries.length}
-          reviewCount={reviewEntries.length}
-          onSelect={setActiveTab}
-        />
-      )}
-
-      {/* ── Review section (All tab only) ─────────────────────────────────── */}
-      {activeTab === "all" && (
-        <ReviewSection
-          entries={reviewEntries}
-          onAllowabilityChange={handleAllowabilityChange}
-        />
-      )}
-
-      {/* ── Empty tab state ───────────────────────────────────────────────── */}
-      {entries.length > 0 && displayEntries.length === 0 && activeTab !== "all" && (
-        <div
-          className="rounded-[14px] border px-5 py-6 text-center"
-          style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}
-        >
-          <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
-            {activeTab === "allowable"
-              ? "No allowable expenses yet. Tap the badge on any expense to mark it as allowable."
-              : "No personal/non-allowable expenses."}
-          </p>
+        <div className="flex items-center gap-0 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
+          {([
+            ["all",          "All",           entries.length,           undefined],
+            ["review",       "Needs review",  reviewEntries.length,     "var(--zn-warn)"],
+            ["not-allowable","Not allowable", notAllowableEntries.length,"var(--zn-risk)"],
+          ] as [ActiveTab, string, number, string | undefined][]).map(([id, label, count, warningColor]) => (
+            <button key={id} type="button" onClick={() => setActiveTab(id)}
+              className="relative px-3 py-2.5 text-[12.5px] font-medium transition-colors whitespace-nowrap"
+              style={{
+                color: activeTab === id ? "var(--zn-ink)"
+                     : warningColor && count > 0 ? warningColor
+                     : "var(--zn-ink-3)",
+              }}>
+              {label}
+              {count > 0 && id !== "all" && (
+                <span className="ml-1 text-[10.5px] tabular-nums opacity-70">({count})</span>
+              )}
+              {activeTab === id && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full" style={{ background: "var(--zn-ink)" }} />
+              )}
+            </button>
+          ))}
+          <div className="ml-auto pb-1">
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as typeof sort)}
+              className="text-[12px] rounded-lg border px-2.5 py-1.5 cursor-pointer"
+              style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)", background: "var(--zn-surface)" }}>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="highest">Highest amount</option>
+            </select>
+          </div>
         </div>
       )}
 
-      {/* ── Monthly groups ───────────────────────────────────────────────── */}
-      {grouped.map(({ ym, entries: monthEntries }) => (
-        <MonthGroup
-          key={ym}
-          ym={ym}
-          entries={monthEntries}
-          onDelete={handleDelete}
-          onAllowabilityChange={handleAllowabilityChange}
-          onVatChange={handleVatChange}
-        />
-      ))}
+      {/* ── Two-column layout: list + detail panel ───────────────────────── */}
+      <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-5 lg:items-start">
+        {/* Left: list */}
+        <div className="space-y-3">
+          {/* ── Review section (All tab only) */}
+          {activeTab === "all" && (
+            <ReviewSection
+              entries={reviewEntries}
+              onAllowabilityChange={handleAllowabilityChange}
+            />
+          )}
+
+          {/* ── Empty tab state */}
+          {entries.length > 0 && displayEntries.length === 0 && activeTab !== "all" && (
+            <div
+              className="rounded-[14px] border px-5 py-6 text-center"
+              style={{ borderColor: "var(--zn-line-soft)", background: "var(--zn-bg-2)" }}
+            >
+              <p className="text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+                {activeTab === "review"
+                  ? "No expenses need review."
+                  : "No personal/non-allowable expenses."}
+              </p>
+            </div>
+          )}
+
+          {/* ── Monthly groups */}
+          {grouped.map(({ ym, entries: monthEntries }) => (
+            <MonthGroup
+              key={ym}
+              ym={ym}
+              entries={monthEntries}
+              onDelete={handleDelete}
+              onAllowabilityChange={handleAllowabilityChange}
+              onVatChange={handleVatChange}
+              onRowClick={id => setSelectedId(id)}
+              selectedId={selectedId}
+            />
+          ))}
+        </div>
+
+        {/* Right: detail panel */}
+        <div className="hidden lg:block">
+          {selectedExpense ? (
+            <DetailPanel
+              expense={selectedExpense}
+              onCategoryChange={handleCategoryChange}
+              onAllowabilityChange={handleAllowabilityChange}
+            />
+          ) : (
+            <div className="zn-card px-5 py-12 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
+              Select an expense to see details, HMRC rule, and adjust allowability.
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Recently deleted ──────────────────────────────────────────────── */}
       {hydrated && (
