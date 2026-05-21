@@ -48,6 +48,8 @@ import {
 import type { Allowability } from "@/lib/expense-allowability";
 import { BANK_STATEMENT_KEY } from "@/components/bank-statement-import";
 import type { ParsedTransaction } from "@/components/bank-statement-import";
+import { SectionCsvImport } from "@/components/section-csv-import";
+import type { ImportResult } from "@/components/section-csv-import";
 
 // ── Extended type ──────────────────────────────────────────────────────────────
 
@@ -1258,6 +1260,42 @@ export function ExpensePageClient() {
     setActiveTab("all");
   }
 
+  function handleCsvImport(result: ImportResult) {
+    const today = todayISO();
+    const newEntries: RichEntry[] = result.rows.map((row) => {
+      // Normalise date: DD/MM/YYYY → YYYY-MM-DD, or pass-through ISO
+      const rawDate = row.date ?? "";
+      const dm = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      const date = dm
+        ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`
+        : /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : today;
+
+      const rawAmt = (row.amount ?? "").replace(/[£$€,\s]/g, "");
+      const amount = Math.abs(parseFloat(rawAmt)) || 0;
+
+      // Map to closest known category, or fall back to "Other"
+      const rawCat = (row.category ?? "").trim();
+      const category = (EXPENSE_CATEGORIES as readonly string[]).includes(rawCat)
+        ? rawCat
+        : "Other";
+
+      return {
+        id:           crypto.randomUUID(),
+        date,
+        amount,
+        category,
+        description:  (row.description ?? row.notes ?? "").trim(),
+        allowability: "review" as Allowability,
+        source:       "bank-import" as const, // treated as imported
+      };
+    }).filter((e) => e.amount > 0);
+
+    if (newEntries.length === 0) return;
+    setEntries((prev) => [...newEntries, ...prev]);
+    setImportedCount(newEntries.length);
+    setActiveTab("all");
+  }
+
   // ── Derived values ────────────────────────────────────────────────────────
 
   const allowableEntries    = entries.filter((e) => e.allowability === "allowable");
@@ -1289,7 +1327,21 @@ export function ExpensePageClient() {
             Track allowable business expenses to reduce your Self Assessment bill
           </p>
         </div>
-        <AddExpensePanel onAdd={handleAdd} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <SectionCsvImport
+            title="Expenses"
+            fields={[
+              { key: "date",        label: "Date",        synonyms: ["date", "transaction date", "expense date", "txn date", "paid date"],            required: true  },
+              { key: "description", label: "Description", synonyms: ["description", "merchant", "vendor", "payee", "details", "name", "narrative"],   required: true  },
+              { key: "amount",      label: "Amount",      synonyms: ["amount", "gross", "total", "cost", "price", "value", "debit", "credit", "sum"],  required: true  },
+              { key: "category",    label: "Category",    synonyms: ["category", "cat", "type", "class", "expense type"]                                              },
+              { key: "notes",       label: "Notes",       synonyms: ["notes", "note", "memo", "reference", "ref", "comment"]                                          },
+            ]}
+            onImport={handleCsvImport}
+            example="Date, Description, Amount, Category"
+          />
+          <AddExpensePanel onAdd={handleAdd} />
+        </div>
       </div>
 
       {/* ── Bank import banner ────────────────────────────────────────────── */}

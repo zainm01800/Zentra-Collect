@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { FileText, Plus, Trash2 } from "lucide-react";
+import { SectionCsvImport } from "@/components/section-csv-import";
+import type { ImportResult } from "@/components/section-csv-import";
 import {
   createQuote,
   deleteQuote,
@@ -93,6 +95,40 @@ export function QuotesClient() {
     setShowAdd(false);
   }
 
+  function handleCsvImport(result: ImportResult) {
+    const today = new Date().toISOString().slice(0, 10);
+    const thirtyOut = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+
+    function parseIso(raw: string): string {
+      if (!raw) return today;
+      const dm = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (dm) return `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      return today;
+    }
+
+    for (const row of result.rows) {
+      const customerName = (row.customerName ?? "").trim();
+      if (!customerName) continue;
+
+      const rawAmt = (row.amountNet ?? row.amount ?? "").replace(/[£$€,\s]/g, "");
+      const net = parseFloat(rawAmt);
+      if (!Number.isFinite(net) || net <= 0) continue;
+
+      createQuote({
+        customerName,
+        customerEmail: (row.customerEmail ?? "").trim() || undefined,
+        issueDate:     parseIso(row.issueDate ?? row.date ?? ""),
+        expiresOn:     parseIso(row.expiresOn ?? "") || thirtyOut,
+        amountNet:     net,
+        vatRate:       0,
+        description:   (row.description ?? row.notes ?? "Imported quote").trim(),
+        notes:         (row.notes ?? "").trim() || undefined,
+      });
+    }
+    setQuotes(readQuotes());
+  }
+
   function handleConvert(q: Quote) {
     setConvertError(null);
     startTransition(async () => {
@@ -145,14 +181,29 @@ export function QuotesClient() {
   return (
     <div className="flex flex-col gap-5">
       {!showAdd ? (
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="zn-pill self-start"
-          style={{ height: 36, padding: "0 16px", fontSize: 13 }}
-        >
-          <Plus className="size-3.5" /> New quote
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="zn-pill self-start"
+            style={{ height: 36, padding: "0 16px", fontSize: 13 }}
+          >
+            <Plus className="size-3.5" /> New quote
+          </button>
+          <SectionCsvImport
+            title="Quotes"
+            fields={[
+              { key: "customerName",  label: "Customer",    synonyms: ["customer name", "customer", "client", "name", "company", "business"],       required: true  },
+              { key: "amountNet",     label: "Amount (net)", synonyms: ["amount", "net", "net amount", "price", "value", "total", "gross", "cost"], required: true  },
+              { key: "issueDate",     label: "Issue date",  synonyms: ["issue date", "date", "quote date", "issued", "created"]                                    },
+              { key: "expiresOn",     label: "Expires on",  synonyms: ["expires", "expiry", "expiry date", "valid until", "valid to", "due"]                       },
+              { key: "customerEmail", label: "Email",       synonyms: ["email", "customer email", "contact email", "billing email", "e-mail"]                      },
+              { key: "description",   label: "Description", synonyms: ["description", "details", "service", "notes", "note", "work", "job"]                        },
+            ]}
+            onImport={handleCsvImport}
+            example="Customer name, Amount (net), Issue date, Expires on"
+          />
+        </div>
       ) : (
         <form
           onSubmit={handleAdd}

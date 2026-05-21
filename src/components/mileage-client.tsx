@@ -10,6 +10,8 @@ import {
   type MileageTrip,
 } from "@/lib/mileage";
 import { currentUkTaxYear, ukTaxYearRange } from "@/lib/tax/uk-self-employed";
+import { SectionCsvImport } from "@/components/section-csv-import";
+import type { ImportResult } from "@/components/section-csv-import";
 
 function fmtGBP(n: number) {
   return new Intl.NumberFormat("en-GB", {
@@ -61,6 +63,25 @@ export function MileageClient() {
     return { trips: inRange, ...calc };
   }, [trips]);
 
+  function handleCsvImport(result: ImportResult) {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const row of result.rows) {
+      const rawDate = row.date ?? "";
+      const dm = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      const date = dm
+        ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`
+        : /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : today;
+
+      const miles = parseFloat((row.miles ?? "").replace(/[,\s]/g, ""));
+      if (!Number.isFinite(miles) || miles <= 0) continue;
+      const purpose = (row.purpose ?? "").trim();
+      if (!purpose) continue;
+
+      addTrip({ date, miles, purpose, fromTo: (row.fromTo ?? "").trim() || undefined });
+    }
+    setTrips(readTrips());
+  }
+
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const miles = parseFloat(form.miles);
@@ -109,14 +130,27 @@ export function MileageClient() {
 
       {/* Add trip button / form */}
       {!showAdd ? (
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="zn-pill self-start"
-          style={{ height: 36, padding: "0 16px", fontSize: 13 }}
-        >
-          <Plus className="size-3.5" /> Log a trip
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="zn-pill self-start"
+            style={{ height: 36, padding: "0 16px", fontSize: 13 }}
+          >
+            <Plus className="size-3.5" /> Log a trip
+          </button>
+          <SectionCsvImport
+            title="Mileage"
+            fields={[
+              { key: "date",    label: "Date",    synonyms: ["date", "trip date", "journey date", "travel date"],                         required: true  },
+              { key: "miles",   label: "Miles",   synonyms: ["miles", "mileage", "distance", "mi", "km", "kms", "odometer"],              required: true  },
+              { key: "purpose", label: "Purpose", synonyms: ["purpose", "reason", "description", "journey", "trip", "details", "notes"],  required: true  },
+              { key: "fromTo",  label: "From → To", synonyms: ["from to", "from/to", "route", "from", "journey from", "origin", "destination"] },
+            ]}
+            onImport={handleCsvImport}
+            example="Date, Miles, Purpose, From/To"
+          />
+        </div>
       ) : (
         <form
           onSubmit={handleAdd}

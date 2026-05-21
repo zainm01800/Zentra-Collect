@@ -8,6 +8,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, CheckCircle2, Clock, AlertCircle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionCsvImport } from "@/components/section-csv-import";
+import type { ImportResult } from "@/components/section-csv-import";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -200,6 +202,41 @@ export function BillsClient() {
     });
   }, []);
 
+  function handleCsvImport(result: ImportResult) {
+    const today = new Date().toISOString().slice(0, 10);
+    const newBills: Bill[] = [];
+    for (const row of result.rows) {
+      const rawAmt = (row.amount ?? "").replace(/[£$€,\s]/g, "");
+      const amount = Math.round(parseFloat(rawAmt) * 100) / 100;
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+
+      const supplier = (row.supplier ?? "").trim();
+      if (!supplier) continue;
+
+      const rawDue = row.dueDate ?? row.date ?? "";
+      const dm = rawDue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      const dueDate = dm
+        ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}`
+        : /^\d{4}-\d{2}-\d{2}$/.test(rawDue) ? rawDue : today;
+
+      const rawCat = (row.category ?? "").trim();
+      const category = CATEGORIES.includes(rawCat) ? rawCat : "Other";
+
+      newBills.push({
+        id:          crypto.randomUUID(),
+        supplier,
+        description: (row.description ?? row.notes ?? "").trim(),
+        amount,
+        dueDate,
+        category,
+        status:      "unpaid",
+        createdAt:   new Date().toISOString(),
+      });
+    }
+    if (newBills.length === 0) return;
+    updateBills((prev) => [...newBills, ...prev]);
+  }
+
   function addBill(bill: Bill) {
     updateBills((prev) => [bill, ...prev]);
     setShowForm(false);
@@ -253,15 +290,29 @@ export function BillsClient() {
             What your business owes
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold"
-          style={{ background: "var(--zn-ink)", color: "var(--background)" }}
-        >
-          <Plus className="size-4" />
-          Add bill
-        </button>
+        <div className="flex items-center gap-2">
+          <SectionCsvImport
+            title="Bills"
+            fields={[
+              { key: "supplier",    label: "Supplier",    synonyms: ["supplier", "vendor", "payee", "company", "name", "from", "creditor"],             required: true  },
+              { key: "amount",      label: "Amount",      synonyms: ["amount", "total", "cost", "price", "value", "gross", "invoice total", "sum"],      required: true  },
+              { key: "dueDate",     label: "Due date",    synonyms: ["due date", "due", "payment due", "due by", "pay by", "date"],                      required: true  },
+              { key: "description", label: "Description", synonyms: ["description", "note", "notes", "details", "memo", "reference", "ref"]                            },
+              { key: "category",    label: "Category",    synonyms: ["category", "cat", "type", "class", "expense type"]                                              },
+            ]}
+            onImport={handleCsvImport}
+            example="Supplier, Amount, Due date, Description"
+          />
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold"
+            style={{ background: "var(--zn-ink)", color: "var(--background)" }}
+          >
+            <Plus className="size-4" />
+            Add bill
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
