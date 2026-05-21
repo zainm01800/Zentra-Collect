@@ -241,17 +241,20 @@ export function parseStatement(
   return { rows, detectedBank: detection?.preset.name };
 }
 
-// ── localStorage key ──────────────────────────────────────────────────────────
+// ── localStorage keys ─────────────────────────────────────────────────────────
 
-export const BANK_STATEMENT_KEY = "zentra.bankStatement.v1";
+export const BANK_STATEMENT_KEY      = "zentra.bankStatement.v1";
+export const BANK_STATEMENT_BANK_KEY = "zentra.bankStatement.bank.v1";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   onImported?: (rows: ParsedTransaction[]) => void;
+  /** Called when the user clears/resets the import component. */
+  onCleared?:  () => void;
 }
 
-export function BankStatementImport({ onImported }: Props) {
+export function BankStatementImport({ onImported, onCleared }: Props) {
   const inputRef                        = useRef<HTMLInputElement>(null);
   const [preview, setPreview]           = useState<ParsedTransaction[] | null>(null);
   const [warning, setWarning]           = useState<string | null>(null);
@@ -304,6 +307,8 @@ export function BankStatementImport({ onImported }: Props) {
   function handleSave() {
     if (!preview) return;
     localStorage.setItem(BANK_STATEMENT_KEY, JSON.stringify(preview));
+    if (detectedBank) localStorage.setItem(BANK_STATEMENT_BANK_KEY, detectedBank);
+    else localStorage.removeItem(BANK_STATEMENT_BANK_KEY);
     setSaved(true);
     onImported?.(preview);
   }
@@ -315,7 +320,9 @@ export function BankStatementImport({ onImported }: Props) {
     setDetectedBank(null);
     setSaved(false);
     localStorage.removeItem(BANK_STATEMENT_KEY);
+    localStorage.removeItem(BANK_STATEMENT_BANK_KEY);
     if (inputRef.current) inputRef.current.value = "";
+    onCleared?.();
   }
 
   const credits = preview?.filter((r) => r.amount > 0).length ?? 0;
