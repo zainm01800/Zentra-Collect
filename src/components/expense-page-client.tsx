@@ -35,6 +35,7 @@ import {
   RotateCcw,
   Pencil,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
@@ -325,14 +326,16 @@ function VatInlineEdit({
   vatRate,
   vatAmount,
   onSave,
+  initialEditing = false,
 }: {
-  entryId:   string;
-  gross:     number;
-  vatRate?:  number;
-  vatAmount?: number;
-  onSave:    (id: string, vatRate: number, vatAmount: number) => void;
+  entryId:        string;
+  gross:          number;
+  vatRate?:       number;
+  vatAmount?:     number;
+  onSave:         (id: string, vatRate: number, vatAmount: number) => void;
+  initialEditing?: boolean;
 }) {
-  const [editing,     setEditing]     = useState(false);
+  const [editing,     setEditing]     = useState(initialEditing);
   const [draftRate,   setDraftRate]   = useState<number | undefined>(vatRate);
   const [draftAmount, setDraftAmount] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -740,7 +743,7 @@ function CategoryBreakdown({ entries }: { entries: RichEntry[] }) {
   );
 }
 
-/** Single expense row with allowability badge + VAT + delete. */
+/** Single expense row — category pill + inline VAT badge + secondary amount line. */
 function ExpenseRow({
   entry,
   isActive,
@@ -756,67 +759,154 @@ function ExpenseRow({
   onVatChange:            (id: string, vatRate: number, vatAmount: number) => void;
   onRowClick?:            () => void;
 }) {
+  const [vatEditing, setVatEditing] = useState(false);
+
+  const catIdx      = EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]);
+  const catColor    = CAT_COLOURS[catIdx >= 0 ? catIdx % CAT_COLOURS.length : 0] ?? "var(--zn-ink-3)";
+  const isAllowable    = (entry.allowability ?? "allowable") === "allowable";
+  const isNotAllowable = entry.allowability === "not-allowable";
+  const hasVat         = entry.vatAmount !== undefined && entry.vatAmount > 0;
+
   return (
-    <div className="px-4 py-3 group cursor-pointer transition-colors"
+    <div
+      className="px-4 py-3 group cursor-pointer transition-colors"
       style={{ background: isActive ? "var(--zn-surface-2)" : undefined }}
       onClick={onRowClick}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         {/* Category colour dot */}
         <span
-          className="size-2 rounded-full flex-shrink-0 self-start mt-1.5"
-          style={{
-            background: CAT_COLOURS[
-              EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]) % CAT_COLOURS.length
-            ] ?? "var(--zn-ink-3)",
-          }}
+          className="size-2 rounded-full flex-shrink-0 mt-[5px]"
+          style={{ background: catColor }}
         />
 
+        {/* Left: title + tags + meta */}
         <div className="flex-1 min-w-0">
-          <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-            {entry.description || entry.category}
-          </p>
-          <p className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
-            {entry.category} · {fmtDate(entry.date)}
+          {/* Title + category pill + VAT badge */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-[12.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+              {entry.description || entry.category}
+            </p>
+            {/* Category pill */}
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0"
+              style={{
+                background: catColor + "22",
+                color:      catColor,
+                border:     `1px solid ${catColor}44`,
+              }}
+            >
+              {entry.category}
+            </span>
+            {/* VAT badge — click to edit */}
+            {hasVat && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setVatEditing((v) => !v); }}
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 transition-opacity hover:opacity-75"
+                style={{
+                  background: "color-mix(in srgb, var(--zn-info) 12%, transparent)",
+                  color:      "var(--zn-info)",
+                  border:     "1px solid color-mix(in srgb, var(--zn-info) 30%, transparent)",
+                }}
+              >
+                +{fmtGBP2(entry.vatAmount!)} VAT{entry.vatRate !== undefined ? ` ${vatRateLabel(entry.vatRate)}` : ""}
+              </button>
+            )}
+          </div>
+          {/* Date + source */}
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+            {fmtDate(entry.date)}
             {entry.source === "bank-import" && (
               <span className="ml-1 opacity-60">· from bank</span>
             )}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-            HMRC: {entry.allowability === "not-allowable" ? "Not allowable" : (CATEGORY_HMRC[entry.category]?.short ?? "Fully allowable")}
+          {/* HMRC hint */}
+          <p className="text-[10.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+            {isNotAllowable
+              ? "Not allowable"
+              : (CATEGORY_HMRC[entry.category]?.short ?? "Fully allowable")}
           </p>
         </div>
 
-        {/* Allowability badge — click to toggle */}
-        <AllowabilityBadge
-          value={entry.allowability ?? "allowable"}
-          onChange={(v) => onAllowabilityChange(entry.id, v)}
-        />
+        {/* Right: amount + secondary line + delete */}
+        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
+              {fmtGBP(entry.amount)}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
+              className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Delete expense"
+            >
+              <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
+            </button>
+          </div>
+          {/* Secondary amount: green ok / red not claimable */}
+          {isAllowable && (
+            <span className="text-[10.5px] tabular-nums font-medium" style={{ color: "var(--zn-safe)" }}>
+              {fmtGBP(entry.amount)} ok
+            </span>
+          )}
+          {isNotAllowable && (
+            <span className="text-[10.5px] font-medium" style={{ color: "var(--zn-risk)" }}>
+              not claimable
+            </span>
+          )}
+          {/* Add VAT link (when no VAT set) */}
+          {!hasVat && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setVatEditing((v) => !v); }}
+              className="flex items-center gap-0.5 text-[10.5px] hover:underline mt-0.5"
+              style={{ color: "var(--zn-ink-3)" }}
+            >
+              <PlusCircle className="size-2.5" />
+              Add VAT
+            </button>
+          )}
+        </div>
+      </div>
 
-        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: "var(--zn-ink)" }}>
-          {fmtGBP(entry.amount)}
-        </span>
+      {/* VAT editor panel — expands on demand */}
+      {vatEditing && (
+        <div className="ml-5 mt-2" onClick={(e) => e.stopPropagation()}>
+          <VatInlineEdit
+            entryId={entry.id}
+            gross={entry.amount}
+            vatRate={entry.vatRate}
+            vatAmount={entry.vatAmount}
+            initialEditing={true}
+            onSave={(id, rate, amt) => {
+              onVatChange(id, rate, amt);
+              setVatEditing(false);
+            }}
+          />
+        </div>
+      )}
 
-        <button
-          type="button"
-          onClick={() => onDelete(entry.id)}
-          className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Delete expense"
+      {/* Warning strip — VAT logged but no receipt confirmed */}
+      {hasVat && !vatEditing && (
+        <div
+          className="ml-5 mt-2 flex items-center gap-2 rounded-[8px] px-3 py-2"
+          style={{ background: "var(--zn-warn-soft)", border: "1px solid color-mix(in srgb, var(--zn-warn) 35%, transparent)" }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Trash2 className="size-3.5" style={{ color: "var(--zn-risk)" }} />
-        </button>
-      </div>
-
-      {/* VAT editor — indented to align under description */}
-      <div className="ml-5">
-        <VatInlineEdit
-          entryId={entry.id}
-          gross={entry.amount}
-          vatRate={entry.vatRate}
-          vatAmount={entry.vatAmount}
-          onSave={onVatChange}
-        />
-      </div>
+          <AlertTriangle className="size-3 flex-shrink-0" style={{ color: "var(--zn-warn)" }} />
+          <span className="text-[11px] flex-1" style={{ color: "var(--zn-warn)" }}>
+            Attach invoice to confirm {fmtGBP2(entry.vatAmount!)} VAT reclaim
+          </span>
+          <button
+            type="button"
+            className="text-[10.5px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{ background: "var(--zn-warn)", color: "var(--zn-surface)" }}
+          >
+            Attach
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1022,14 +1112,17 @@ function DetailPanel({
   expense,
   onCategoryChange,
   onAllowabilityChange,
+  onVatChange,
 }: {
   expense: RichEntry;
   onCategoryChange: (id: string, cat: string) => void;
   onAllowabilityChange: (id: string, v: Allowability) => void;
+  onVatChange: (id: string, vatRate: number, vatAmount: number) => void;
 }) {
-  const hmrc = CATEGORY_HMRC[expense.category];
-  const allowable = expense.allowability === "allowable";
-  const net = expense.vatAmount !== undefined ? expense.amount - expense.vatAmount : expense.amount;
+  const hmrc      = CATEGORY_HMRC[expense.category];
+  const allowable = (expense.allowability ?? "allowable") === "allowable";
+  const hasVat    = expense.vatAmount !== undefined && expense.vatAmount > 0;
+  const net       = hasVat ? expense.amount - expense.vatAmount! : expense.amount;
 
   return (
     <div className="zn-card px-5 py-5 space-y-4 lg:sticky lg:top-6">
@@ -1046,11 +1139,21 @@ function DetailPanel({
         )}
       </div>
 
-      {/* Amounts */}
+      {/* 4-cell grid: GROSS / NET / VAT / ALLOWABLE */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)" }}>
           <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Gross</p>
           <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(expense.amount)}</p>
+        </div>
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Net</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(net)}</p>
+        </div>
+        <div className="rounded-[8px] px-3 py-2.5" style={{ background: hasVat ? "color-mix(in srgb, var(--zn-info) 10%, transparent)" : "var(--zn-surface-2)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: hasVat ? "var(--zn-info)" : "var(--zn-ink-3)" }}>VAT</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: hasVat ? "var(--zn-info)" : "var(--zn-ink-3)" }}>
+            {hasVat ? fmtGBP2(expense.vatAmount!) : "—"}
+          </p>
         </div>
         <div className="rounded-[8px] px-3 py-2.5" style={{ background: allowable ? "var(--zn-safe-soft)" : "var(--zn-risk-soft)" }}>
           <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: allowable ? "var(--zn-safe)" : "var(--zn-risk)" }}>Allowable</p>
@@ -1060,14 +1163,55 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* VAT if set */}
-      {expense.vatAmount !== undefined && expense.vatAmount > 0 && (
-        <div className="rounded-[8px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--zn-ink-3)" }}>VAT breakdown</p>
-          <div className="grid grid-cols-3 gap-2 text-[12px]">
-            <div><p style={{ color: "var(--zn-ink-3)" }}>Gross</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(expense.amount)}</p></div>
-            <div><p style={{ color: "var(--zn-ink-3)" }}>Net</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP2(net)}</p></div>
-            <div><p style={{ color: "var(--zn-ink-3)" }}>VAT</p><p className="font-semibold tabular-nums" style={{ color: "var(--zn-info)" }}>{fmtGBP2(expense.vatAmount)}</p></div>
+      {/* VAT Breakdown table */}
+      {hasVat && (
+        <div className="rounded-[8px] overflow-hidden" style={{ border: "1px solid var(--zn-line-soft)" }}>
+          <div className="px-3 py-2" style={{ background: "var(--zn-surface-2)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>VAT Breakdown</p>
+          </div>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--zn-line-soft)", background: "var(--zn-bg-2)" }}>
+                <th className="px-3 py-1.5 text-[10px] font-semibold" style={{ color: "var(--zn-ink-3)" }}>Description</th>
+                <th className="px-3 py-1.5 text-[10px] font-semibold" style={{ color: "var(--zn-ink-3)" }}>Rate</th>
+                <th className="px-3 py-1.5 text-[10px] font-semibold" style={{ color: "var(--zn-ink-3)" }}>VAT</th>
+                <th className="px-3 py-1.5 text-[10px] font-semibold" style={{ color: "var(--zn-ink-3)" }}>✓</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ background: "var(--zn-surface)" }}>
+                <td className="px-3 py-2 text-[11.5px]" style={{ color: "var(--zn-ink-2)" }}>
+                  {expense.description || expense.category}
+                </td>
+                <td className="px-3 py-2 text-[11.5px] tabular-nums" style={{ color: "var(--zn-ink-2)" }}>
+                  {expense.vatRate !== undefined ? vatRateLabel(expense.vatRate) : "—"}
+                </td>
+                <td className="px-3 py-2 text-[11.5px] tabular-nums font-medium" style={{ color: "var(--zn-info)" }}>
+                  {fmtGBP2(expense.vatAmount!)}
+                </td>
+                <td className="px-3 py-2 text-[11.5px]">
+                  <button
+                    type="button"
+                    onClick={() => onVatChange(expense.id, expense.vatRate ?? 20, expense.vatAmount!)}
+                    className="size-5 rounded flex items-center justify-center transition-colors hover:opacity-80"
+                    style={{ background: "var(--zn-safe-soft)", color: "var(--zn-safe)" }}
+                    title="Confirm VAT"
+                  >
+                    <Check className="size-3" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="px-3 py-2" style={{ borderTop: "1px solid var(--zn-line-soft)", background: "var(--zn-bg-2)" }}>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-[11px] font-medium hover:underline"
+              style={{ color: "var(--zn-ink-3)" }}
+            >
+              <PlusCircle className="size-3" />
+              Add line
+            </button>
           </div>
         </div>
       )}
@@ -1080,7 +1224,7 @@ function DetailPanel({
         </div>
       )}
 
-      {/* Force not allowable toggle */}
+      {/* Force not claimable toggle */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[12.5px] font-medium" style={{ color: "var(--zn-ink)" }}>Force not claimable</p>
@@ -1099,7 +1243,7 @@ function DetailPanel({
         </button>
       </div>
 
-      {/* Category change */}
+      {/* Category dropdown */}
       <div>
         <p className="text-[10.5px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--zn-ink-3)" }}>Category</p>
         <select
@@ -1110,6 +1254,23 @@ function DetailPanel({
         >
           {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+      </div>
+
+      {/* Receipt / Invoice section */}
+      <div className="rounded-[8px] px-3 py-3" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--zn-ink-3)" }}>Receipt / Invoice</p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
+            {hasVat ? "Attach invoice to confirm VAT reclaim" : "No receipt attached"}
+          </span>
+          <button
+            type="button"
+            className="text-[11px] font-semibold rounded-full px-3 py-1 flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{ background: "var(--zn-ink)", color: "var(--zn-surface)" }}
+          >
+            Attach
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1553,6 +1714,7 @@ export function ExpensePageClient() {
               expense={selectedExpense}
               onCategoryChange={handleCategoryChange}
               onAllowabilityChange={handleAllowabilityChange}
+              onVatChange={handleVatChange}
             />
           ) : (
             <div className="zn-card px-5 py-12 text-center text-[13px]" style={{ color: "var(--zn-ink-3)" }}>
