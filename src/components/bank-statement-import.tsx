@@ -249,7 +249,7 @@ export const BANK_STATEMENT_BANK_KEY = "zentra.bankStatement.bank.v1";
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
-  onImported?: (rows: ParsedTransaction[]) => void;
+  onImported?: (rows: ParsedTransaction[], filename: string, bank?: string) => void;
   /** Called when the user clears/resets the import component. */
   onCleared?:  () => void;
 }
@@ -310,7 +310,7 @@ export function BankStatementImport({ onImported, onCleared }: Props) {
     if (detectedBank) localStorage.setItem(BANK_STATEMENT_BANK_KEY, detectedBank);
     else localStorage.removeItem(BANK_STATEMENT_BANK_KEY);
     setSaved(true);
-    onImported?.(preview);
+    onImported?.(preview, fileName ?? "statement.csv", detectedBank ?? undefined);
   }
 
   function handleClear() {
