@@ -157,80 +157,55 @@ export function MileageClient() {
   return (
     <div className="flex flex-col gap-5">
 
-      {/* HMRC info banner */}
-      <div
-        className="flex items-start gap-3 rounded-[12px] px-4 py-3"
-        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
-      >
-        <Info className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
-        <p className="text-[12px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
-          HMRC AMAP rate: <strong style={{ color: "var(--zn-ink-2)" }}>45p/mile</strong> for the first 10,000 miles,{" "}
-          <strong style={{ color: "var(--zn-ink-2)" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
-        </p>
-      </div>
-
-      {/* KPI stat cards */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat
-          label={`Total miles · ${currentUkTaxYear()}`}
-          value={`${taxYearStats.miles.toLocaleString("en-GB")} mi`}
-          hint={`${taxYearStats.trips.length} trip${taxYearStats.trips.length === 1 ? "" : "s"}`}
-        />
-        <Stat
-          label="HMRC allowance"
-          value={fmtGBP(taxYearStats.allowance)}
-          hint="Counts as an expense in your tax estimate"
-          accent
-        />
-        <Stat
-          label="Est. tax saving (20%)"
-          value={fmtGBP(taxSaving)}
-          hint="Based on basic rate income tax"
-          accent
-        />
-      </div>
-
-      {/* Action bar */}
-      {!showAdd ? (
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="zn-pill self-start"
-            style={{ height: 36, padding: "0 16px", fontSize: 13 }}
-          >
-            <Plus className="size-3.5" /> Log a trip
-          </button>
-          <SectionCsvImport
-            title="Mileage"
-            fields={[
-              { key: "date",    label: "Date",    synonyms: ["date", "trip date", "journey date", "travel date"],                         required: true  },
-              { key: "miles",   label: "Miles",   synonyms: ["miles", "mileage", "distance", "mi", "km", "kms", "odometer"],              required: true  },
-              { key: "purpose", label: "Purpose", synonyms: ["purpose", "reason", "description", "journey", "trip", "details", "notes"],  required: true  },
-              { key: "fromTo",  label: "From → To", synonyms: ["from to", "from/to", "route", "from", "journey from", "origin", "destination"] },
-            ]}
-            onImport={handleCsvImport}
-            example="Date, Miles, Purpose, From/To"
-            sampleRows={[
-              ["15/04/2026", "42", "Client meeting — Hargreaves Joinery", "London → Birmingham"],
-              ["10/04/2026", "18", "Site survey — BluePeak Ltd", "Office → Canary Wharf"],
-              ["03/04/2026", "67", "Quarterly review — Oaktree", "London → Manchester"],
-              ["28/03/2026", "12", "Workshop — Meridian Studio", "Office → Hoxton"],
-              ["20/03/2026", "94", "Training day — Apex Conference Centre", "London → Bristol"],
-            ]}
-          />
-          {trips.length > 0 && (
-            <button
-              type="button"
-              onClick={() => exportTripsCSV(trips)}
-              className="zn-pill zn-pill-ghost self-start flex items-center gap-1.5"
-              style={{ height: 36, padding: "0 14px", fontSize: 13 }}
-            >
-              <Download className="size-3.5" /> Export CSV
-            </button>
-          )}
+      {/* Page header with action buttons */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="zn-label">Books</p>
+          <h1 className="mt-1 text-[26px] font-semibold tracking-[-0.02em]" style={{ color: "var(--zn-ink)" }}>
+            Mileage
+          </h1>
+          <p className="mt-1 text-[14px]" style={{ color: "var(--zn-ink-2)" }}>
+            Log business miles for Self&#8209;Assessment. HMRC rate applied automatically — 45p / mile for the first 10,000 miles, 25p after.
+          </p>
         </div>
-      ) : (
+        {mounted && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {trips.length > 0 && !showAdd && (
+              <button
+                type="button"
+                onClick={() => exportTripsCSV(trips)}
+                className="zn-pill zn-pill-ghost flex items-center gap-1.5"
+                style={{ height: 34, padding: "0 14px", fontSize: 12.5 }}
+              >
+                <Download className="size-3.5" /> Export CSV
+              </button>
+            )}
+            {!showAdd && (
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="zn-pill flex items-center gap-1.5"
+                style={{ height: 34, padding: "0 14px", fontSize: 12.5 }}
+              >
+                <Plus className="size-3.5" /> Add trip
+              </button>
+            )}
+            {showAdd && (
+              <button
+                type="button"
+                onClick={() => setShowAdd(false)}
+                className="text-[13px] font-medium"
+                style={{ color: "var(--zn-ink-3)" }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Add trip form — shows inline when triggered */}
+      {showAdd && (
         <form
           onSubmit={handleAdd}
           className="rounded-2xl p-5 grid gap-3 sm:grid-cols-[140px_120px_1fr_1fr_auto]"
@@ -310,6 +285,61 @@ export function MileageClient() {
           </div>
         </form>
       )}
+
+      {/* HMRC info banner */}
+      <div
+        className="flex items-start gap-3 rounded-[12px] px-4 py-3"
+        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+      >
+        <Info className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
+        <p className="text-[12px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
+          HMRC AMAP rate: <strong style={{ color: "var(--zn-ink-2)" }}>45p/mile</strong> for the first 10,000 miles,{" "}
+          <strong style={{ color: "var(--zn-ink-2)" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
+        </p>
+      </div>
+
+      {/* KPI stat cards */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat
+          label={`Total miles · ${currentUkTaxYear()}`}
+          value={`${taxYearStats.miles.toLocaleString("en-GB")} mi`}
+          hint={`${taxYearStats.trips.length} trip${taxYearStats.trips.length === 1 ? "" : "s"}`}
+        />
+        <Stat
+          label="HMRC allowance"
+          value={fmtGBP(taxYearStats.allowance)}
+          hint="Counts as an expense in your tax estimate"
+          accent
+        />
+        <Stat
+          label="Est. tax saving (20%)"
+          value={fmtGBP(taxSaving)}
+          hint="Based on basic rate income tax"
+          accent
+        />
+      </div>
+
+      {/* Bulk CSV import */}
+      <div className="flex items-center gap-2">
+        <SectionCsvImport
+          title="Mileage"
+          fields={[
+            { key: "date",    label: "Date",    synonyms: ["date", "trip date", "journey date", "travel date"],                         required: true  },
+            { key: "miles",   label: "Miles",   synonyms: ["miles", "mileage", "distance", "mi", "km", "kms", "odometer"],              required: true  },
+            { key: "purpose", label: "Purpose", synonyms: ["purpose", "reason", "description", "journey", "trip", "details", "notes"],  required: true  },
+            { key: "fromTo",  label: "From → To", synonyms: ["from to", "from/to", "route", "from", "journey from", "origin", "destination"] },
+          ]}
+          onImport={handleCsvImport}
+          example="Date, Miles, Purpose, From/To"
+          sampleRows={[
+            ["15/04/2026", "42", "Client meeting — Hargreaves Joinery", "London → Birmingham"],
+            ["10/04/2026", "18", "Site survey — BluePeak Ltd", "Office → Canary Wharf"],
+            ["03/04/2026", "67", "Quarterly review — Oaktree", "London → Manchester"],
+            ["28/03/2026", "12", "Workshop — Meridian Studio", "Office → Hoxton"],
+            ["20/03/2026", "94", "Training day — Apex Conference Centre", "London → Bristol"],
+          ]}
+        />
+      </div>
 
       {/* Trip list — month grouped */}
       {trips.length === 0 ? (

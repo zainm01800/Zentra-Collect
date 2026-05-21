@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Download, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { Download, AlertTriangle } from "lucide-react";
 import { readInvoices, subscribeToInvoiceChanges } from "@/lib/invoice-store";
 import type { Invoice } from "@/types/zentra";
 
@@ -112,12 +112,8 @@ function exportCSV(invoices: Invoice[]) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type SortKey = "daysOverdue" | "amount" | "customerName" | "dueDate";
-
 export function AgedDebtReport() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [sortKey, setSortKey]   = useState<SortKey>("daysOverdue");
-  const [sortAsc, setSortAsc]   = useState(false);
 
   useEffect(() => {
     setInvoices(readInvoices());
@@ -129,54 +125,22 @@ export function AgedDebtReport() {
     (inv) => inv.status?.toLowerCase() !== "paid" && (inv.amountOutstanding ?? inv.amount) > 0,
   );
 
-  // Bucket summaries
-  const bucketSummaries = BUCKETS.map((b) => {
-    const matches = open.filter((inv) => {
-      const d = inv.daysOverdue;
-      return d >= b.minDays && (b.maxDays === null || d <= b.maxDays);
-    });
-    return {
-      bucket: b,
-      count:  matches.length,
-      total:  matches.reduce((s, inv) => s + inv.amount, 0),
-    };
-  });
-
   const grandTotal   = open.reduce((s, inv) => s + inv.amount, 0);
   const overdueTotal = open.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
 
-  // Sorted table rows
-  const sorted = [...open].sort((a, b) => {
-    let cmp = 0;
-    if (sortKey === "daysOverdue") cmp = a.daysOverdue - b.daysOverdue;
-    else if (sortKey === "amount")       cmp = a.amount - b.amount;
-    else if (sortKey === "customerName") cmp = a.customerName.localeCompare(b.customerName);
-    else if (sortKey === "dueDate")      cmp = (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
-    return sortAsc ? cmp : -cmp;
-  });
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortAsc((v) => !v);
-    else { setSortKey(key); setSortAsc(false); }
-  }
-
-  function SortBtn({ k, label }: { k: SortKey; label: string }) {
-    const active = sortKey === k;
-    return (
-      <button
-        type="button"
-        onClick={() => toggleSort(k)}
-        className="inline-flex items-center gap-1 font-semibold"
-        style={{ color: active ? "var(--zn-ink)" : "var(--zn-ink-3)" }}
-      >
-        {label}
-        <ArrowUpDown className="size-2.5" />
-      </button>
-    );
-  }
-
   const oldestDays  = open.length > 0 ? Math.max(...open.map((i) => i.daysOverdue)) : 0;
   const overdueCount = open.filter((i) => i.daysOverdue > 0).length;
+
+  // Group open invoices by customer name, sorted by total descending
+  const customerMap = open.reduce<Record<string, { name: string; invoices: Invoice[] }>>((acc, inv) => {
+    const name = inv.customerName;
+    if (!acc[name]) acc[name] = { name, invoices: [] };
+    acc[name].invoices.push(inv);
+    return acc;
+  }, {});
+  const customers = Object.values(customerMap).sort((a, b) =>
+    b.invoices.reduce((s, i) => s + i.amount, 0) - a.invoices.reduce((s, i) => s + i.amount, 0)
+  );
 
   return (
     <div className="space-y-6">
@@ -199,27 +163,6 @@ export function AgedDebtReport() {
         </div>
       )}
 
-      {/* Bucket summary cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {bucketSummaries.map(({ bucket, count, total }) => (
-          <div
-            key={bucket.label}
-            className="rounded-[12px] px-4 py-4"
-            style={{ background: bucket.bgColor, border: `1px solid ${bucket.color}22` }}
-          >
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: bucket.color }}>
-              {bucket.label}
-            </p>
-            <p className="mt-1.5 text-[22px] font-bold tabular-nums leading-none" style={{ color: bucket.color }}>
-              {fmtGBP(total)}
-            </p>
-            <p className="mt-1 text-[11px]" style={{ color: bucket.color, opacity: 0.75 }}>
-              {count} invoice{count === 1 ? "" : "s"}
-            </p>
-          </div>
-        ))}
-      </div>
-
       {/* Overdue summary strip */}
       {overdueTotal > 0 && (
         <div
@@ -235,15 +178,15 @@ export function AgedDebtReport() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Customer aging matrix */}
       <div className="zn-card overflow-hidden">
-        {/* Table header */}
+        {/* Table header row */}
         <div
-          className="flex items-center justify-between gap-3 px-5 py-3.5 border-b"
-          style={{ borderColor: "var(--zn-line-soft)" }}
+          className="flex items-center justify-between gap-3 px-5 py-3.5"
+          style={{ borderBottom: "1px solid var(--zn-line-soft)" }}
         >
           <p className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-            {open.length} open invoice{open.length === 1 ? "" : "s"}
+            Aging analysis · {customers.length} customer{customers.length === 1 ? "" : "s"}
           </p>
           <button
             type="button"
@@ -257,14 +200,11 @@ export function AgedDebtReport() {
         </div>
 
         {open.length === 0 ? (
+          /* empty state */
           <div className="px-5 py-12 text-center flex flex-col items-center gap-3">
             <p className="text-[14px] font-medium" style={{ color: "var(--zn-ink-2)" }}>No open invoices</p>
             <p className="text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>Import an overdue invoice export to see your aged debt breakdown.</p>
-            <a
-              href="/import"
-              className="zn-pill mt-1"
-              style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", fontSize: 12, height: 30 }}
-            >
+            <a href="/import" className="zn-pill mt-1" style={{ background: "var(--zn-accent)", color: "var(--zn-accent-ink)", fontSize: 12, height: 30 }}>
               Import invoices
             </a>
           </div>
@@ -273,57 +213,63 @@ export function AgedDebtReport() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr style={{ background: "var(--zn-bg-2)", borderBottom: "1px solid var(--zn-line-soft)" }}>
-                  <th className="px-5 py-2.5 text-[11px]"><SortBtn k="customerName" label="Customer" /></th>
-                  <th className="px-5 py-2.5 text-[11px] text-left font-semibold" style={{ color: "var(--zn-ink-3)" }}>Invoice #</th>
-                  <th className="px-5 py-2.5 text-[11px]"><SortBtn k="dueDate" label="Due" /></th>
-                  <th className="px-5 py-2.5 text-[11px]"><SortBtn k="daysOverdue" label="Days" /></th>
-                  <th className="px-5 py-2.5 text-[11px] text-left font-semibold" style={{ color: "var(--zn-ink-3)" }}>Bucket</th>
-                  <th className="px-5 py-2.5 text-[11px] text-right"><SortBtn k="amount" label="Amount" /></th>
-                  <th className="px-5 py-2.5 text-[11px] text-left font-semibold" style={{ color: "var(--zn-ink-3)" }}>Status</th>
+                  <th className="px-5 py-2.5 text-[11px] font-semibold text-left" style={{ color: "var(--zn-ink-3)" }}>Customer</th>
+                  {BUCKETS.map((b) => (
+                    <th key={b.label} className="px-4 py-2.5 text-[11px] font-semibold text-right whitespace-nowrap" style={{ color: b.minDays > 0 ? b.color : "var(--zn-ink-3)" }}>
+                      {b.label}
+                    </th>
+                  ))}
+                  <th className="px-5 py-2.5 text-[11px] font-semibold text-right" style={{ color: "var(--zn-ink-3)" }}>Total</th>
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((inv, idx) => {
-                  const bucket = getBucket(inv.daysOverdue);
-                  const isOverdue = inv.daysOverdue > 0;
+                {customers.map((cust, i) => {
+                  const custTotal = cust.invoices.reduce((s, inv) => s + inv.amount, 0);
                   return (
-                    <tr
-                      key={inv.id}
-                      style={{
-                        borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)",
-                        background: "var(--zn-surface)",
-                      }}
-                    >
-                      <td className="px-5 py-3 text-[13px] font-medium max-w-[180px] truncate" style={{ color: "var(--zn-ink)" }}>
-                        {inv.customerName}
+                    <tr key={cust.name} style={{ borderTop: i === 0 ? "none" : "1px solid var(--zn-line-soft)", background: "var(--zn-surface)" }}>
+                      <td className="px-5 py-3 text-[13px] font-medium" style={{ color: "var(--zn-ink)" }}>
+                        <div>{cust.name}</div>
+                        <div className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                          {cust.invoices.length} invoice{cust.invoices.length === 1 ? "" : "s"}
+                        </div>
                       </td>
-                      <td className="px-5 py-3 text-[12px] font-mono" style={{ color: "var(--zn-ink-2)" }}>
-                        {inv.invoiceNumber}
-                      </td>
-                      <td className="px-5 py-3 text-[12.5px]" style={{ color: "var(--zn-ink-2)" }}>
-                        {fmtDate(inv.dueDate)}
-                      </td>
-                      <td className="px-5 py-3 text-[12.5px] font-semibold tabular-nums" style={{ color: isOverdue ? bucket.color : "var(--zn-ink-3)" }}>
-                        {isOverdue ? `${inv.daysOverdue}d` : "Current"}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span
-                          className="inline-block rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
-                          style={{ background: bucket.bgColor, color: bucket.color }}
-                        >
-                          {bucket.label}
-                        </span>
-                      </td>
+                      {BUCKETS.map((b) => {
+                        const amt = cust.invoices
+                          .filter(inv => inv.daysOverdue >= b.minDays && (b.maxDays === null || inv.daysOverdue <= b.maxDays))
+                          .reduce((s, inv) => s + inv.amount, 0);
+                        return (
+                          <td key={b.label} className="px-4 py-3 text-[12.5px] text-right tabular-nums font-medium"
+                              style={{ color: amt > 0 ? (b.minDays > 0 ? b.color : "var(--zn-ink)") : "var(--zn-ink-3)" }}>
+                            {amt > 0 ? fmtGBP(amt) : "—"}
+                          </td>
+                        );
+                      })}
                       <td className="px-5 py-3 text-[13px] font-semibold tabular-nums text-right" style={{ color: "var(--zn-ink)" }}>
-                        {fmtGBP(inv.amount)}
-                      </td>
-                      <td className="px-5 py-3 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
-                        {humaniseStatus(inv.status)}
+                        {fmtGBP(custTotal)}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr style={{ borderTop: "2px solid var(--zn-line-soft)", background: "var(--zn-surface-2)" }}>
+                  <td className="px-5 py-3 text-[13px] font-bold" style={{ color: "var(--zn-ink)" }}>Total</td>
+                  {BUCKETS.map((b) => {
+                    const total = open
+                      .filter(inv => inv.daysOverdue >= b.minDays && (b.maxDays === null || inv.daysOverdue <= b.maxDays))
+                      .reduce((s, inv) => s + inv.amount, 0);
+                    return (
+                      <td key={b.label} className="px-4 py-3 text-[12.5px] font-bold tabular-nums text-right"
+                          style={{ color: total > 0 ? (b.minDays > 0 ? b.color : "var(--zn-ink)") : "var(--zn-ink-3)" }}>
+                        {total > 0 ? fmtGBP(total) : "—"}
+                      </td>
+                    );
+                  })}
+                  <td className="px-5 py-3 text-[13px] font-bold tabular-nums text-right" style={{ color: "var(--zn-ink)" }}>
+                    {fmtGBP(grandTotal)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
