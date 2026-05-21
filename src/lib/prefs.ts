@@ -37,7 +37,7 @@ export interface WorkspacePrefs {
 const DEFAULTS: WorkspacePrefs = {
   modules: {
     collections: true,
-    cashflow:    false,
+    cashflow:    true,
     expenses:    true,
     tax:         true,
     reports:     true,
