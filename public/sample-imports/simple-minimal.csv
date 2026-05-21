@@ -1,0 +1,16 @@
+Customer Name,Invoice Number,Due Date,Amount Outstanding,Email,Notes
+Brightfield Marketing Ltd,INV-001,01/02/2026,4200.00,finance@brightfield.co.uk,
+Brightfield Marketing Ltd,INV-002,15/02/2026,3800.00,finance@brightfield.co.uk,Awaiting PO approval
+Trowbridge & Sons,INV-003,10/01/2026,12500.00,accounts@trowbridge.co.uk,Chased 3 Jan — no reply
+Trowbridge & Sons,INV-004,28/02/2026,9000.00,accounts@trowbridge.co.uk,
+Pelham Digital,INV-005,05/12/2025,6750.00,billing@pelhamdigital.co.uk,90+ days — escalate
+Pelham Digital,INV-006,18/01/2026,5200.00,billing@pelhamdigital.co.uk,
+Pelham Digital,INV-007,10/03/2026,4800.00,billing@pelhamdigital.co.uk,
+Cranworth Facilities,INV-008,22/01/2026,18900.00,ap@cranworthfm.co.uk,Part paid — £9450 received
+Cranworth Facilities,INV-009,08/03/2026,14600.00,ap@cranworthfm.co.uk,
+Westlake Consulting,INV-010,30/11/2025,8400.00,finance@westlakeconsulting.co.uk,In dispute — see email thread
+Westlake Consulting,INV-011,14/01/2026,8400.00,finance@westlakeconsulting.co.uk,
+Oakhurst Events,INV-012,17/02/2026,3200.00,accounts@oakhurstevents.co.uk,
+Stonegate Recruitment,INV-013,04/01/2026,22000.00,billing@stonegaterecruitment.co.uk,
+Stonegate Recruitment,INV-014,01/03/2026,19500.00,billing@stonegaterecruitment.co.uk,
+Meridian Printers,INV-015,25/01/2026,2900.00,accounts@meridianprint.co.uk,
