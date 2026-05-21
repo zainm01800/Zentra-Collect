@@ -33,7 +33,13 @@ function readAll(): Record<string, InvoiceTeamData> {
 
 function writeAll(data: Record<string, InvoiceTeamData>): void {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("invoice_team", id);
+    }).catch(() => {});
+  } catch { /* quota */ }
 }
 
 export function readTeamData(invoiceId: string): InvoiceTeamData {

@@ -49,6 +49,10 @@ export function writeEmailUiSettings(settings: Partial<EmailUiSettings>): void {
   const current = readEmailUiSettings();
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...settings }));
   window.dispatchEvent(new Event("zentra:emailSettingsChanged"));
+  void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+    const id = getLocalSupabaseAccountId();
+    if (id) return pushDataType("email_settings", id);
+  }).catch(() => {});
 }
 
 export function isArmingCountdownActive(): boolean {

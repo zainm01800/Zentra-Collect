@@ -118,6 +118,10 @@ export function writeWorkspacePrefs(prefs: WorkspacePrefs): void {
   try { window.localStorage.setItem(KEY, JSON.stringify(prefs)); } catch {}
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("zentra:workspaceprefs", { detail: prefs }));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("workspace_prefs", id);
+    }).catch(() => {});
   }
 }
 

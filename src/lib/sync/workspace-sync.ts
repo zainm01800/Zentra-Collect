@@ -22,12 +22,45 @@ import {
 
 // ── localStorage key registry ─────────────────────────────────────────────────
 
-type DataType = "invoices" | "expenses" | "bank_statements";
+type DataType =
+  | "invoices"
+  | "expenses"
+  | "bank_statements"
+  | "quotes"
+  | "credit_notes"
+  | "bills"
+  | "recurring_invoices"
+  | "business_settings"
+  | "workspace_prefs"
+  | "email_settings"
+  | "email_templates"
+  | "invoice_team"
+  | "direct_income"
+  | "ar_snapshots"
+  | "tone_outcomes"
+  | "bookkeeper_clients"
+  | "chase_replies"
+  | "chase_snoozed";
 
 const LS_KEYS: Record<DataType, string> = {
-  invoices:        "zentra.importedInvoices.v1",
-  expenses:        "zentra.expenses.v1",
-  bank_statements: "zentra.bankStatements.v2",
+  invoices:           "zentra.importedInvoices.v1",
+  expenses:           "zentra.expenses.v1",
+  bank_statements:    "zentra.bankStatements.v2",
+  quotes:             "zentra.quotes.v1",
+  credit_notes:       "zentra.creditNotes.v1",
+  bills:              "zentra.bills.v1",
+  recurring_invoices: "zentra.recurringInvoices.v1",
+  business_settings:  "zentra.businessSettings.v1",
+  workspace_prefs:    "zentra.workspacePrefs.v1",
+  email_settings:     "zentra.emailSettings.v1",
+  email_templates:    "zn:email-templates:v1",
+  invoice_team:       "zentra.invoiceTeam.v1",
+  direct_income:      "zentra.directIncome.v1",
+  ar_snapshots:       "zentra.arSnapshots.v1",
+  tone_outcomes:      "zn:tone-outcomes:v1",
+  bookkeeper_clients: "zentra.bookkeeperClients.v1",
+  chase_replies:      "zentra.replies",
+  chase_snoozed:      "zentra.bulk.snoozed",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

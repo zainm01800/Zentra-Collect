@@ -44,6 +44,10 @@ export function writeBusinessSettings(settings: BusinessSettings): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(settings));
     window.dispatchEvent(new CustomEvent("zentra:businessSettingsChanged"));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("business_settings", id);
+    }).catch(() => {});
   } catch {
     // quota exceeded — silently ignore
   }

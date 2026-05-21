@@ -44,6 +44,10 @@ function writeSnapshots(snapshots: ArSnapshot[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshots));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("ar_snapshots", id);
+    }).catch(() => {});
   } catch { /* quota */ }
 }
 

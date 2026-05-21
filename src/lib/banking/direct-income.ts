@@ -55,6 +55,10 @@ function safeWrite(items: TaggedIncome[]): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     window.dispatchEvent(new CustomEvent("zentra:direct-income-change"));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("direct_income", id);
+    }).catch(() => {});
   } catch {
     /* quota exceeded / SSR — silently swallow */
   }

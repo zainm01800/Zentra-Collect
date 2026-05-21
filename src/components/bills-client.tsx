@@ -66,7 +66,13 @@ function loadBills(): Bill[] {
 }
 
 function saveBills(bills: Bill[]) {
-  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); } catch {}
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("bills", id);
+    }).catch(() => {});
+  } catch {}
 }
 
 function daysUntil(isoDate: string): number {

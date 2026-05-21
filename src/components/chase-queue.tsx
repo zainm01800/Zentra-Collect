@@ -73,7 +73,13 @@ export function ChaseQueue({
     setReplyReceived(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
-      try { window.localStorage.setItem("zentra.replies", JSON.stringify([...next])); } catch {}
+      try {
+        window.localStorage.setItem("zentra.replies", JSON.stringify([...next]));
+        void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+          const id = getLocalSupabaseAccountId();
+          if (id) return pushDataType("chase_replies", id);
+        }).catch(() => {});
+      } catch {}
       return next;
     });
   }
@@ -98,7 +104,13 @@ export function ChaseQueue({
     const next = { ...snoozedUntil };
     selectedIds.forEach(id => { next[id] = until; });
     setSnoozedUntil(next);
-    try { window.localStorage.setItem("zentra.bulk.snoozed", JSON.stringify(next)); } catch {}
+    try {
+      window.localStorage.setItem("zentra.bulk.snoozed", JSON.stringify(next));
+      void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+        const id = getLocalSupabaseAccountId();
+        if (id) return pushDataType("chase_snoozed", id);
+      }).catch(() => {});
+    } catch {}
     setSelectedIds(new Set());
   }
 

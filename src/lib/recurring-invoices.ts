@@ -47,6 +47,10 @@ export function writeTemplates(templates: RecurringTemplate[]): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("recurring_invoices", id);
+    }).catch(() => {});
   } catch { /* quota */ }
 }
 

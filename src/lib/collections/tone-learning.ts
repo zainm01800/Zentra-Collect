@@ -50,6 +50,10 @@ function writeStore(store: ToneStore): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("tone_outcomes", id);
+    }).catch(() => {});
   } catch {
     /* quota exceeded — drop silently */
   }

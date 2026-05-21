@@ -116,6 +116,10 @@ function writeStore(items: EmailTemplate[]): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("email_templates", id);
+    }).catch(() => {});
   } catch {
     /* quota exceeded — drop silently */
   }

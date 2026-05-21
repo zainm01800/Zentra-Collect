@@ -56,6 +56,10 @@ export function readBookkeeperClients(): BookkeeperClient[] {
 /** Write the full client list back to localStorage. */
 export function saveBookkeeperClients(clients: BookkeeperClient[]): void {
   window.localStorage.setItem(BOOKKEEPER_CLIENTS_KEY, JSON.stringify(clients));
+  void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+    const id = getLocalSupabaseAccountId();
+    if (id) return pushDataType("bookkeeper_clients", id);
+  }).catch(() => {});
 }
 
 /** Add or update a single client record. */

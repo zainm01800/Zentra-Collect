@@ -64,6 +64,10 @@ function safeWrite(items: Quote[]): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     window.dispatchEvent(new CustomEvent("zentra:quotes-change"));
+    void import('@/lib/sync/workspace-sync').then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType('quotes', id);
+    }).catch(() => {});
   } catch {
     /* quota / SSR */
   }
