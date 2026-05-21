@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Car, Plus, Trash2 } from "lucide-react";
+import { Car, Download, Info, Plus, Trash2 } from "lucide-react";
 import {
   addTrip,
   calcMileageAllowance,
@@ -28,6 +28,41 @@ function fmtDateDisplay(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
   });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function monthKey(iso: string) {
+  return iso.slice(0, 7); // "YYYY-MM"
+}
+
+function monthLabel(ym: string) {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+
+function rateLabel(miles: number, cumMilesBefore: number): string {
+  // If all miles are in first band, show 45p; if all in second, 25p; if split, both
+  const limitFirst = 10_000;
+  const afterFirst = Math.max(0, cumMilesBefore - limitFirst);
+  if (cumMilesBefore >= limitFirst) return "@ 25p";
+  if (cumMilesBefore + miles <= limitFirst) return "@ 45p";
+  return "@ 45p / 25p";
+}
+
+function exportTripsCSV(trips: MileageTrip[]) {
+  const header = "Date,Miles,Purpose,From/To,Allowance (£)";
+  const rows = trips.map(t => {
+    const allowance = calcMileageAllowance(t.miles).allowance.toFixed(2);
+    const escape = (s: string) => s.includes(",") ? `"${s}"` : s;
+    return [t.date, t.miles, escape(t.purpose), escape(t.fromTo ?? ""), allowance].join(",");
+  });
+  const csv = [header, ...rows].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "zentra-mileage.csv"; a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function MileageClient() {
@@ -97,18 +132,48 @@ export function MileageClient() {
     setShowAdd(false);
   }
 
+  // Month-grouped trips (sorted newest first within each month, months newest first)
+  const grouped = useMemo(() => {
+    const sorted = [...trips].sort((a, b) => b.date.localeCompare(a.date));
+    const map = new Map<string, MileageTrip[]>();
+    for (const t of sorted) {
+      const key = monthKey(t.date);
+      const arr = map.get(key) ?? [];
+      arr.push(t);
+      map.set(key, arr);
+    }
+    return Array.from(map.entries()).map(([ym, monthTrips]) => ({
+      ym,
+      trips: monthTrips,
+      miles: monthTrips.reduce((s, t) => s + t.miles, 0),
+      allowance: monthTrips.reduce((s, t) => s + calcMileageAllowance(t.miles).allowance, 0),
+    }));
+  }, [trips]);
+
+  const taxSaving = taxYearStats.allowance * 0.20;
+
   if (!mounted) return null;
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Tax year stats */}
+
+      {/* HMRC info banner */}
       <div
-        className="grid gap-3 sm:grid-cols-3 rounded-2xl p-5"
-        style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+        className="flex items-start gap-3 rounded-[12px] px-4 py-3"
+        style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
       >
+        <Info className="size-3.5 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
+        <p className="text-[12px] leading-[1.6]" style={{ color: "var(--zn-ink-3)" }}>
+          HMRC AMAP rate: <strong style={{ color: "var(--zn-ink-2)" }}>45p/mile</strong> for the first 10,000 miles,{" "}
+          <strong style={{ color: "var(--zn-ink-2)" }}>25p/mile</strong> thereafter. Allowance is deducted from taxable income and reduces your self-assessment tax bill.
+        </p>
+      </div>
+
+      {/* KPI stat cards */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <Stat
-          label={`Miles in ${currentUkTaxYear()}`}
-          value={taxYearStats.miles.toLocaleString("en-GB")}
+          label={`Total miles · ${currentUkTaxYear()}`}
+          value={`${taxYearStats.miles.toLocaleString("en-GB")} mi`}
           hint={`${taxYearStats.trips.length} trip${taxYearStats.trips.length === 1 ? "" : "s"}`}
         />
         <Stat
@@ -118,19 +183,16 @@ export function MileageClient() {
           accent
         />
         <Stat
-          label="Rate breakdown"
-          value={
-            taxYearStats.secondBandMiles > 0
-              ? `${taxYearStats.firstBandMiles.toLocaleString("en-GB")} × 45p · ${taxYearStats.secondBandMiles.toLocaleString("en-GB")} × 25p`
-              : `${taxYearStats.firstBandMiles.toLocaleString("en-GB")} × 45p`
-          }
-          hint="First 10,000 miles at 45p, then 25p"
+          label="Est. tax saving (20%)"
+          value={fmtGBP(taxSaving)}
+          hint="Based on basic rate income tax"
+          accent
         />
       </div>
 
-      {/* Add trip button / form */}
+      {/* Action bar */}
       {!showAdd ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setShowAdd(true)}
@@ -157,6 +219,16 @@ export function MileageClient() {
               ["20/03/2026", "94", "Training day — Apex Conference Centre", "London → Bristol"],
             ]}
           />
+          {trips.length > 0 && (
+            <button
+              type="button"
+              onClick={() => exportTripsCSV(trips)}
+              className="zn-pill zn-pill-ghost self-start flex items-center gap-1.5"
+              style={{ height: 36, padding: "0 14px", fontSize: 13 }}
+            >
+              <Download className="size-3.5" /> Export CSV
+            </button>
+          )}
         </div>
       ) : (
         <form
@@ -239,7 +311,7 @@ export function MileageClient() {
         </form>
       )}
 
-      {/* Trip list */}
+      {/* Trip list — month grouped */}
       {trips.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center gap-3 rounded-2xl p-10 text-center"
@@ -256,50 +328,85 @@ export function MileageClient() {
           </p>
         </div>
       ) : (
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
-        >
-          {trips.map((trip, idx) => {
-            const allowance = calcMileageAllowance(trip.miles).allowance;
+        <div className="space-y-3">
+          {grouped.map(({ ym, trips: monthTrips, miles: monthMiles, allowance: monthAllowance }) => {
+            // Cumulative miles before this month (for rate label calculation)
+            let cumBefore = 0;
             return (
               <div
-                key={trip.id}
-                className="flex items-start gap-3 px-5 py-3.5"
-                style={{ borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)" }}
+                key={ym}
+                className="rounded-2xl overflow-hidden"
+                style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
               >
-                <Car className="size-4 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-                      {trip.purpose}
-                    </p>
-                    <span className="text-[11.5px]" style={{ color: "var(--zn-ink-3)" }}>
-                      {fmtDateDisplay(trip.date)}
+                {/* Month header */}
+                <div
+                  className="flex items-center justify-between px-5 py-3"
+                  style={{ borderBottom: "1px solid var(--zn-line-soft)", background: "var(--zn-surface-2)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                      {monthLabel(ym)}
+                    </span>
+                    <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>
+                      {monthTrips.length} trip{monthTrips.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  {trip.fromTo && (
-                    <p className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                      {trip.fromTo}
-                    </p>
-                  )}
+                  <div className="text-right text-[11.5px] tabular-nums">
+                    <span className="font-semibold" style={{ color: "var(--zn-ink-2)" }}>
+                      {monthMiles.toLocaleString("en-GB")} mi
+                    </span>
+                    <span style={{ color: "var(--zn-ink-3)" }}> · </span>
+                    <span className="font-semibold" style={{ color: "var(--zn-accent)" }}>
+                      {fmtGBP(monthAllowance)}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-                    {trip.miles.toLocaleString("en-GB")} mi
-                  </p>
-                  <p className="text-[11.5px] tabular-nums" style={{ color: "var(--zn-accent)" }}>
-                    {fmtGBP(allowance)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => deleteTrip(trip.id)}
-                  className="ml-2 mt-0.5 rounded p-1 hover:bg-black/5 dark:hover:bg-white/5"
-                  aria-label={`Delete trip ${trip.purpose}`}
-                >
-                  <Trash2 className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
-                </button>
+
+                {/* Trip rows */}
+                {monthTrips.map((trip, idx) => {
+                  const rate = rateLabel(trip.miles, cumBefore);
+                  cumBefore += trip.miles;
+                  const allowance = calcMileageAllowance(trip.miles).allowance;
+                  return (
+                    <div
+                      key={trip.id}
+                      className="flex items-start gap-3 px-5 py-3.5 group"
+                      style={{ borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)" }}
+                    >
+                      <Car className="size-4 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-ink-3)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                          {trip.purpose}
+                        </p>
+                        {trip.fromTo && (
+                          <p className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                            {trip.fromTo}
+                          </p>
+                        )}
+                        <p className="text-[11.5px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                          {fmtDateDisplay(trip.date)}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
+                          {trip.miles.toLocaleString("en-GB")} mi
+                        </p>
+                        <p className="text-[11.5px] tabular-nums" style={{ color: "var(--zn-accent)" }}>
+                          {fmtGBP(allowance)}{" "}
+                          <span style={{ color: "var(--zn-ink-3)", fontWeight: 400 }}>{rate}</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteTrip(trip.id)}
+                        className="ml-1 mt-0.5 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Delete trip ${trip.purpose}`}
+                      >
+                        <Trash2 className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

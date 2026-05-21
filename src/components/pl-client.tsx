@@ -69,6 +69,61 @@ function readExpensesByCategory(startMs: number, endMs: number): ExpenseRow[] {
   }
 }
 
+function readMonthlyData(taxYear: string): Array<{
+  label: string; revenue: number; expenses: number; net: number;
+}> {
+  if (typeof window === "undefined") return [];
+
+  // Build list of months in this tax year (Apr → Mar)
+  const [startYearStr] = taxYear.split("/");
+  const startYear = parseInt(startYearStr, 10);
+  const months: Array<{ year: number; month: number }> = [];
+  for (let m = 4; m <= 12; m++) months.push({ year: startYear,     month: m });
+  for (let m = 1; m <=  3; m++) months.push({ year: startYear + 1, month: m });
+
+  // Read expenses
+  let expenses: Array<{ date: string; amount: number; allowability?: string }> = [];
+  try {
+    const raw = window.localStorage.getItem("zentra.expenses.v1");
+    if (raw) expenses = JSON.parse(raw);
+    if (!Array.isArray(expenses)) expenses = [];
+  } catch { expenses = []; }
+
+  // Read invoices
+  const account = readLocalAccount();
+  const BOOKKEEPER_PLANS_LOCAL = ["bookkeeper_starter", "bookkeeper_pro"];
+  let invoiceKey = importedInvoicesStorageKey;
+  if (account && BOOKKEEPER_PLANS_LOCAL.includes(account.planId)) {
+    const clientId = readActiveClientId();
+    if (clientId && clientId !== "all") invoiceKey = clientInvoicesKey(clientId);
+  }
+  let invoices: Array<{ invoiceDate: string; amount: number; status?: string }> = [];
+  try {
+    const raw = window.localStorage.getItem(invoiceKey);
+    if (raw) invoices = JSON.parse(raw);
+    if (!Array.isArray(invoices)) invoices = [];
+  } catch { invoices = []; }
+
+  return months.map(({ year, month }) => {
+    const label = new Date(year, month - 1, 1).toLocaleDateString("en-GB", { month: "short" });
+    const mStart = new Date(year, month - 1, 1).getTime();
+    const mEnd   = new Date(year, month,     1).getTime() - 1;
+
+    const revenue = invoices
+      .filter(inv => { const d = new Date(inv.invoiceDate).getTime(); return d >= mStart && d <= mEnd; })
+      .reduce((s, inv) => s + inv.amount, 0);
+
+    const monthExpenses = expenses
+      .filter(e => {
+        const d = new Date(e.date).getTime();
+        return d >= mStart && d <= mEnd && (e.allowability ?? "allowable") === "allowable";
+      })
+      .reduce((s, e) => s + e.amount, 0);
+
+    return { label, revenue, expenses: monthExpenses, net: revenue - monthExpenses };
+  });
+}
+
 function readInvoiceBreakdown(startMs: number, endMs: number) {
   if (typeof window === "undefined") return { paid: 0, outstanding: 0, count: 0 };
   const account = readLocalAccount();
@@ -123,6 +178,79 @@ function StatCard({ label, value, sub, positive }: {
   );
 }
 
+function MonthlyChart({ months }: {
+  months: Array<{ label: string; revenue: number; expenses: number; net: number }>;
+}) {
+  const hasData = months.some(m => m.revenue > 0 || m.expenses > 0);
+  if (!hasData) return null;
+
+  const maxVal = Math.max(...months.map(m => Math.max(m.revenue, m.expenses)), 1);
+
+  return (
+    <div
+      className="rounded-2xl px-5 py-5"
+      style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-4" style={{ color: "var(--zn-ink-3)" }}>
+        Monthly overview
+      </p>
+
+      {/* Bar chart */}
+      <div className="flex items-end gap-1.5 h-[120px] mb-3">
+        {months.map((m, i) => {
+          const revH  = maxVal > 0 ? Math.max((m.revenue  / maxVal) * 100, 0) : 0;
+          const expH  = maxVal > 0 ? Math.max((m.expenses / maxVal) * 100, 0) : 0;
+          return (
+            <div key={i} className="flex-1 flex items-end gap-[2px]" title={`${m.label}: Revenue ${GBP(m.revenue)}, Expenses ${GBP(m.expenses)}`}>
+              <div className="flex-1 rounded-t-[3px] transition-all" style={{ height: `${revH}%`, background: "color-mix(in srgb, var(--zn-safe) 35%, transparent)", minHeight: revH > 0 ? 4 : 0 }} />
+              <div className="flex-1 rounded-t-[3px] transition-all" style={{ height: `${expH}%`, background: "var(--zn-safe)", minHeight: expH > 0 ? 4 : 0 }} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Month labels */}
+      <div className="flex gap-1.5">
+        {months.map((m, i) => (
+          <div key={i} className="flex-1 text-center text-[9.5px]" style={{ color: "var(--zn-ink-3)" }}>{m.label}</div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full" style={{ background: "color-mix(in srgb, var(--zn-safe) 35%, transparent)" }} />
+          <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>Revenue</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-full" style={{ background: "var(--zn-safe)" }} />
+          <span className="text-[11px]" style={{ color: "var(--zn-ink-3)" }}>Profit</span>
+        </div>
+      </div>
+
+      {/* Monthly table */}
+      <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--zn-line-soft)" }}>
+        <div className="grid grid-cols-4 text-[10.5px] font-semibold uppercase tracking-wide mb-2 px-1" style={{ color: "var(--zn-ink-3)" }}>
+          <span>Month</span>
+          <span className="text-right">Revenue</span>
+          <span className="text-right">Expenses</span>
+          <span className="text-right">Net</span>
+        </div>
+        {months.filter(m => m.revenue > 0 || m.expenses > 0).map((m, i) => (
+          <div key={i} className="grid grid-cols-4 text-[12px] py-1.5 px-1 rounded-[6px]" style={{ borderTop: i > 0 ? "1px solid var(--zn-line-soft)" : "none" }}>
+            <span style={{ color: "var(--zn-ink-2)" }}>{m.label}</span>
+            <span className="text-right tabular-nums" style={{ color: "var(--zn-ink)" }}>{GBP(m.revenue)}</span>
+            <span className="text-right tabular-nums" style={{ color: "var(--zn-ink)" }}>{GBP(m.expenses)}</span>
+            <span className="text-right tabular-nums font-semibold" style={{ color: m.net >= 0 ? "var(--zn-safe)" : "var(--zn-risk)" }}>
+              {GBP(m.net)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ label, amount, color }: { label: string; amount: number; color: string }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "var(--zn-line)" }}>
@@ -161,6 +289,7 @@ export function PLClient() {
   const totals       = useMemo(() => hydrated ? totalsForTaxYear(taxYear) : null, [hydrated, taxYear, revision]);
   const invoiceBrk   = useMemo(() => hydrated ? readInvoiceBreakdown(startMs, endMs) : null, [hydrated, startMs, endMs, revision]);
   const expenseRows  = useMemo(() => hydrated ? readExpensesByCategory(startMs, endMs) : [], [hydrated, startMs, endMs, revision]);
+  const monthlyData  = useMemo(() => hydrated ? readMonthlyData(taxYear) : [], [hydrated, taxYear, revision]);
 
   const totalAllowable    = expenseRows.reduce((s, r) => s + r.allowable, 0);
   const totalNotAllowable = expenseRows.reduce((s, r) => s + r.notAllowable, 0);
@@ -256,6 +385,9 @@ export function PLClient() {
               sub="Excluded from tax calc"
             />
           </div>
+
+          {/* Monthly chart */}
+          <MonthlyChart months={monthlyData} />
 
           {/* P&L statement */}
           <div
