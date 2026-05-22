@@ -17,7 +17,7 @@ import {
   Upload, X, FileText, Loader2, CheckCircle2,
   AlertTriangle, Check, ChevronDown,
 } from "lucide-react";
-import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
+import { CATEGORY_GROUPS } from "@/lib/expense-categories";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -110,8 +110,11 @@ function CategorySelect({
           color:       "var(--zn-ink)",
         }}
       >
-        {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        <option value="Other">Other</option>
+        {CATEGORY_GROUPS.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </optgroup>
+        ))}
       </select>
       <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 size-3 pointer-events-none" style={{ color: "var(--zn-ink-3)" }} />
     </div>

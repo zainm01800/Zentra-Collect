@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
-import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
+import { EXPENSE_CATEGORIES, CATEGORY_GROUPS, getCategoryColor } from "@/lib/expense-categories";
 import { ReceiptScanButton } from "@/components/receipt-scan-button";
 import {
   classifyExpense,
@@ -79,22 +79,118 @@ const STORAGE_KEY         = "zentra.expenses.v1";
 const DELETED_STORAGE_KEY = "zentra.expenses.deleted.v1";
 const DELETED_RETENTION_DAYS = 30;
 
-const CAT_COLOURS = [
-  "#c88a1e", "#3b82f6", "#10b981", "#f43f5e",
-  "#8b5cf6", "#f97316", "#06b6d4", "#84cc16", "#ec4899", "#6b7280",
-];
+// ── Category HMRC rules (keyed by category name) ──────────────────────────────
+// Group-level notes are in CATEGORY_GROUPS.hmrcNote; this map has per-category overrides.
 
 const CATEGORY_HMRC: Record<string, { short: string; hint: string; allowablePct: number }> = {
-  "Office & stationery":    { short: "Fully allowable",                    allowablePct: 100, hint: "Office supplies used wholly for business are fully deductible. VAT is reclaimable with a valid VAT receipt." },
-  "Travel & mileage":       { short: "Fully allowable — business travel",  allowablePct: 100, hint: "Business travel is fully allowable. Use HMRC approved mileage rates for your own vehicle. VAT on fuel can be reclaimed with a fuel receipt." },
-  "Professional fees":      { short: "Fully allowable",                    allowablePct: 100, hint: "Accountancy, legal and professional fees are fully allowable. VAT is reclaimable where a valid VAT invoice is held." },
-  "Equipment & software":   { short: "Fully allowable",                    allowablePct: 100, hint: "Software and equipment used wholly for business are fully deductible. VAT is reclaimable with a valid invoice." },
-  "Phone & internet":       { short: "50% mixed-use rule",                 allowablePct: 50,  hint: "HMRC allows 50% for mixed personal/business use of phone and broadband. 50% of the VAT is reclaimable." },
-  "Marketing & advertising":{ short: "Fully allowable",                    allowablePct: 100, hint: "Advertising and marketing spend is fully allowable. VAT is reclaimable where a valid invoice is held." },
-  "Training & development": { short: "Fully allowable if existing trade",  allowablePct: 100, hint: "Training that improves skills for your current trade is fully allowable. Training for a completely new career is not." },
-  "Bank charges":           { short: "Fully allowable",                    allowablePct: 100, hint: "Business bank charges and interest are fully allowable as a business expense. UK banks do not charge VAT." },
-  "Premises & utilities":   { short: "Fully allowable",                    allowablePct: 100, hint: "Business premises rent, rates and utilities are fully allowable. For home office use, HMRC's simplified flat rate may apply." },
-  "Other":                  { short: "Review required",                    allowablePct: 100, hint: "Review this expense to confirm it qualifies as wholly and exclusively for your trade under HMRC rules (s34 ITTOIA 2005)." },
+  // Staff & People
+  "Salaries & wages":               { short: "Fully allowable", allowablePct: 100, hint: "Gross wages paid to employees are fully allowable. Employer NI and pension must be recorded separately." },
+  "Subcontractors & freelancers":   { short: "Fully allowable", allowablePct: 100, hint: "Payments to self-employed contractors are fully allowable. Keep invoices. CIS deductions apply in construction." },
+  "Employer NI contributions":      { short: "Fully allowable", allowablePct: 100, hint: "Employer National Insurance contributions are fully deductible." },
+  "Pension contributions":          { short: "Fully allowable", allowablePct: 100, hint: "Employer pension contributions are fully allowable. Employee contributions reduce their own taxable pay." },
+  "Staff expenses & allowances":    { short: "Fully allowable", allowablePct: 100, hint: "Reimbursed employee expenses for wholly business purposes are allowable. Keep receipts and an expenses policy." },
+  "Recruitment costs":              { short: "Fully allowable", allowablePct: 100, hint: "Agency fees, job board costs, and interview expenses are fully allowable." },
+
+  // Travel & Transport
+  "Business mileage":               { short: "HMRC mileage rate", allowablePct: 100, hint: "45p/mile for first 10,000 miles, 25p/mile thereafter (2024/25). Log date, destination, and business purpose for each trip." },
+  "Public transport":               { short: "Fully allowable", allowablePct: 100, hint: "Trains, buses, and tube fares for business journeys are fully allowable. Commuting is not." },
+  "Taxis & ride-hailing":           { short: "Fully allowable", allowablePct: 100, hint: "Uber, Bolt, taxis for business journeys are fully allowable. Keep receipts." },
+  "Flights":                        { short: "Fully allowable", allowablePct: 100, hint: "Business flights are fully allowable. Keep boarding passes and booking confirmations." },
+  "Hotels & accommodation":         { short: "Fully allowable", allowablePct: 100, hint: "Overnight stays for business travel are allowable. Keep hotel receipts. Meals while away may also qualify." },
+  "Parking & congestion charge":    { short: "Fully allowable", allowablePct: 100, hint: "Business parking and congestion charges are allowable. Parking fines are not." },
+  "Vehicle hire & lease":           { short: "Fully allowable", allowablePct: 100, hint: "Hire car and lease costs for business use are allowable. If mixed use, only the business proportion qualifies." },
+  "Vehicle insurance (business use)":{ short: "Business % only", allowablePct: 100, hint: "If the vehicle is used for both business and personal journeys, only the business-use proportion of insurance is allowable." },
+
+  // Office & Admin
+  "Stationery & supplies":          { short: "Fully allowable", allowablePct: 100, hint: "Pens, paper, envelopes, and consumables used for business are fully allowable." },
+  "Postage & couriers":             { short: "Fully allowable", allowablePct: 100, hint: "Postage, stamps, and courier costs for business mail are fully allowable." },
+  "Printing & copying":             { short: "Fully allowable", allowablePct: 100, hint: "Printing costs for business documents are fully allowable. VAT is reclaimable with a valid receipt." },
+  "Office equipment (small items)": { short: "Fully allowable", allowablePct: 100, hint: "Small equipment items (calculators, staplers, etc.) are fully allowable as revenue expenditure." },
+  "Trade subscriptions & publications":{ short: "Fully allowable", allowablePct: 100, hint: "Trade journals, professional publications, and subscriptions relevant to your trade are allowable." },
+  "Office sundries":                { short: "Review required", allowablePct: 100, hint: "Miscellaneous office costs — review to confirm each item is wholly for business use." },
+
+  // Premises & Utilities
+  "Business rent":                  { short: "Fully allowable", allowablePct: 100, hint: "Rent paid for business premises is fully allowable. Keep tenancy agreements and rent receipts." },
+  "Business rates":                 { short: "Fully allowable", allowablePct: 100, hint: "Non-domestic rates (business rates) on your premises are fully allowable." },
+  "Gas, electric & water":          { short: "Fully allowable", allowablePct: 100, hint: "Utility bills for business premises are fully allowable. For home offices, only the business proportion qualifies." },
+  "Repairs & maintenance":          { short: "Fully allowable", allowablePct: 100, hint: "Repairs that restore an asset to its original state are allowable. Improvements (capital) are not immediately deductible." },
+  "Building insurance":             { short: "Fully allowable", allowablePct: 100, hint: "Insurance for business premises is fully allowable." },
+  "Cleaning & janitorial":          { short: "Fully allowable", allowablePct: 100, hint: "Cleaning services for business premises are fully allowable." },
+  "Security":                       { short: "Fully allowable", allowablePct: 100, hint: "Security systems and services for business premises are fully allowable." },
+  "Home office (flat rate)":        { short: "HMRC flat rate", allowablePct: 100, hint: "HMRC simplified flat rates: 25–50 hrs/month = £10/month, 51–100 hrs = £18/month, 101+ hrs = £26/month. No receipts needed." },
+  "Home office (proportion of bills)":{ short: "Business % only", allowablePct: 100, hint: "Claim a proportion of rent, mortgage interest, utilities based on rooms used exclusively for business. Keep a detailed log." },
+
+  // Equipment & Technology
+  "Computer & hardware":            { short: "Capital allowances (AIA)", allowablePct: 100, hint: "Computers and hardware qualify for Annual Investment Allowance (AIA) — full cost deductible in year of purchase up to the annual limit." },
+  "Software & subscriptions":       { short: "Fully allowable", allowablePct: 100, hint: "Business software and SaaS subscriptions are revenue expenditure and fully allowable in the period paid." },
+  "Cloud services & hosting":       { short: "Fully allowable", allowablePct: 100, hint: "Cloud storage, hosting fees, and SaaS infrastructure costs are fully allowable." },
+  "Mobile phone (business)":        { short: "50% mixed-use rule", allowablePct: 50,  hint: "HMRC allows 50% for mixed personal/business use of a mobile phone. If exclusively business, 100% is allowable. 50% of VAT is reclaimable." },
+  "Internet & broadband":           { short: "50% mixed-use rule", allowablePct: 50,  hint: "HMRC allows 50% for mixed personal/business use of broadband. If a dedicated business line, 100% is allowable." },
+  "Specialist tools & equipment":   { short: "Capital allowances (AIA)", allowablePct: 100, hint: "Specialist tools qualify for AIA. Small tools under £500 may be treated as revenue expenditure." },
+  "Machinery":                      { short: "Capital allowances (AIA)", allowablePct: 100, hint: "Machinery qualifies for AIA — full cost deductible in year of purchase up to the annual limit." },
+  "IT support & maintenance":       { short: "Fully allowable", allowablePct: 100, hint: "IT support, maintenance contracts, and repair costs are fully allowable as revenue expenditure." },
+
+  // Professional Services
+  "Accountancy & bookkeeping":      { short: "Fully allowable", allowablePct: 100, hint: "Accountancy fees for preparing your business accounts and tax return are fully allowable." },
+  "Legal fees":                     { short: "Fully allowable (trade only)", allowablePct: 100, hint: "Legal fees for trade purposes are allowable. Fees for acquiring capital assets or personal matters are not." },
+  "Professional indemnity insurance":{ short: "Fully allowable", allowablePct: 100, hint: "Professional indemnity insurance is fully allowable as a business expense." },
+  "Public liability insurance":     { short: "Fully allowable", allowablePct: 100, hint: "Public liability insurance is fully allowable as a business expense." },
+  "Business insurance (other)":     { short: "Fully allowable", allowablePct: 100, hint: "Business-related insurance premiums are fully allowable. Personal life insurance is not." },
+  "Consultancy fees":               { short: "Fully allowable", allowablePct: 100, hint: "Fees paid to external consultants for trade purposes are fully allowable." },
+  "Debt collection costs":          { short: "Fully allowable", allowablePct: 100, hint: "Debt collection agency fees and legal costs for recovering trade debts are fully allowable." },
+
+  // Marketing & Sales
+  "Advertising & digital marketing":{ short: "Fully allowable", allowablePct: 100, hint: "Digital ads, print advertising, and marketing spend are fully allowable. VAT is reclaimable with a valid invoice." },
+  "Website design & development":   { short: "Fully allowable", allowablePct: 100, hint: "Ongoing website costs are revenue expenditure and fully allowable. Initial site creation may be treated as capital." },
+  "PR & media":                     { short: "Fully allowable", allowablePct: 100, hint: "PR consultancy and media spend for business promotion are fully allowable." },
+  "Social media & content creation":{ short: "Fully allowable", allowablePct: 100, hint: "Social media management and content creation costs for business promotion are fully allowable." },
+  "Client entertainment (50% rule)":{ short: "50% allowable", allowablePct: 50,  hint: "HMRC allows 50% of client entertainment costs. Staff-only events (e.g., Christmas party up to £150/head) are treated differently." },
+  "Staff entertainment":            { short: "£150/head/year rule", allowablePct: 100, hint: "Annual staff events (e.g., Christmas party) are allowable up to £150 per head per year. Exceeding this makes the full amount a taxable benefit." },
+  "Samples & promotional materials":{ short: "Fully allowable", allowablePct: 100, hint: "Samples and branded materials given to customers are fully allowable. Gifts over £50 per person per year are not." },
+  "Trade shows & exhibitions":      { short: "Fully allowable", allowablePct: 100, hint: "Stand costs, entry fees, and travel to trade shows are fully allowable." },
+
+  // Finance & Banking
+  "Bank charges & fees":            { short: "Fully allowable", allowablePct: 100, hint: "Business account charges and bank fees are fully allowable. Personal account fees are not." },
+  "Payment processing fees":        { short: "Fully allowable", allowablePct: 100, hint: "Stripe, PayPal, Square, and other merchant service fees are fully allowable." },
+  "Business loan interest":         { short: "Fully allowable", allowablePct: 100, hint: "Interest on business loans is fully allowable. Capital repayments are not." },
+  "Hire purchase interest":         { short: "Fully allowable", allowablePct: 100, hint: "The interest portion of hire purchase agreements is allowable. Capital payments are treated via capital allowances." },
+  "Overdraft charges":              { short: "Fully allowable", allowablePct: 100, hint: "Business overdraft fees and interest are fully allowable." },
+  "Currency exchange losses":       { short: "Fully allowable", allowablePct: 100, hint: "Foreign exchange losses on trade transactions are allowable. Capital losses are treated differently." },
+  "Merchant account fees":          { short: "Fully allowable", allowablePct: 100, hint: "Monthly merchant account fees and card processing charges are fully allowable." },
+
+  // Training & Memberships
+  "Training courses & workshops":   { short: "Fully allowable (existing trade)", allowablePct: 100, hint: "Training that improves skills for your current trade is fully allowable. Training for a completely new career is not." },
+  "Conferences & seminars":         { short: "Fully allowable", allowablePct: 100, hint: "Conference fees and seminars relevant to your trade are allowable. Travel and accommodation are also allowable." },
+  "Books & trade publications":     { short: "Fully allowable", allowablePct: 100, hint: "Books and publications directly relevant to your trade are allowable." },
+  "Professional body subscriptions":{ short: "Allowable if on HMRC list", allowablePct: 100, hint: "Subscriptions to professional bodies on HMRC's approved list are allowable. Check gov.uk for the current approved list." },
+  "Industry memberships":           { short: "Fully allowable", allowablePct: 100, hint: "Trade association and industry body memberships relevant to your trade are allowable." },
+  "Online learning & certifications":{ short: "Fully allowable (existing trade)", allowablePct: 100, hint: "Online courses and certifications for your current trade are allowable. Check they are not for entry into a new profession." },
+
+  // Health & Safety
+  "Protective clothing & PPE":      { short: "Fully allowable", allowablePct: 100, hint: "PPE and protective clothing required for your trade are fully allowable. General clothing is not." },
+  "Eye tests (VDU workers)":        { short: "Fully allowable", allowablePct: 100, hint: "Eye tests for employees who habitually use VDUs are allowable under the Health & Safety (Display Screen Equipment) Regulations." },
+  "First aid & safety equipment":   { short: "Fully allowable", allowablePct: 100, hint: "First aid kits and safety equipment required for your trade are fully allowable." },
+  "Health & safety training":       { short: "Fully allowable", allowablePct: 100, hint: "Mandatory health and safety training for your trade is fully allowable." },
+
+  // Other
+  "Charitable donations (Gift Aid)":{ short: "Not deductible (Gift Aid route)", allowablePct: 0,   hint: "Cash charitable donations are not deductible as a business expense. Use Gift Aid instead — HMRC adds 25p per £1 donated." },
+  "Licences & permits":             { short: "Fully allowable", allowablePct: 100, hint: "Trade licences and regulatory permits required to operate your business are fully allowable." },
+  "Research & development":         { short: "R&D relief may apply", allowablePct: 100, hint: "R&D expenditure may qualify for enhanced R&D tax relief. Speak to your accountant about an R&D claim." },
+  "Bad debts written off":          { short: "Fully allowable", allowablePct: 100, hint: "Specific bad debts that are genuinely irrecoverable and have been included in your sales are allowable." },
+  "Other allowable":                { short: "Review required", allowablePct: 100, hint: "Review this expense to confirm it qualifies as wholly and exclusively for your trade under HMRC rules (s34 ITTOIA 2005)." },
+  "Needs review":                   { short: "Unclassified — review", allowablePct: 0,   hint: "This expense has not been classified yet. Review and assign the correct category before including it in your tax calculation." },
+
+  // ── Legacy names (backward compat) ──
+  "Office & stationery":    { short: "Fully allowable", allowablePct: 100, hint: "Office supplies used wholly for business are fully deductible." },
+  "Travel & mileage":       { short: "Fully allowable — business travel", allowablePct: 100, hint: "Use HMRC approved mileage rates for your own vehicle. Commuting is not allowable." },
+  "Professional fees":      { short: "Fully allowable", allowablePct: 100, hint: "Accountancy, legal, and professional fees for trade purposes are fully allowable." },
+  "Equipment & software":   { short: "Fully allowable", allowablePct: 100, hint: "Software and equipment used wholly for business are fully deductible." },
+  "Phone & internet":       { short: "50% mixed-use rule", allowablePct: 50, hint: "HMRC allows 50% for mixed personal/business use of phone and broadband." },
+  "Marketing & advertising":{ short: "Fully allowable", allowablePct: 100, hint: "Advertising and marketing spend is fully allowable." },
+  "Training & development": { short: "Fully allowable if existing trade", allowablePct: 100, hint: "Training for your current trade is allowable. Training for a new career is not." },
+  "Bank charges":           { short: "Fully allowable", allowablePct: 100, hint: "Business bank charges and interest are fully allowable." },
+  "Premises & utilities":   { short: "Fully allowable", allowablePct: 100, hint: "Business premises costs are fully allowable. Home office — HMRC flat rate may apply." },
+  "Other":                  { short: "Review required", allowablePct: 100, hint: "Review this expense to confirm it qualifies under HMRC rules (s34 ITTOIA 2005)." },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -570,14 +666,27 @@ function AddExpensePanel({ onAdd }: { onAdd: (e: RichEntry) => void }) {
             style={{ color: "var(--zn-ink-3)" }}>
             Category
           </label>
-          <div className="flex flex-wrap gap-2">
-            {EXPENSE_CATEGORIES.map((cat) => (
-              <CategoryPill
-                key={cat}
-                cat={cat}
-                selected={category === cat}
-                onClick={() => setCategory(cat)}
-              />
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {CATEGORY_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5 flex items-center gap-1.5"
+                  style={{ color: group.color }}
+                >
+                  <span className="inline-block size-1.5 rounded-full" style={{ background: group.color }} />
+                  {group.label}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.categories.map((cat) => (
+                    <CategoryPill
+                      key={cat}
+                      cat={cat}
+                      selected={category === cat}
+                      onClick={() => setCategory(cat)}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -720,22 +829,22 @@ function CategoryBreakdown({ entries }: { entries: RichEntry[] }) {
         Allowable — by category
       </span>
       <div className="mt-3 flex h-[8px] w-full overflow-hidden rounded-full gap-[2px]">
-        {totals.map((t, i) => (
+        {totals.map((t) => (
           <div
             key={t.category}
             title={`${t.category}: ${fmtGBP(t.total)}`}
             style={{
               width:      `${(t.total / grandTotal) * 100}%`,
-              background: CAT_COLOURS[i % CAT_COLOURS.length],
+              background: getCategoryColor(t.category),
               borderRadius: "9999px",
             }}
           />
         ))}
       </div>
       <div className="mt-3 space-y-1.5">
-        {totals.map((t, i) => (
+        {totals.map((t) => (
           <div key={t.category} className="flex items-center gap-2">
-            <span className="size-2.5 rounded-full flex-shrink-0" style={{ background: CAT_COLOURS[i % CAT_COLOURS.length] }} />
+            <span className="size-2.5 rounded-full flex-shrink-0" style={{ background: getCategoryColor(t.category) }} />
             <span className="flex-1 text-[12px]" style={{ color: "var(--zn-ink-2)" }}>{t.category}</span>
             <span className="text-[12px] font-medium tabular-nums" style={{ color: "var(--zn-ink)" }}>{fmtGBP(t.total)}</span>
             <span className="text-[10.5px] w-[32px] text-right" style={{ color: "var(--zn-ink-3)" }}>
@@ -766,8 +875,7 @@ function ExpenseRow({
 }) {
   const [vatEditing, setVatEditing] = useState(false);
 
-  const catIdx      = EXPENSE_CATEGORIES.indexOf(entry.category as typeof EXPENSE_CATEGORIES[number]);
-  const catColor    = CAT_COLOURS[catIdx >= 0 ? catIdx % CAT_COLOURS.length : 0] ?? "var(--zn-ink-3)";
+  const catColor    = getCategoryColor(entry.category);
   const isAllowable    = (entry.allowability ?? "allowable") === "allowable";
   const isNotAllowable = entry.allowability === "not-allowable";
   const hasVat         = entry.vatAmount !== undefined && entry.vatAmount > 0;
@@ -1270,7 +1378,11 @@ function DetailPanel({
           className="w-full rounded-[8px] border px-3 py-2 text-[13px]"
           style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
         >
-          {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {CATEGORY_GROUPS.map(g => (
+            <optgroup key={g.label} label={g.label}>
+              {g.categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </optgroup>
+          ))}
         </select>
       </div>
 
