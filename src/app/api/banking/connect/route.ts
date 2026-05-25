@@ -8,9 +8,8 @@
  * The user must be authenticated with Supabase before connecting a bank.
  */
 
-import { randomBytes }                          from "crypto";
-import { cookies }                              from "next/headers";
-import { NextResponse }                         from "next/server";
+import { randomBytes }  from "crypto";
+import { NextResponse } from "next/server";
 import { getAuthorizationUrl }                  from "@/lib/truelayer/client";
 import {
   createSupabaseServerClient,
@@ -35,20 +34,22 @@ export async function GET(req: Request) {
   }
 
   // ── Generate CSRF state ───────────────────────────────────────────────────
-  const state      = randomBytes(16).toString("hex");
-  const cookieJar  = await cookies();
-
-  cookieJar.set("tl_oauth_state", state, {
-    httpOnly: true,
-    secure:   process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge:   600, // 10 minutes
-    path:     "/",
-  });
+  const state = randomBytes(16).toString("hex");
 
   // ── Build redirect URL and go ─────────────────────────────────────────────
   const redirectUri = new URL("/api/banking/callback", req.url).toString();
   const authUrl     = getAuthorizationUrl(redirectUri, state);
 
-  return NextResponse.redirect(authUrl);
+  // Attach the state cookie directly to the redirect response — more reliable
+  // than cookies().set() + redirect() in Next.js App Router Route Handlers.
+  const response = NextResponse.redirect(authUrl);
+  response.cookies.set("tl_oauth_state", state, {
+    httpOnly: true,
+    secure:   true,
+    sameSite: "lax",
+    maxAge:   600, // 10 minutes
+    path:     "/",
+  });
+
+  return response;
 }
