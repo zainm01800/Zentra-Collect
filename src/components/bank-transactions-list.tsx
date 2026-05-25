@@ -121,6 +121,7 @@ export function BankTransactionsList({
   // Tagged direct-income — bank credits the user has marked as taxable
   // income without an invoice (driving instructor, dog walker, etc).
   const [tagged, setTagged] = useState<TaggedIncome[]>([]);
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
 
   // Load invoices + tagged income from localStorage after hydration
   useEffect(() => {
@@ -411,8 +412,9 @@ export function BankTransactionsList({
         >
           Last 30 days · {transactions.length} transactions
         </p>
+        <div className="flex gap-4 items-start">
         <div
-          className="rounded-[12px] overflow-hidden"
+          className="rounded-[12px] overflow-hidden flex-1 min-w-0"
           style={{ border: "1px solid var(--zn-line-soft)" }}
         >
           {transactions.map((tx, idx) => {
@@ -422,13 +424,15 @@ export function BankTransactionsList({
             // Eligible: it's an inbound credit, not already matched to an
             // open invoice (those have their own flow).
             const canTagAsIncome = isCredit && !isMatched;
+            const isSelected = selectedTxId === tx.transaction_id;
             return (
               <div
                 key={tx.transaction_id}
-                className="flex items-center gap-3 px-4 py-3"
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                onClick={() => setSelectedTxId(isSelected ? null : tx.transaction_id)}
                 style={{
                   borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)",
-                  background: "var(--zn-surface)",
+                  background: isSelected ? "var(--zn-surface-2)" : "var(--zn-surface)",
                 }}
               >
                 {/* Direction icon */}
@@ -502,6 +506,72 @@ export function BankTransactionsList({
               </div>
             );
           })}
+        </div>
+
+        {/* Detail panel */}
+        {selectedTxId && (() => {
+          const tx = transactions.find((t) => t.transaction_id === selectedTxId);
+          if (!tx) return null;
+          const isCredit = tx.transaction_type === "CREDIT";
+          return (
+            <div
+              className="w-72 flex-shrink-0 rounded-[12px] p-4 flex flex-col gap-3"
+              style={{
+                background: "var(--zn-surface)",
+                border: "1px solid var(--zn-line-soft)",
+                position: "sticky",
+                top: "24px",
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[15px] font-semibold leading-tight" style={{ color: "var(--zn-ink)" }}>
+                  {tx.merchant_name ?? tx.description ?? "Transaction"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTxId(null)}
+                  className="flex-shrink-0 rounded-full p-0.5 hover:bg-[var(--zn-surface-2)]"
+                  style={{ color: "var(--zn-ink-3)" }}
+                  aria-label="Close"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              {tx.merchant_name && tx.description && tx.merchant_name !== tx.description && (
+                <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>{tx.description}</p>
+              )}
+
+              <p
+                className="text-[22px] font-bold tabular-nums"
+                style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
+              >
+                {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
+              </p>
+
+              <div className="flex flex-col gap-2 text-[12.5px]">
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--zn-ink-3)" }}>Date</span>
+                  <span style={{ color: "var(--zn-ink)" }}>{fmtDate(tx.timestamp)}</span>
+                </div>
+                {tx.transaction_category && (
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--zn-ink-3)" }}>Category</span>
+                    <span style={{ color: "var(--zn-ink)" }}>{tx.transaction_category}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--zn-ink-3)" }}>Type</span>
+                  <span style={{ color: "var(--zn-ink)" }}>{isCredit ? "Credit" : "Debit"}</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] break-all" style={{ color: "var(--zn-ink-3)" }}>
+                ID: {tx.transaction_id}
+              </p>
+            </div>
+          );
+        })()}
         </div>
       </section>
 

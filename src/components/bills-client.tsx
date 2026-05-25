@@ -99,7 +99,92 @@ function StatusBadge({ status }: { status: BillStatus }) {
   );
 }
 
-interface AddBillFormProps { onAdd: (bill: Bill) => void; onClose: () => void; }
+interface AddBillFormProps  { onAdd:  (bill: Bill) => void; onClose: () => void; }
+interface EditBillFormProps { bill: Bill; onSave: (bill: Bill) => void; onClose: () => void; }
+
+function EditBillForm({ bill, onSave, onClose }: EditBillFormProps) {
+  const [supplier, setSupplier]       = useState(bill.supplier);
+  const [description, setDescription] = useState(bill.description);
+  const [amount, setAmount]           = useState(String(bill.amount));
+  const [dueDate, setDueDate]         = useState(bill.dueDate);
+  const [category, setCategory]       = useState(bill.category);
+  const [error, setError]             = useState("");
+
+  function submit() {
+    const amt = parseFloat(amount);
+    if (!supplier.trim()) { setError("Supplier name is required."); return; }
+    if (!amt || amt <= 0)  { setError("Enter a valid amount."); return; }
+    if (!dueDate)          { setError("Due date is required."); return; }
+    onSave({
+      ...bill,
+      supplier:    supplier.trim(),
+      description: description.trim(),
+      amount:      Math.round(amt * 100) / 100,
+      dueDate,
+      category,
+    });
+  }
+
+  const fieldCls = "w-full rounded-lg px-3 py-2 text-[13px] outline-none";
+  const fieldStyle = {
+    background: "var(--zn-surface)",
+    border: "1px solid var(--zn-line)",
+    color: "var(--zn-ink)",
+  };
+
+  return (
+    <div
+      className="rounded-2xl p-5 flex flex-col gap-3"
+      style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>Edit bill</h2>
+        <button type="button" onClick={onClose} style={{ color: "var(--zn-ink-3)" }}>
+          <X className="size-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Supplier *</label>
+          <input className={fieldCls} style={fieldStyle} placeholder="e.g. ACME Ltd" value={supplier} onChange={(e) => setSupplier(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Amount (£) *</label>
+          <input className={fieldCls} style={fieldStyle} placeholder="0.00" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Due date *</label>
+          <input className={fieldCls} style={fieldStyle} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Category</label>
+          <select className={fieldCls} style={fieldStyle} value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1 col-span-2">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Description</label>
+          <input className={fieldCls} style={fieldStyle} placeholder="Optional note" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+      </div>
+
+      {error && <p className="text-[12px]" style={{ color: "var(--zn-risk)" }}>{error}</p>}
+
+      <div className="flex gap-2 justify-end">
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-[13px]" style={{ color: "var(--zn-ink-2)" }}>Cancel</button>
+        <button
+          type="button" onClick={submit}
+          className="px-4 py-2 rounded-full text-[13px] font-semibold"
+          style={{ background: "var(--zn-ink)", color: "var(--background)" }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function AddBillForm({ onAdd, onClose }: AddBillFormProps) {
   const today = new Date().toISOString().slice(0, 10);
@@ -194,6 +279,7 @@ export function BillsClient() {
   const [hydrated, setHydrated] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter]     = useState<"all" | BillStatus>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     setBills(loadBills());
@@ -258,6 +344,11 @@ export function BillsClient() {
 
   function deleteBill(id: string) {
     updateBills((prev) => prev.filter((b) => b.id !== id));
+  }
+
+  function handleEditSave(updated: Bill) {
+    updateBills((prev) => prev.map((b) => b.id === updated.id ? updated : b));
+    setEditingId(null);
   }
 
   // Compute live statuses (overdue if unpaid + past due date)
@@ -416,13 +507,16 @@ export function BillsClient() {
               : `${Math.abs(days)}d overdue`;
 
             return (
+              <div key={bill.id} className="flex flex-col gap-0">
               <div
-                key={bill.id}
-                className="rounded-xl px-4 py-3.5 flex items-center gap-3"
+                className="rounded-xl px-4 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-[var(--zn-surface-2)]"
                 style={{
                   background:  "var(--zn-surface)",
                   border:      `1px solid ${bill.status === "overdue" ? "var(--zn-risk)" : "var(--zn-line-soft)"}`,
+                  borderBottomLeftRadius:  editingId === bill.id ? 0 : undefined,
+                  borderBottomRightRadius: editingId === bill.id ? 0 : undefined,
                 }}
+                onClick={() => setEditingId(editingId === bill.id ? null : bill.id)}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -446,7 +540,7 @@ export function BillsClient() {
                   {bill.status !== "paid" ? (
                     <button
                       type="button"
-                      onClick={() => markPaid(bill.id)}
+                      onClick={(e) => { e.stopPropagation(); markPaid(bill.id); }}
                       title="Mark as paid"
                       className="size-7 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--zn-safe-soft)]"
                       style={{ color: "var(--zn-safe)" }}
@@ -456,7 +550,7 @@ export function BillsClient() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => markUnpaid(bill.id)}
+                      onClick={(e) => { e.stopPropagation(); markUnpaid(bill.id); }}
                       title="Mark as unpaid"
                       className="size-7 rounded-lg flex items-center justify-center transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                       style={{ color: "var(--zn-ink-3)" }}
@@ -466,7 +560,7 @@ export function BillsClient() {
                   )}
                   <button
                     type="button"
-                    onClick={() => deleteBill(bill.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteBill(bill.id); }}
                     title="Delete bill"
                     className="size-7 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--zn-risk-soft)]"
                     style={{ color: "var(--zn-ink-3)" }}
@@ -474,6 +568,14 @@ export function BillsClient() {
                     <Trash2 className="size-4" />
                   </button>
                 </div>
+              </div>
+              {editingId === bill.id && (
+                <EditBillForm
+                  bill={bill}
+                  onSave={handleEditSave}
+                  onClose={() => setEditingId(null)}
+                />
+              )}
               </div>
             );
           })}

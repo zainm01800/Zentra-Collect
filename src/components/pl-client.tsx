@@ -412,6 +412,11 @@ export function PLClient() {
                   <span className="tabular-nums" style={{ color: "var(--zn-ink-3)" }}>{GBP(invoiceBrk?.outstanding ?? 0)}</span>
                 </div>
               )}
+              {grossIncome === 0 && (
+                <p className="text-[12px] rounded-lg px-3 py-2 mt-1" style={{ background: "var(--zn-info-soft)", color: "var(--zn-info)" }}>
+                  Import invoices from the <a href="/invoices" className="font-semibold underline underline-offset-2">Invoices</a> page to show income here.
+                </p>
+              )}
             </div>
 
             {/* Allowable expenses */}

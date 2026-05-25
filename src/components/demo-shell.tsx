@@ -9,17 +9,17 @@
  */
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Briefcase,
   Building2,
   BarChart2,
   Car,
-  Calculator,
   FileText,
   LayoutDashboard,
   ListChecks,
+  MoreHorizontal,
   PiggyBank,
   Receipt,
   RefreshCw,
@@ -27,6 +27,7 @@ import {
   Users,
   ArrowRight,
   FlaskConical,
+  X,
 } from "lucide-react";
 import { DemoPlanPicker } from "@/components/demo-plan-picker";
 import {
@@ -55,14 +56,20 @@ const booksNav = [
   { href: "/demo/tax",      label: "Tax & VAT",  icon: PiggyBank },
 ];
 
+// Primary bottom nav tabs (shown as icons in the fixed bar on mobile)
+const PRIMARY_NAV_HREFS = [
+  "/demo",
+  "/demo/chase-plan",
+  "/demo/aged-debt",
+  "/demo/expenses",
+];
+
 export function DemoShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/demo";
-  const router = useRouter();
 
-  // Track the selected demo plan so the sidebar / mobile nav can hide
-  // items that wouldn't be on that plan in the real product.
   const [planId, setPlanId] = useState<DemoPlanId | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     setPlanId(readDemoPlan());
@@ -73,70 +80,17 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("zentra:demo-plan-change", onChange);
   }, []);
 
+  // Close More drawer when route changes
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
+
   const planInfo = planId ? getPlanInfo(planId) : null;
   const visibleCollections = collectionsNav.filter((i) => planShowsHref(planId, i.href));
   const visibleBooks       = booksNav.filter((i) => planShowsHref(planId, i.href));
   const allTabs = [...visibleCollections, ...visibleBooks];
-  const currentTabIndex = allTabs.findIndex((t) => t.href === pathname);
 
-  // All mutable swipe state in one ref — handlers registered once ([] deps)
-  // always read the latest values without re-registering listeners.
-  const swipeRef = useRef({ allTabs, currentTabIndex, router, navigating: false });
-  swipeRef.current.allTabs = allTabs;
-  swipeRef.current.currentTabIndex = currentTabIndex;
-  swipeRef.current.router = router;
-
-  // Release nav lock whenever the route settles (covers both VT and fallback).
-  useEffect(() => { swipeRef.current.navigating = false; }, [pathname]);
-
-  useEffect(() => {
-    let startX = 0;
-    let startY = 0;
-
-    function onStart(e: TouchEvent) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    }
-
-    function onEnd(e: TouchEvent) {
-      if (swipeRef.current.navigating) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dy) > Math.abs(dx)) return;
-      if (Math.abs(dx) < 60) return;
-
-      const { allTabs: tabs, currentTabIndex: idx, router: r } = swipeRef.current;
-      let href = "";
-      if      (dx < 0 && idx < tabs.length - 1) { href = tabs[idx + 1].href; document.documentElement.dataset.swipeDir = "left";  }
-      else if (dx > 0 && idx > 0)               { href = tabs[idx - 1].href; document.documentElement.dataset.swipeDir = "right"; }
-      else return;
-
-      swipeRef.current.navigating = true;
-
-      const cleanup = () => { delete document.documentElement.dataset.swipeDir; };
-
-      // View Transitions API: browser snapshots the current page, lets React
-      // render the new page, then animates between the two — no flash, no blank
-      // frame, both old and new content visible simultaneously during transition.
-      const vt = (document as Document & {
-        startViewTransition?: (cb: () => void) => { finished: Promise<void> };
-      }).startViewTransition;
-
-      if (vt) {
-        vt.call(document, () => r.push(href)).finished.finally(cleanup);
-      } else {
-        r.push(href);
-        setTimeout(cleanup, 400);
-      }
-    }
-
-    window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchend",   onEnd,   { passive: true });
-    return () => {
-      window.removeEventListener("touchstart", onStart);
-      window.removeEventListener("touchend",   onEnd);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Bottom nav: up to 4 primary tabs that are visible for this plan, + More
+  const primaryTabs = allTabs.filter((t) => PRIMARY_NAV_HREFS.includes(t.href));
+  const moreTabs    = allTabs.filter((t) => !PRIMARY_NAV_HREFS.includes(t.href));
 
   return (
     <div
@@ -235,30 +189,6 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        {/* Mobile scrollable nav strip */}
-        <nav
-          className="md:hidden flex gap-1 px-3 py-2 border-b overflow-x-auto"
-          style={{ borderColor: "var(--zn-line-soft)" }}
-        >
-          {allTabs.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors"
-                style={{
-                  background: active ? "var(--zn-surface)" : "transparent",
-                  color: active ? "var(--zn-ink)" : "var(--zn-ink-3)",
-                }}
-              >
-                <Icon className="size-3.5" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-
         <div className="flex flex-col flex-1 min-h-0">
           {/* Demo notice strip */}
           <div
@@ -280,12 +210,139 @@ export function DemoShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Page content */}
-          <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto">
+          {/* Page content — extra bottom padding on mobile for fixed nav bar */}
+          <main className="flex-1 px-5 py-6 lg:px-8 lg:py-7 max-w-[1200px] w-full mx-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6">
             {children}
           </main>
         </div>
       </div>
+
+      {/* ── Mobile bottom nav bar (hidden on md+) ────────────────────────────── */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t"
+        style={{
+          background: "var(--zn-bg-2)",
+          borderColor: "var(--zn-line-soft)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {primaryTabs.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+              style={{ color: active ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
+            >
+              {/* Active indicator bar at top */}
+              {active && (
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full"
+                  style={{ height: 2, width: 24, background: "var(--zn-accent)" }}
+                />
+              )}
+              <Icon className="size-5 shrink-0" />
+              <span className="text-[10px] font-medium leading-none">{label}</span>
+            </Link>
+          );
+        })}
+
+        {/* More tab */}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+          style={{ color: moreOpen ? "var(--zn-accent)" : "var(--zn-ink-3)" }}
+        >
+          <MoreHorizontal className="size-5 shrink-0" />
+          <span className="text-[10px] font-medium leading-none">More</span>
+        </button>
+      </nav>
+
+      {/* ── More drawer ───────────────────────────────────────────────────────── */}
+      {moreOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            onClick={() => setMoreOpen(false)}
+          />
+          {/* Sheet */}
+          <div
+            className="md:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl border-t pb-[env(safe-area-inset-bottom)]"
+            style={{
+              background: "var(--zn-bg-2)",
+              borderColor: "var(--zn-line-soft)",
+              animation: "slideUp 220ms cubic-bezier(0.32,0.72,0,1)",
+            }}
+          >
+            {/* Handle + header */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink)" }}>
+                More
+              </span>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="p-1 rounded-full"
+                style={{ color: "var(--zn-ink-3)" }}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Nav items */}
+            <div className="px-3 pb-3 space-y-0.5">
+              {moreTabs.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14px] font-medium transition-colors"
+                    style={{
+                      background: active ? "var(--zn-surface)" : "transparent",
+                      color: active ? "var(--zn-ink)" : "var(--zn-ink-3)",
+                    }}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Plan switcher + CTA */}
+            <div className="mx-3 mb-3 pt-3 border-t space-y-2" style={{ borderColor: "var(--zn-line-soft)" }}>
+              <div
+                className="flex items-center gap-2 rounded-[8px] px-3 py-2"
+                style={{ background: "var(--zn-warn-soft)" }}
+              >
+                <FlaskConical className="size-3.5 shrink-0" style={{ color: "var(--zn-warn)" }} />
+                <span className="text-[12px] font-semibold" style={{ color: "var(--zn-warn)" }}>
+                  Demo · {planInfo?.label ?? "Choose plan"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setMoreOpen(false); setPickerOpen(true); }}
+                  className="ml-auto text-[11px] underline underline-offset-2"
+                  style={{ color: "var(--zn-warn)" }}
+                >
+                  Switch
+                </button>
+              </div>
+              <Link
+                href="/login?mode=signup"
+                className="zn-pill w-full justify-center text-[13px]"
+                style={{ height: 36 }}
+              >
+                Start free trial <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* First-visit plan picker (or re-opened via "Switch plan") */}
       <DemoPlanPicker forceOpen={pickerOpen} onClose={() => setPickerOpen(false)} />

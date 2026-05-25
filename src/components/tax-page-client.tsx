@@ -103,14 +103,39 @@ function readInvoicesFromStorage(): Invoice[] {
   }
 }
 
-function buildMonthlyIncomeSeries(n: number): MonthlyItem[] {
+function readActualVatReclaim(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem("zentra.expenses.v1");
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as Array<{ vatAmount?: number; allowability?: string }>;
+    if (!Array.isArray(parsed)) return 0;
+    return parsed
+      .filter(e => (e.allowability ?? "allowable") === "allowable")
+      .reduce((s, e) => s + (e.vatAmount ?? 0), 0);
+  } catch { return 0; }
+}
+
+function buildTaxYearMonthSeries(): MonthlyItem[] {
   const invoices = readInvoicesFromStorage();
   const now = new Date();
-  const result: MonthlyItem[] = [];
+  const taxYear = currentUkTaxYear(); // e.g. "2026/27"
+  const startYear = parseInt(taxYear.slice(0, 4), 10);
 
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  // Tax year months: Apr(startYear) through Mar(startYear+1)
+  const allMonths: Array<{ year: number; month: number }> = [];
+  for (let m = 4; m <= 12; m++) allMonths.push({ year: startYear, month: m });
+  for (let m = 1; m <= 3;  m++) allMonths.push({ year: startYear + 1, month: m });
+
+  // Only include months that have started (up to current month)
+  const elapsed = allMonths.filter(({ year, month }) => {
+    const monthStart = new Date(year, month - 1, 1);
+    return monthStart <= now;
+  });
+
+  return elapsed.map(({ year, month }) => {
+    const d = new Date(year, month - 1, 1);
+    const yearMonth = `${year}-${String(month).padStart(2, "0")}`;
     const label = d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 
     const income = invoices
@@ -122,9 +147,8 @@ function buildMonthlyIncomeSeries(n: number): MonthlyItem[] {
       })
       .reduce((s, inv) => s + (inv.amount ?? 0), 0);
 
-    result.push({ yearMonth, label, income });
-  }
-  return result;
+    return { yearMonth, label, income };
+  });
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -425,13 +449,15 @@ export default function TaxPageClient() {
   const [annualIncome, setAnnualIncome]     = useState(0);
   const [annualExpenses, setAnnualExpenses] = useState(0);
   const [monthSeries, setMonthSeries]       = useState<MonthlyItem[]>([]);
+  const [actualVatReclaim, setActualVatReclaim] = useState(0);
 
   function reload() {
     const taxYear = currentUkTaxYear();
     const totals  = totalsForTaxYear(taxYear);
     setAnnualIncome(totals.income);
     setAnnualExpenses(totals.expenses);
-    setMonthSeries(buildMonthlyIncomeSeries(12));
+    setMonthSeries(buildTaxYearMonthSeries());
+    setActualVatReclaim(readActualVatReclaim());
   }
 
   useEffect(() => {
@@ -450,7 +476,7 @@ export default function TaxPageClient() {
   const setAside    = (months / 12) * totalLiability;
   const progressPct = totalLiability > 0 ? Math.min(100, (setAside / totalLiability) * 100) : 0;
 
-  const last5Months   = monthSeries.slice(-5);
+  const last5Months   = monthSeries.slice(-6); // show up to 6 elapsed tax-year months
   const monthlyTarget = totalLiability / 12;
 
   const saPayment = nextSaPayment();
@@ -470,7 +496,7 @@ export default function TaxPageClient() {
   };
 
   const outputVatTop   = annualIncome  * 0.20;
-  const inputVatTop    = annualExpenses * 0.20;
+  const inputVatTop    = actualVatReclaim;  // actual logged VAT, not estimated
   const vatPayableTop  = Math.max(0, outputVatTop - inputVatTop);
   const marginPctTop   = annualIncome > 0 ? Math.round((taxableProfit / annualIncome) * 100) : 0;
   const hasData        = annualIncome > 0 || annualExpenses > 0;
@@ -541,12 +567,12 @@ export default function TaxPageClient() {
           <KpiSummaryTile
             label="VAT reclaimable"
             value={fmtGBP(inputVatTop)}
-            sub="Input VAT on expenses"
+            sub={inputVatTop > 0 ? "Logged VAT on expenses" : "No VAT logged yet"}
           />
           <KpiSummaryTile
             label="VAT to pay HMRC"
             value={fmtGBP(vatPayableTop)}
-            sub="Net of reclaimable"
+            sub={inputVatTop > 0 ? "Net of reclaimable" : "Log VAT on expenses to track"}
             valueColor={vatPayableTop > 0 ? "var(--zn-risk)" : undefined}
           />
         </div>
