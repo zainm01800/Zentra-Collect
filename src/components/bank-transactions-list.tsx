@@ -533,12 +533,11 @@ export function BankTransactionsList({
           </p>
         )}
 
-        {/* On xl+ screens the list and detail panel sit side-by-side.
-            On anything smaller the panel renders below the list at full width
-            so the list is never squeezed. */}
-        <div className="flex flex-col xl:flex-row gap-4 xl:items-start">
+        {/* Detail panel always stacks below the list so the transaction
+            rows are never squeezed regardless of screen width. */}
+        <div className="flex flex-col gap-4">
         <div
-          className="rounded-[12px] overflow-hidden flex-1 min-w-0 w-full"
+          className="rounded-[12px] overflow-hidden w-full"
           style={{ border: visibleTx.length > 0 ? "1px solid var(--zn-line-soft)" : "none" }}
         >
           {visibleTx.map((tx, idx) => {
@@ -649,18 +648,22 @@ export function BankTransactionsList({
           const isCredit = tx.transaction_type === "CREDIT";
           return (
             <div
-              className="w-full xl:w-72 xl:flex-shrink-0 rounded-[12px] p-4 flex flex-col gap-3"
+              className="w-full rounded-[12px] p-4 flex flex-col gap-3"
               style={{
                 background: "var(--zn-surface)",
                 border: "1px solid var(--zn-line-soft)",
-                position: "sticky",
-                top: "24px",
               }}
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[15px] font-semibold leading-tight" style={{ color: "var(--zn-ink)" }}>
-                  {tx.merchant_name ?? tx.description ?? "Transaction"}
-                </p>
+              {/* Header row: name + close */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-tight" style={{ color: "var(--zn-ink)" }}>
+                    {tx.merchant_name ?? tx.description ?? "Transaction"}
+                  </p>
+                  {tx.merchant_name && tx.description && tx.merchant_name !== tx.description && (
+                    <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--zn-ink-3)" }}>{tx.description}</p>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => setSelectedTxId(null)}
@@ -672,31 +675,30 @@ export function BankTransactionsList({
                 </button>
               </div>
 
-              {tx.merchant_name && tx.description && tx.merchant_name !== tx.description && (
-                <p className="text-[12px]" style={{ color: "var(--zn-ink-3)" }}>{tx.description}</p>
-              )}
+              {/* Amount + metadata in a horizontal layout */}
+              <div className="flex items-center gap-6 flex-wrap">
+                <p
+                  className="text-[24px] font-bold tabular-nums"
+                  style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
+                >
+                  {isCredit ? "+" : "−"}{fmtGBP(Math.abs(tx.amount))}
+                </p>
 
-              <p
-                className="text-[22px] font-bold tabular-nums"
-                style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
-              >
-                {isCredit ? "+" : "−"}{fmtGBP(Math.abs(tx.amount))}
-              </p>
-
-              <div className="flex flex-col gap-2 text-[12.5px]">
-                <div className="flex justify-between">
-                  <span style={{ color: "var(--zn-ink-3)" }}>Date</span>
-                  <span style={{ color: "var(--zn-ink)" }}>{fmtDate(tx.timestamp)}</span>
-                </div>
-                {tx.transaction_category && (
-                  <div className="flex justify-between">
-                    <span style={{ color: "var(--zn-ink-3)" }}>Category</span>
-                    <span style={{ color: "var(--zn-ink)" }}>{tx.transaction_category}</span>
+                <div className="flex gap-5 text-[12.5px] flex-wrap">
+                  <div>
+                    <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Date</span>
+                    <span style={{ color: "var(--zn-ink)" }}>{fmtDate(tx.timestamp)}</span>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <span style={{ color: "var(--zn-ink-3)" }}>Type</span>
-                  <span style={{ color: "var(--zn-ink)" }}>{isCredit ? "Credit" : "Debit"}</span>
+                  {tx.transaction_category && (
+                    <div>
+                      <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Category</span>
+                      <span style={{ color: "var(--zn-ink)" }}>{tx.transaction_category}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--zn-ink-3)" }}>Type</span>
+                    <span style={{ color: "var(--zn-ink)" }}>{isCredit ? "Credit" : "Debit"}</span>
+                  </div>
                 </div>
               </div>
 
