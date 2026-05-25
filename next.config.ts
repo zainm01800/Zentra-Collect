@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // Optimise tree-shaking for large icon/component libraries.
+  // Next.js will only bundle the specific named exports actually used.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+  },
+
   // TODO: REMOVE THIS once the legacy plan-id rename is finished.
   //
   // The pre-existing errors are concentrated in:

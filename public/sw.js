@@ -9,7 +9,8 @@
  * 5. Handle notification clicks (notificationclick event)
  */
 
-const CACHE_NAME = "zentra-shell-v4";
+const CACHE_NAME = "zentra-shell-v5";
+const STATIC_CACHE_NAME = "zentra-static-v1";
 
 // App shell — pages that should be available offline or on slow connections.
 // These are the minimal set needed to show the UI; data is always fetched live.
@@ -58,7 +59,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME)
+            .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )
@@ -75,10 +76,28 @@ self.addEventListener("fetch", (event) => {
   // Only intercept same-origin GET requests
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // API and _next (JS/CSS bundles) — always network; don't cache
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) {
+  // API routes — always network, never cache
+  if (url.pathname.startsWith("/api/")) return;
+
+  // /_next/static/ — content-addressed (hashed filenames), safe to cache forever.
+  // Cache-first: serve from cache instantly on repeat visits, fall back to network.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.open(STATIC_CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+          if (cached) return cached;
+          return fetch(request).then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          });
+        }),
+      ),
+    );
     return;
   }
+
+  // Other /_next/ paths (e.g. /_next/image) — always network
+  if (url.pathname.startsWith("/_next/")) return;
 
   // Navigation requests — network-first; on failure serve cached page if any,
   // otherwise the dedicated /offline page so the user gets something useful.

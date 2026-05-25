@@ -19,7 +19,6 @@
  */
 
 import { useRef, useState } from "react";
-import * as XLSX from "xlsx";
 import { Upload, FileText, CheckCircle2, AlertTriangle, X, Info, Landmark } from "lucide-react";
 import { detectBankPreset } from "@/lib/banking/bank-presets";
 
@@ -36,8 +35,9 @@ function hasSupportedExtension(name: string): boolean {
 async function fileToCsvText(file: File): Promise<string> {
   const lower = file.name.toLowerCase();
 
-  // Excel workbooks → first sheet → CSV
+  // Excel workbooks → first sheet → CSV (loaded on-demand, ~450 KB gzipped)
   if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+    const XLSX = await import("xlsx");
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const firstSheetName = workbook.SheetNames[0];

@@ -325,8 +325,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
   const { isOpen: reviewOpen, close: closeReview, outcomesLogged } = useReview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allInvoices = useMemo(() => readInvoicesForDrawer(), []);
+  // Null = not yet read from localStorage (SSR-safe). useEffect populates on client only.
+  const [allInvoices, setAllInvoices] = useState<ReturnType<typeof readInvoicesForDrawer>>([]);
 
   // Sync invoices from Supabase for authenticated real users on mount
   useSupabaseInvoiceSync();
@@ -338,15 +338,21 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   // Collapsible section state — Finance collapses by default
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ overview: false, collections: false, finance: true });
-  useEffect(() => { setCollapse(readCollapse()); }, []);
 
   // Hidden nav items — user can hide/restore individual items
   const [hiddenHrefs, setHiddenHrefs] = useState<Set<string>>(new Set());
-  useEffect(() => { setHiddenHrefs(readHiddenHrefs()); }, []);
 
   // Custom nav sections — user-defined groupings for the "Other tools" area
   const [customSections, setCustomSections] = useState<CustomNavSection[]>(DEFAULT_CUSTOM_SECTIONS);
-  useEffect(() => { setCustomSections(loadCustomSections()); }, []);
+
+  // Read all localStorage state in a SINGLE effect → single re-render instead of 4.
+  // Also read invoices for the review drawer here to keep all LS reads batched.
+  useEffect(() => {
+    setCollapse(readCollapse());
+    setHiddenHrefs(readHiddenHrefs());
+    setCustomSections(loadCustomSections());
+    setAllInvoices(readInvoicesForDrawer());
+  }, []);
   const [editingNav, setEditingNav] = useState(false);
 
   function updateCustomSections(updater: (prev: CustomNavSection[]) => CustomNavSection[]) {

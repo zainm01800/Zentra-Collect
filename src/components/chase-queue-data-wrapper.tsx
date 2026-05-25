@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { ChaseQueue } from "@/components/chase-queue";
 import { readLocalAccount } from "@/lib/demo-auth";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
@@ -116,8 +116,22 @@ function persistStatusChange(invoiceId: string, nextStatus: string | null) {
 }
 
 export function ChaseQueueDataWrapper({ onlyToday = false }: { onlyToday?: boolean }) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const invoices = useMemo(() => readInvoicesForQueue(), []);
+  // Use null as sentinel — null means "not yet read from localStorage" (SSR/hydration safe).
+  // useMemo caused hydration mismatches because it ran on the server returning [] but the
+  // client had real data, causing a flash. useEffect only runs on the client.
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+
+  useEffect(() => {
+    setInvoices(readInvoicesForQueue());
+
+    function onInvoiceChange() { setInvoices(readInvoicesForQueue()); }
+    window.addEventListener(INVOICE_CHANGE_EVENT, onInvoiceChange);
+    return () => window.removeEventListener(INVOICE_CHANGE_EVENT, onInvoiceChange);
+  }, []);
+
+  // While hydrating, render nothing — ChaseQueue will show its own empty state once mounted.
+  if (invoices === null) return null;
+
   return (
     <ChaseQueue
       initialInvoices={invoices}
