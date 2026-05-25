@@ -5,23 +5,16 @@
  * Accepts up to 50 items per request. Returns category + allowability
  * for each item using a UK HMRC–aware prompt.
  *
+ * Uses Gemini (GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY) with
+ * OpenAI as fallback if OPENAI_API_KEY is also set.
+ *
  * Only called for transactions that the rule-based classifyExpense()
- * could not confidently categorise (i.e. returned allowability:"review").
+ * could not confidently categorise (i.e. category === "Other").
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { requireActiveAccount } from "@/lib/server/account-guard";
 import { checkRateLimit } from "@/lib/server/rate-limit";
-
-// ── OpenAI client ─────────────────────────────────────────────────────────────
-
-let _openai: OpenAI | null = null;
-function getOpenAIClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) return null;
-  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return _openai;
-}
 
 // ── Categories the AI may choose from ────────────────────────────────────────
 
@@ -80,43 +73,11 @@ interface OutputItem {
   allowability: "allowable" | "not-allowable";
 }
 
-// ── Route ─────────────────────────────────────────────────────────────────────
+// ── Prompt ────────────────────────────────────────────────────────────────────
 
-export async function POST(request: NextRequest) {
-  // Auth guard
-  const { error } = await requireActiveAccount();
-  if (error) return NextResponse.json({ error }, { status: 401 });
-
-  // Rate limit — 20 req/min (generous; each call classifies up to 50 items)
-  const rateLimit = checkRateLimit(request, { maxRequests: 20, windowMs: 60_000 });
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-  }
-
-  let items: InputItem[];
-  try {
-    const body = await request.json();
-    if (!Array.isArray(body.items) || body.items.length === 0) {
-      return NextResponse.json({ error: "items array required" }, { status: 400 });
-    }
-    items = body.items.slice(0, 50); // hard cap
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const client = getOpenAIClient();
-  if (!client) {
-    // No API key configured — return 503 so the UI can show a helpful message
-    // without corrupting the user's expense entries.
-    return NextResponse.json(
-      { error: "AI classification unavailable — OPENAI_API_KEY is not configured" },
-      { status: 503 },
-    );
-  }
-
+function buildPrompt(items: InputItem[]): string {
   const categoriesList = HMRC_CATEGORIES.join(", ");
-
-  const prompt = `You are a UK self-employed tax assistant. Classify each bank transaction as an HMRC-allowable business expense.
+  return `You are a UK self-employed tax assistant. Classify each bank transaction as an HMRC-allowable business expense.
 
 Allowed categories (pick the closest):
 ${categoriesList}
@@ -132,46 +93,112 @@ ${JSON.stringify(items.map((i) => ({ id: i.id, description: i.description, amoun
 
 Respond with ONLY a JSON array (no markdown, no explanation) matching this schema:
 [{ "id": "<same id>", "category": "<category from list>", "allowability": "allowable" | "not-allowable" }]`;
+}
+
+// ── Gemini classifier ─────────────────────────────────────────────────────────
+
+async function classifyWithGemini(items: InputItem[], apiKey: string): Promise<OutputItem[]> {
+  const model = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: buildPrompt(items) }] }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json",
+          maxOutputTokens: 2000,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const err = await response.text().catch(() => "");
+    throw new Error(`Gemini classify failed: ${response.status} ${err}`);
+  }
+
+  const json = await response.json();
+  const text: string = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+  return JSON.parse(text) as OutputItem[];
+}
+
+// ── OpenAI classifier (fallback) ──────────────────────────────────────────────
+
+async function classifyWithOpenAI(items: InputItem[], apiKey: string): Promise<OutputItem[]> {
+  const { default: OpenAI } = await import("openai");
+  const client = new OpenAI({ apiKey });
+  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const completion = await client.chat.completions.create({
+    model,
+    messages: [{ role: "user", content: buildPrompt(items) }],
+    temperature: 0.1,
+    max_tokens: 2000,
+  });
+  const raw = completion.choices[0]?.message?.content?.trim() ?? "[]";
+  const cleaned = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+  return JSON.parse(cleaned) as OutputItem[];
+}
+
+// ── Sanitise AI output ────────────────────────────────────────────────────────
+
+function sanitise(parsed: OutputItem[]): OutputItem[] {
+  const validCategories = new Set<string>(HMRC_CATEGORIES);
+  return parsed.map((r) => ({
+    id:           r.id,
+    category:     validCategories.has(r.category) ? r.category : "Other",
+    allowability: r.allowability === "not-allowable" ? "not-allowable" : "allowable",
+  }));
+}
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+
+export async function POST(request: NextRequest) {
+  // Auth guard
+  const { error } = await requireActiveAccount();
+  if (error) return NextResponse.json({ error }, { status: 401 });
+
+  // Rate limit — 20 req/min (generous; each call classifies up to 50 items)
+  const rateLimit = checkRateLimit(request, { limit: 20, windowMs: 60_000, namespace: "expenses-classify" });
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  let items: InputItem[];
+  try {
+    const body = await request.json();
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return NextResponse.json({ error: "items array required" }, { status: 400 });
+    }
+    items = body.items.slice(0, 50); // hard cap
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+
+  if (!geminiKey && !openaiKey) {
+    return NextResponse.json(
+      { error: "AI classification unavailable — add GEMINI_API_KEY or OPENAI_API_KEY to your environment variables" },
+      { status: 503 },
+    );
+  }
 
   try {
-    const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-      max_tokens: 1500,
-    });
-
-    const raw = completion.choices[0]?.message?.content?.trim() ?? "[]";
-
-    // Strip markdown code fences if the model wrapped output
-    const cleaned = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
-
     let parsed: OutputItem[];
-    try {
-      parsed = JSON.parse(cleaned) as OutputItem[];
-    } catch {
-      // Parse failure — return safe fallback
-      return NextResponse.json({
-        results: items.map((item) => ({
-          id:           item.id,
-          category:     "Other",
-          allowability: "review" as const,
-        })),
-      });
+
+    if (geminiKey) {
+      parsed = await classifyWithGemini(items, geminiKey);
+    } else {
+      parsed = await classifyWithOpenAI(items, openaiKey!);
     }
 
-    // Validate and sanitise each result
-    const validCategories = new Set<string>(HMRC_CATEGORIES);
-    const results: OutputItem[] = parsed.map((r) => ({
-      id:           r.id,
-      category:     validCategories.has(r.category) ? r.category : "Other",
-      allowability: r.allowability === "not-allowable" ? "not-allowable" : "allowable",
-    }));
-
-    return NextResponse.json({ results });
+    return NextResponse.json({ results: sanitise(parsed) });
   } catch (err) {
-    console.error("[expenses/classify] OpenAI error:", err);
+    console.error("[expenses/classify] AI error:", err);
     return NextResponse.json(
       { error: "AI classification failed" },
       { status: 500 },
