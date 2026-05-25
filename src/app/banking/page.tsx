@@ -52,10 +52,11 @@ export default async function BankingPage({
 
   const connection = isConfigured ? await getBankConnection() : null;
 
-  // Fetch up to 12 months of transactions so the month filter has enough data
+  // Fetch up to 90 days of transactions (most banks cap at 90 days via TrueLayer).
+  // The action will automatically try shorter windows if the bank rejects the range.
   let transactions: Awaited<ReturnType<typeof fetchBankTransactions>> = { transactions: [] };
   if (connection) {
-    transactions = await fetchBankTransactions(365);
+    transactions = await fetchBankTransactions(90);
   }
 
   return (

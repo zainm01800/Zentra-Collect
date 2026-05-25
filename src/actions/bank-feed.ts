@@ -97,9 +97,13 @@ export async function getBankConnection(): Promise<BankConnection | null> {
  * Fetches up to `daysBack` days of transactions from TrueLayer.
  * Automatically refreshes the access token if it's within 5 minutes of
  * expiry, and persists the new tokens back to Supabase.
+ *
+ * Most banks via TrueLayer cap the date window at 90 days per call.
+ * If the requested window exceeds what the bank supports, TrueLayer returns
+ * a 4xx — the function falls back to 90 days automatically.
  */
 export async function fetchBankTransactions(
-  daysBack = 30,
+  daysBack = 90,
 ): Promise<FetchTransactionsResult> {
   const ctx = await getAccountIdAndClient();
   if (!ctx) return { transactions: [], error: "Not authenticated" };
@@ -164,19 +168,35 @@ export async function fetchBankTransactions(
 
   // ── Fetch transactions ─────────────────────────────────────────────────────
 
-  try {
-    const to   = new Date();
-    const from = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  const to = new Date();
 
-    const transactions = await getTransactions(accessToken, bankAccId, from, to);
-    return { transactions };
-  } catch (err) {
-    console.error("[fetchBankTransactions] fetch failed:", err);
-    return {
-      transactions: [],
-      error: "Could not fetch transactions. Try reconnecting your bank.",
-    };
+  // Try the requested window first. If TrueLayer/the bank rejects it (many
+  // banks cap at 90 days), automatically fall back to a shorter window so
+  // the user still sees recent data without having to reconnect.
+  const windowsToTry = daysBack > 90
+    ? [daysBack, 90, 30]   // e.g. 365 → try 90 → try 30
+    : [daysBack, 30];       // e.g. 90 → try 30
+
+  for (const days of windowsToTry) {
+    try {
+      const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const transactions = await getTransactions(accessToken, bankAccId, from, to);
+      return { transactions };
+    } catch (err) {
+      console.error(`[fetchBankTransactions] ${days}-day fetch failed:`, err);
+      // If this was the last fallback, propagate a soft error (not reconnect)
+      if (days === windowsToTry[windowsToTry.length - 1]) {
+        return {
+          transactions: [],
+          error: "Transactions temporarily unavailable. Your bank connection is fine — check back in a few minutes.",
+        };
+      }
+      // Otherwise loop and try the next shorter window
+    }
   }
+
+  // TypeScript: unreachable, but satisfies the return type
+  return { transactions: [] };
 }
 
 // ── disconnectBank ────────────────────────────────────────────────────────────

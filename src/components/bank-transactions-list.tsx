@@ -260,29 +260,45 @@ export function BankTransactionsList({
     }
   }
 
-  // ── Error state ───────────────────────────────────────────────────────────
+  // ── Soft error / empty state ──────────────────────────────────────────────
 
-  if (fetchError) {
+  // Determine whether the error is a hard "session expired → must reconnect"
+  // or a soft "temporary API hiccup → just retry later".
+  const isSessionError = fetchError?.toLowerCase().includes("session expired") ||
+                         fetchError?.toLowerCase().includes("reconnect your bank");
+
+  if (fetchError && transactions.length === 0) {
     return (
       <div
         className="flex items-start gap-3 rounded-[12px] px-4 py-4"
-        style={{ background: "var(--zn-risk-soft)", border: "1px solid var(--zn-risk)" }}
+        style={{
+          background: isSessionError ? "var(--zn-risk-soft)"  : "var(--zn-warn-soft)",
+          border: `1px solid ${isSessionError ? "var(--zn-risk)" : "var(--zn-warn)"}`,
+        }}
       >
-        <AlertCircle className="size-4 flex-shrink-0 mt-0.5" style={{ color: "var(--zn-risk)" }} />
+        <AlertCircle
+          className="size-4 flex-shrink-0 mt-0.5"
+          style={{ color: isSessionError ? "var(--zn-risk)" : "var(--zn-warn)" }}
+        />
         <div>
-          <p className="text-[13px] font-semibold" style={{ color: "var(--zn-risk)" }}>
-            Could not load transactions
+          <p
+            className="text-[13px] font-semibold"
+            style={{ color: isSessionError ? "var(--zn-risk)" : "var(--zn-warn)" }}
+          >
+            {isSessionError ? "Bank session expired" : "Transactions temporarily unavailable"}
           </p>
-          <p className="mt-0.5 text-[12px]" style={{ color: "var(--zn-risk)" }}>
+          <p className="mt-0.5 text-[12px]" style={{ color: "var(--zn-ink-2)" }}>
             {fetchError}
           </p>
-          <a
-            href="/api/banking/connect"
-            className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium underline"
-            style={{ color: "var(--zn-risk)" }}
-          >
-            <RefreshCw className="size-3" /> Reconnect bank
-          </a>
+          {isSessionError && (
+            <a
+              href="/api/banking/connect"
+              className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium underline"
+              style={{ color: "var(--zn-risk)" }}
+            >
+              <RefreshCw className="size-3" /> Reconnect bank
+            </a>
+          )}
         </div>
       </div>
     );
