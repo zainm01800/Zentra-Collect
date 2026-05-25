@@ -52,10 +52,10 @@ export default async function BankingPage({
 
   const connection = isConfigured ? await getBankConnection() : null;
 
-  // Fetch transactions if connected
+  // Fetch up to 12 months of transactions so the month filter has enough data
   let transactions: Awaited<ReturnType<typeof fetchBankTransactions>> = { transactions: [] };
   if (connection) {
-    transactions = await fetchBankTransactions(30);
+    transactions = await fetchBankTransactions(365);
   }
 
   return (
@@ -169,6 +169,12 @@ export default async function BankingPage({
           )
         )}
 
+        {/* ── Manual CSV import — always visible for adding extra statements ── */}
+        {/* When Open Banking is connected the transaction list inside is hidden
+            (no duplication) but the card stays so users can still import extra
+            months or accounts. */}
+        <BankStatementImportCard openBankingConnected={!!connection} />
+
         {/* ── Live transaction list (when Open Banking connected) ────────── */}
         {connection && (
           <BankTransactionsList
@@ -176,11 +182,6 @@ export default async function BankingPage({
             fetchError={transactions.error}
           />
         )}
-
-        {/* ── Manual CSV import — always available as fallback ─────────── */}
-        {/* When Open Banking is connected, the CSV feed is hidden to avoid
-            showing duplicate transactions — only the import button remains. */}
-        <BankStatementImportCard openBankingConnected={!!connection} />
 
     </div>
   );

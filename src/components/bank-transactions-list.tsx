@@ -104,6 +104,19 @@ function markInvoicePaidInStorage(invoiceId: string) {
   }
 }
 
+// ── Month filter helpers ──────────────────────────────────────────────────────
+
+/** Returns "Apr 2026" label for a transaction timestamp */
+function txMonthLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+/** Returns a sortable key "2026-04" for a timestamp */
+function txMonthKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function BankTransactionsList({
@@ -118,10 +131,9 @@ export function BankTransactionsList({
     | { kind: "err"; message: string }
     | undefined
   >>({});
-  // Tagged direct-income — bank credits the user has marked as taxable
-  // income without an invoice (driving instructor, dog walker, etc).
-  const [tagged, setTagged] = useState<TaggedIncome[]>([]);
+  const [tagged, setTagged]          = useState<TaggedIncome[]>([]);
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
   // Load invoices + tagged income from localStorage after hydration
   useEffect(() => {
@@ -163,10 +175,30 @@ export function BankTransactionsList({
   );
   const taggedTotalThisTaxYear = useMemo(
     () => totalTaggedIncome(),
-    // recompute when tagged set changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tagged],
   );
+
+  // Build sorted list of unique months present in the transactions
+  const availableMonths = useMemo(() => {
+    const seen = new Map<string, string>(); // key → label
+    for (const tx of transactions) {
+      const key = txMonthKey(tx.timestamp);
+      if (!seen.has(key)) seen.set(key, txMonthLabel(tx.timestamp));
+    }
+    return [...seen.entries()].sort((a, b) => b[0].localeCompare(a[0])); // newest first
+  }, [transactions]);
+
+  // Transactions filtered by the selected month
+  const visibleTx = useMemo(() => {
+    if (selectedMonth === "all") return transactions;
+    return transactions.filter((tx) => txMonthKey(tx.timestamp) === selectedMonth);
+  }, [transactions, selectedMonth]);
+
+  // Summary figures for the visible set
+  const totalIn  = useMemo(() => visibleTx.filter((t) => t.transaction_type === "CREDIT").reduce((s, t) => s + t.amount, 0), [visibleTx]);
+  const totalOut = useMemo(() => visibleTx.filter((t) => t.transaction_type === "DEBIT").reduce((s, t) => s + t.amount, 0), [visibleTx]);
+  const netTotal = totalIn - totalOut;
 
   function handleTagAsIncome(tx: TLTransaction) {
     tagAsIncome({
@@ -259,13 +291,64 @@ export function BankTransactionsList({
   if (!transactions.length) {
     return (
       <p className="text-center text-[13px] py-8" style={{ color: "var(--zn-ink-3)" }}>
-        No transactions found in the last 30 days.
+        No transactions found yet. Bank data may take a moment to sync.
       </p>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+
+      {/* ── Summary strip ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-[10px] px-3 py-2.5" style={{ background: "var(--zn-safe-soft)", border: "1px solid color-mix(in srgb, var(--zn-safe) 30%, transparent)" }}>
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-safe)" }}>Money in</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-safe)" }}>+{fmtGBP(totalIn)}</p>
+        </div>
+        <div className="rounded-[10px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Money out</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: "var(--zn-ink)" }}>−{fmtGBP(totalOut)}</p>
+        </div>
+        <div className="rounded-[10px] px-3 py-2.5" style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)" }}>
+          <p className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--zn-ink-3)" }}>Net</p>
+          <p className="text-[15px] font-semibold tabular-nums mt-0.5" style={{ color: netTotal >= 0 ? "var(--zn-safe)" : "var(--zn-risk)" }}>
+            {netTotal >= 0 ? "+" : "−"}{fmtGBP(Math.abs(netTotal))}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Month / year filter pills ─────────────────────────────────────── */}
+      {availableMonths.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSelectedMonth("all")}
+            className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors"
+            style={{
+              background: selectedMonth === "all" ? "var(--zn-ink)" : "var(--zn-surface-2)",
+              color:      selectedMonth === "all" ? "var(--zn-surface)" : "var(--zn-ink-2)",
+              border: `1px solid ${selectedMonth === "all" ? "var(--zn-ink)" : "var(--zn-line-soft)"}`,
+            }}
+          >
+            All
+          </button>
+          {availableMonths.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setSelectedMonth(key)}
+              className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors"
+              style={{
+                background: selectedMonth === key ? "var(--zn-ink)" : "var(--zn-surface-2)",
+                color:      selectedMonth === key ? "var(--zn-surface)" : "var(--zn-ink-2)",
+                border: `1px solid ${selectedMonth === key ? "var(--zn-ink)" : "var(--zn-line-soft)"}`,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Matched payments ─────────────────────────────────────────────── */}
       {matches.length > 0 && (
@@ -410,14 +493,23 @@ export function BankTransactionsList({
           className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em]"
           style={{ color: "var(--zn-ink-3)" }}
         >
-          Last 30 days · {transactions.length} transactions
+          {selectedMonth === "all"
+            ? `All transactions · ${visibleTx.length}`
+            : `${availableMonths.find(([k]) => k === selectedMonth)?.[1] ?? ""} · ${visibleTx.length} transaction${visibleTx.length === 1 ? "" : "s"}`}
         </p>
+
+        {visibleTx.length === 0 && (
+          <p className="text-center text-[13px] py-6" style={{ color: "var(--zn-ink-3)" }}>
+            No transactions in this period.
+          </p>
+        )}
+
         <div className="flex gap-4 items-start">
         <div
           className="rounded-[12px] overflow-hidden flex-1 min-w-0"
-          style={{ border: "1px solid var(--zn-line-soft)" }}
+          style={{ border: visibleTx.length > 0 ? "1px solid var(--zn-line-soft)" : "none" }}
         >
-          {transactions.map((tx, idx) => {
+          {visibleTx.map((tx, idx) => {
             const isCredit  = tx.transaction_type === "CREDIT";
             const isMatched = matchedTxIds.has(tx.transaction_id);
             const isThisTagged = taggedTxIds.has(tx.transaction_id);
