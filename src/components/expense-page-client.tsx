@@ -1750,6 +1750,9 @@ export function ExpensePageClient() {
 
   const selectedExpense = selectedId ? entries.find(e => e.id === selectedId) ?? null : null;
 
+  // Items with no specific category — prime candidates for AI re-categorisation
+  const uncategorisedEntries = allowableEntries.filter((e) => e.category === "Other");
+
   // What to render in the list area based on active tab
   const displayEntries: RichEntry[] =
     activeTab === "review"        ? reviewEntries :
@@ -1821,6 +1824,30 @@ export function ExpensePageClient() {
 
       {/* ── Category breakdown (allowable entries only) ───────────────────── */}
       {allowableEntries.length > 0 && <CategoryBreakdown entries={allowableEntries} />}
+
+      {/* ── AI categorise banner — shown when items are stuck in "Other" ─── */}
+      {uncategorisedEntries.length > 0 && (
+        <div
+          className="flex items-center gap-3 rounded-[12px] px-4 py-3"
+          style={{ background: "var(--zn-info-soft)", border: "1px solid color-mix(in srgb, var(--zn-info) 25%, transparent)" }}
+        >
+          <Sparkles className="size-4 flex-shrink-0" style={{ color: "var(--zn-info)" }} />
+          <p className="flex-1 text-[12.5px]" style={{ color: "var(--zn-info)" }}>
+            <span className="font-semibold">{uncategorisedEntries.length} expense{uncategorisedEntries.length !== 1 ? "s" : ""}</span>
+            {" "}in "Other" — AI can assign proper HMRC categories automatically.
+          </p>
+          <button
+            type="button"
+            onClick={() => handleReclassifyWithAI(uncategorisedEntries)}
+            disabled={classifying}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors flex-shrink-0 disabled:opacity-60"
+            style={{ background: "var(--zn-ink)", color: "#fff" }}
+          >
+            <Sparkles className="size-3" />
+            {classifying ? "Classifying…" : "Classify with AI"}
+          </button>
+        </div>
+      )}
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {entries.length === 0 && hydrated && (
