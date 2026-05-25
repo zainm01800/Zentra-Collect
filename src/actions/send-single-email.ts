@@ -85,8 +85,9 @@ function isConfigured(): boolean {
 export async function sendSingleEmail(
   input: SendSingleEmailInput,
 ): Promise<SendSingleEmailResult> {
-  // Basic validation
-  if (!input.to.includes("@")) {
+  // RFC 5321-compatible email validation (covers the vast majority of real addresses)
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!EMAIL_RE.test(input.to.trim())) {
     return { ok: false, error: "Invalid email address." };
   }
   if (!input.subject.trim()) {

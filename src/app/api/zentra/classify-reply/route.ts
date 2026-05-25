@@ -134,7 +134,13 @@ function normaliseAiResult(text: string | null | undefined): ReplyClassification
     return classifyReplyWithRules({ replyText: "" });
   }
 
-  const parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
+  let parsed: Partial<ReplyClassificationResult>;
+  try {
+    parsed = JSON.parse(text) as Partial<ReplyClassificationResult>;
+  } catch {
+    // Malformed AI response — fall back to rules-based result
+    return classifyReplyWithRules({ replyText: "" });
+  }
   return {
     classification: parsed.classification ?? "unclear",
     confidence:

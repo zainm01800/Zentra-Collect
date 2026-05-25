@@ -16,6 +16,21 @@ import { createSupabaseServerClient as createServerClient } from "@/lib/supabase
 // Note: EXPENSE_CATEGORIES lives in @/lib/expense-categories — import it from there
 // in client components. Do NOT re-export it here: "use server" only allows async functions.
 
+// ── Shared account resolver (same pattern as every other action) ──────────────
+
+async function resolveAccountId(): Promise<{ supabase: Awaited<ReturnType<typeof createServerClient>>; accountId: string } | null> {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: member } = await supabase
+    .from("zentra_account_members")
+    .select("account_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member?.account_id) return null;
+  return { supabase, accountId: member.account_id as string };
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ExpenseEntry {
@@ -71,22 +86,14 @@ export async function addExpense(
   }
 
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { ok: false, error: "Not authenticated" };
-
-    const { data: account } = await supabase
-      .from("zentra_accounts")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (!account) return { ok: false, error: "No account found" };
+    const ctx = await resolveAccountId();
+    if (!ctx) return { ok: false, error: "Not authenticated" };
+    const { supabase, accountId } = ctx;
 
     const { data, error } = await supabase
       .from("zentra_expenses")
       .insert({
-        account_id:  account.id,
+        account_id:  accountId,
         date:        input.date,
         amount:      input.amount,
         category:    input.category,
@@ -109,11 +116,15 @@ export async function deleteExpense(
   if (!isConfigured()) return { ok: true };
 
   try {
-    const supabase = await createServerClient();
+    const ctx = await resolveAccountId();
+    if (!ctx) return { ok: false, error: "Not authenticated" };
+    const { supabase, accountId } = ctx;
+
     const { error } = await supabase
       .from("zentra_expenses")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("account_id", accountId); // ownership check
 
     if (error) return { ok: false, error: error.message };
     return { ok: true };
@@ -127,17 +138,9 @@ export async function getExpenses(months = 12): Promise<ExpenseEntry[]> {
   if (!isConfigured()) return [];
 
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data: account } = await supabase
-      .from("zentra_accounts")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (!account) return [];
+    const ctx = await resolveAccountId();
+    if (!ctx) return [];
+    const { supabase, accountId } = ctx;
 
     const fromDate = new Date();
     fromDate.setMonth(fromDate.getMonth() - months);
@@ -146,7 +149,7 @@ export async function getExpenses(months = 12): Promise<ExpenseEntry[]> {
     const { data, error } = await supabase
       .from("zentra_expenses")
       .select("id, date, amount, category, description, created_at")
-      .eq("account_id", account.id)
+      .eq("account_id", accountId)
       .gte("date", fromStr)
       .order("date", { ascending: false });
 

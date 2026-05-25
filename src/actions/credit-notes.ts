@@ -126,8 +126,14 @@ export async function addCreditNote(input: AddCreditNoteInput): Promise<{ ok: bo
 export async function deleteCreditNote(id: string): Promise<{ ok: boolean; error?: string }> {
   if (!isConfigured()) return { ok: true };
   try {
+    const accountId = await resolveAccountId();
+    if (!accountId) return { ok: false, error: "Not authenticated" };
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("zentra_credit_notes").delete().eq("id", id);
+    const { error } = await supabase
+      .from("zentra_credit_notes")
+      .delete()
+      .eq("id", id)
+      .eq("account_id", accountId); // ownership check
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (err) {

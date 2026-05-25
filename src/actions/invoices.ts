@@ -278,6 +278,8 @@ export async function addInvoice(input: AddInvoiceInput): Promise<AddInvoiceResu
     if (invErr) throw invErr;
 
     revalidatePath("/dashboard");
+    revalidatePath("/today");
+    revalidatePath("/invoices");
     return { success: true, invoiceId: invoice.id };
   } catch (err) {
     console.error("addInvoice:", err);

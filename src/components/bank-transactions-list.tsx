@@ -173,11 +173,22 @@ export function BankTransactionsList({
     () => new Set(tagged.map((t) => t.transactionId)),
     [tagged],
   );
-  const taggedTotalThisTaxYear = useMemo(
-    () => totalTaggedIncome(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tagged],
-  );
+  // Compute total from the `tagged` state array directly (don't call
+  // totalTaggedIncome() in a memo — it reads localStorage internally and
+  // won't recompute correctly when the state array identity hasn't changed).
+  const taggedTotalThisTaxYear = useMemo(() => {
+    const now = new Date();
+    // UK tax year starts 6 April
+    const taxYearStart = new Date(
+      now.getMonth() < 3 || (now.getMonth() === 3 && now.getDate() < 6)
+        ? now.getFullYear() - 1
+        : now.getFullYear(),
+      3, 6, // April 6
+    );
+    return tagged
+      .filter((t) => new Date(t.date) >= taxYearStart)
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [tagged]);
 
   // Build sorted list of unique months present in the transactions
   const availableMonths = useMemo(() => {
@@ -536,8 +547,18 @@ export function BankTransactionsList({
             return (
               <div
                 key={tx.transaction_id}
+                role="button"
+                tabIndex={0}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer"
                 onClick={() => setSelectedTxId(isSelected ? null : tx.transaction_id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedTxId(isSelected ? null : tx.transaction_id);
+                  }
+                }}
+                aria-label={`${tx.description} — ${tx.transaction_type === "CREDIT" ? "+" : "−"}${tx.amount} on ${fmtDate(tx.timestamp)}`}
+                aria-expanded={isSelected}
                 style={{
                   borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)",
                   background: isSelected ? "var(--zn-surface-2)" : "var(--zn-surface)",

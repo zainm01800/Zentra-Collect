@@ -143,14 +143,16 @@ export function BankStatementImportCard({ openBankingConnected = false }: BankSt
   const [showImport, setShowImport] = useState(false);
   const [hydrated,   setHydrated]   = useState(false);
   const [selectedTxIdx, setSelectedTxIdx] = useState<number | null>(null);
+  // Read plan limit after hydration so we never touch localStorage during SSR
+  const [limit, setLimit] = useState(3);
 
   // Load on mount (after hydration)
   useEffect(() => {
     setStatements(loadStatements());
+    setLimit(getStatementLimit());
     setHydrated(true);
   }, []);
 
-  const limit    = getStatementLimit();
   const atLimit  = statements.length >= limit;
   const hasFeed  = statements.length > 0;
 
@@ -352,7 +354,7 @@ export function BankStatementImportCard({ openBankingConnected = false }: BankSt
               const isCredit  = tx.amount > 0;
               const isSelected = selectedTxIdx === i;
               return (
-                <div key={i}>
+                <div key={`${tx.date}-${tx.description}-${tx.amount}-${i}`}>
                   {/* Row */}
                   <div
                     className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors"

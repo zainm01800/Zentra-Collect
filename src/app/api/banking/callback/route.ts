@@ -97,7 +97,7 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   const { data: member } = await supabase

@@ -144,11 +144,14 @@ export async function addQuote(input: AddQuoteInput): Promise<{ ok: boolean; quo
 export async function setQuoteStatus(id: string, status: QuoteStatus): Promise<{ ok: boolean; quote?: QuoteRecord; error?: string }> {
   if (!isConfigured()) return { ok: true };
   try {
+    const accountId = await resolveAccountId();
+    if (!accountId) return { ok: false, error: "Not authenticated" };
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .from("zentra_quotes")
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("account_id", accountId) // ownership check
       .select("*")
       .single();
     if (error || !data) return { ok: false, error: error?.message ?? "update failed" };
@@ -182,8 +185,14 @@ export async function markQuoteConverted(id: string, invoiceId: string): Promise
 export async function deleteQuote(id: string): Promise<{ ok: boolean; error?: string }> {
   if (!isConfigured()) return { ok: true };
   try {
+    const accountId = await resolveAccountId();
+    if (!accountId) return { ok: false, error: "Not authenticated" };
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("zentra_quotes").delete().eq("id", id);
+    const { error } = await supabase
+      .from("zentra_quotes")
+      .delete()
+      .eq("id", id)
+      .eq("account_id", accountId); // ownership check
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (err) {
