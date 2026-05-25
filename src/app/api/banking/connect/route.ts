@@ -2,19 +2,31 @@
  * GET /api/banking/connect
  *
  * Initiates the TrueLayer OAuth flow:
- *   1. Generates a random CSRF state and stores it in a short-lived cookie.
+ *   1. Generates a CSRF-safe signed state token (HMAC-SHA256).
  *   2. Redirects the user to the TrueLayer authorisation page.
  *
- * The user must be authenticated with Supabase before connecting a bank.
+ * No cookie is used. The state parameter is self-verifying — it embeds a
+ * nonce, timestamp, and HMAC so the callback can verify it without any
+ * server-side session or cookie. This avoids the SameSite cookie
+ * compatibility issues that occur with Monzo's hybrid OAuth flow.
  */
 
-import { randomBytes }  from "crypto";
-import { NextResponse } from "next/server";
-import { getAuthorizationUrl }                  from "@/lib/truelayer/client";
+import { randomBytes, createHmac } from "crypto";
+import { NextResponse }            from "next/server";
+import { getAuthorizationUrl }     from "@/lib/truelayer/client";
 import {
   createSupabaseServerClient,
   hasSupabaseServerConfig,
 } from "@/lib/supabase/server";
+
+/** Build a signed state token: `nonce.timestamp.hmac` */
+export function signState(nonce: string, timestamp: string): string {
+  const secret = process.env.TRUELAYER_CLIENT_SECRET ?? "fallback-dev-secret";
+  const hmac   = createHmac("sha256", secret)
+    .update(`${nonce}:${timestamp}`)
+    .digest("hex");
+  return `${nonce}.${timestamp}.${hmac}`;
+}
 
 export async function GET(req: Request) {
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -33,23 +45,14 @@ export async function GET(req: Request) {
     );
   }
 
-  // ── Generate CSRF state ───────────────────────────────────────────────────
-  const state = randomBytes(16).toString("hex");
+  // ── Generate self-verifying CSRF state (no cookie needed) ─────────────────
+  const nonce     = randomBytes(16).toString("hex");
+  const timestamp = Date.now().toString();
+  const state     = signState(nonce, timestamp);
 
   // ── Build redirect URL and go ─────────────────────────────────────────────
   const redirectUri = new URL("/api/banking/callback", req.url).toString();
   const authUrl     = getAuthorizationUrl(redirectUri, state);
 
-  // Attach the state cookie directly to the redirect response — more reliable
-  // than cookies().set() + redirect() in Next.js App Router Route Handlers.
-  const response = NextResponse.redirect(authUrl);
-  response.cookies.set("tl_oauth_state", state, {
-    httpOnly: true,
-    secure:   true,
-    sameSite: "lax",
-    maxAge:   600, // 10 minutes
-    path:     "/",
-  });
-
-  return response;
+  return NextResponse.redirect(authUrl);
 }
