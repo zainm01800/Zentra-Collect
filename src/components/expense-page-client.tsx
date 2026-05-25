@@ -36,6 +36,7 @@ import {
   Pencil,
   Check,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { addExpense, deleteExpense } from "@/actions/expenses";
 import type { ExpenseEntry } from "@/actions/expenses";
@@ -1113,9 +1114,13 @@ function MonthGroup({
 function ReviewSection({
   entries,
   onAllowabilityChange,
+  onReclassify,
+  classifying,
 }: {
   entries:              RichEntry[];
   onAllowabilityChange: (id: string, v: Allowability) => void;
+  onReclassify:         (entries: RichEntry[]) => void;
+  classifying:          boolean;
 }) {
   if (entries.length === 0) return null;
 
@@ -1124,14 +1129,28 @@ function ReviewSection({
       className="rounded-[14px] border overflow-hidden"
       style={{ borderColor: "var(--zn-warn)", background: "var(--zn-warn-soft)" }}
     >
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2 px-4 py-3 flex-wrap">
         <HelpCircle className="size-3.5 flex-shrink-0" style={{ color: "var(--zn-warn)" }} />
         <span className="text-[12.5px] font-semibold" style={{ color: "var(--zn-warn)" }}>
           {entries.length} transaction{entries.length > 1 ? "s" : ""} need classifying
         </span>
-        <span className="text-[11.5px]" style={{ color: "var(--zn-warn)" }}>
-          — tap a badge to mark as Allowable or Not allowable
+        <span className="text-[11.5px] flex-1" style={{ color: "var(--zn-warn)" }}>
+          — tap a badge or let AI categorise
         </span>
+        <button
+          type="button"
+          onClick={() => onReclassify(entries)}
+          disabled={classifying}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-60"
+          style={{
+            background:   "var(--zn-ink)",
+            color:        "#fff",
+            whiteSpace:   "nowrap",
+          }}
+        >
+          <Sparkles className="size-3" />
+          {classifying ? "Classifying…" : "Classify with AI"}
+        </button>
       </div>
       <div
         className="border-t divide-y"
@@ -1497,6 +1516,7 @@ export function ExpensePageClient() {
   const [deletedEntries, setDeletedEntries]   = useState<DeletedEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sort, setSort] = useState<"newest" | "oldest" | "highest">("newest");
+  const [classifying, setClassifying] = useState(false);
 
   useEffect(() => {
     const loaded = loadFromStorage();
@@ -1583,7 +1603,7 @@ export function ExpensePageClient() {
     saveDeletedToStorage(updated);
   }
 
-  function handleBankImport() {
+  async function handleBankImport() {
     if (importing) return;
     setImporting(true);
 
@@ -1612,13 +1632,80 @@ export function ExpensePageClient() {
       });
     }
 
+    // Add entries immediately so the user sees them right away
     setEntries((prev) => [...newEntries, ...prev]);
     setImportableCount(0);
     setImportedCount(newEntries.length);
     setImporting(false);
-
-    // Jump to All tab so the user sees review items
     setActiveTab("all");
+
+    // AI-classify the "review" items in the background
+    const reviewItems = newEntries.filter((e) => e.allowability === "review");
+    if (reviewItems.length > 0) {
+      setClassifying(true);
+      try {
+        const res = await fetch("/api/expenses/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: reviewItems.map((e) => ({
+              id:          e.id,
+              description: e.description,
+              amount:      e.amount,
+            })),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json() as { results: Array<{ id: string; category: string; allowability: "allowable" | "not-allowable" }> };
+          const resultMap = new Map(data.results.map((r) => [r.id, r]));
+          setEntries((prev) =>
+            prev.map((e) => {
+              const aiResult = resultMap.get(e.id);
+              if (!aiResult) return e;
+              return { ...e, category: aiResult.category, allowability: aiResult.allowability };
+            }),
+          );
+        }
+      } catch {
+        // AI failed — entries stay as "review", user classifies manually
+      } finally {
+        setClassifying(false);
+      }
+    }
+  }
+
+  /** Re-classify all current "review" entries with AI. */
+  async function handleReclassifyWithAI(reviewEntries: RichEntry[]) {
+    if (classifying || reviewEntries.length === 0) return;
+    setClassifying(true);
+    try {
+      const res = await fetch("/api/expenses/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: reviewEntries.map((e) => ({
+            id:          e.id,
+            description: e.description,
+            amount:      e.amount,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { results: Array<{ id: string; category: string; allowability: "allowable" | "not-allowable" }> };
+        const resultMap = new Map(data.results.map((r) => [r.id, r]));
+        setEntries((prev) =>
+          prev.map((e) => {
+            const aiResult = resultMap.get(e.id);
+            if (!aiResult) return e;
+            return { ...e, category: aiResult.category, allowability: aiResult.allowability };
+          }),
+        );
+      }
+    } catch {
+      // Silent — user can try again
+    } finally {
+      setClassifying(false);
+    }
   }
 
   function handleBulkReceiptImport(results: BulkReceiptResult[]) {
@@ -1805,6 +1892,8 @@ export function ExpensePageClient() {
             <ReviewSection
               entries={reviewEntries}
               onAllowabilityChange={handleAllowabilityChange}
+              onReclassify={handleReclassifyWithAI}
+              classifying={classifying}
             />
           )}
 
