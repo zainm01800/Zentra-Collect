@@ -116,13 +116,24 @@ async function classifyWithGemini(items: InputItem[], apiKey: string): Promise<O
   );
 
   if (!response.ok) {
-    const err = await response.text().catch(() => "");
-    throw new Error(`Gemini classify failed: ${response.status} ${err}`);
+    const errBody = await response.text().catch(() => "");
+    throw new Error(`Gemini ${response.status}: ${errBody}`);
   }
 
   const json = await response.json();
   const text: string = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
-  return JSON.parse(text) as OutputItem[];
+
+  // Strip markdown fences just in case
+  const cleaned = text.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error(`Gemini JSON parse failed. Raw: ${cleaned.slice(0, 200)}`);
+  }
+
+  return parsed as OutputItem[];
 }
 
 // ── OpenAI classifier (fallback) ──────────────────────────────────────────────
@@ -198,9 +209,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ results: sanitise(parsed) });
   } catch (err) {
-    console.error("[expenses/classify] AI error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[expenses/classify] AI error:", msg);
     return NextResponse.json(
-      { error: "AI classification failed" },
+      { error: "AI classification failed", detail: msg },
       { status: 500 },
     );
   }
