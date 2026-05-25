@@ -357,7 +357,7 @@ function StatCard({ label, value, accent, sub }: { label: string; value: string;
   return (
     <div className="zn-card px-4 py-3.5">
       <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em]" style={{ color: "var(--zn-ink-3)" }}>{label}</p>
-      <p className="mt-1.5 text-[22px] font-bold tabular-nums leading-none" style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
+      <p className="mt-1.5 text-[28px] font-bold tabular-nums leading-none tracking-tight" style={{ color: accent ?? "var(--zn-ink)" }}>{value}</p>
       {sub && <p className="mt-1 text-[11px]" style={{ color: "var(--zn-ink-3)" }}>{sub}</p>}
     </div>
   );
@@ -865,6 +865,7 @@ function ExpenseRow({
   onDelete,
   onAllowabilityChange,
   onVatChange,
+  onCategoryChange,
   onRowClick,
 }: {
   entry:                  RichEntry;
@@ -872,9 +873,11 @@ function ExpenseRow({
   onDelete:               (id: string) => void;
   onAllowabilityChange:   (id: string, v: Allowability) => void;
   onVatChange:            (id: string, vatRate: number, vatAmount: number) => void;
+  onCategoryChange?:      (id: string, cat: string) => void;
   onRowClick?:            () => void;
 }) {
   const [vatEditing, setVatEditing] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
 
   const catColor    = getCategoryColor(entry.category);
   const isAllowable    = (entry.allowability ?? "allowable") === "allowable";
@@ -908,17 +911,44 @@ function ExpenseRow({
             >
               {entry.description || entry.category}
             </p>
-            {/* Category pill */}
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0"
+            {/* Category pill — click to change */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setCategoryOpen((v) => !v); }}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 transition-opacity hover:opacity-75"
               style={{
                 background: catColor + "22",
                 color:      catColor,
                 border:     `1px solid ${catColor}44`,
               }}
+              title="Click to change category"
             >
               {entry.category}
-            </span>
+              <ChevronDown className="size-2.5 opacity-60" />
+            </button>
+            {categoryOpen && (
+              <div className="w-full basis-full mt-0.5" onClick={(e) => e.stopPropagation()}>
+                <select
+                  autoFocus
+                  value={entry.category}
+                  onChange={(e) => {
+                    onCategoryChange?.(entry.id, e.target.value);
+                    setCategoryOpen(false);
+                  }}
+                  onBlur={() => setCategoryOpen(false)}
+                  className="w-full rounded-[8px] border px-3 py-1.5 text-[12px]"
+                  style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
+                >
+                  {CATEGORY_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.categories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
             {/* VAT badge — click to edit */}
             {hasVat && (
               <button
@@ -953,7 +983,7 @@ function ExpenseRow({
         {/* Right: amount + secondary line + receipt icon + delete */}
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
           <div className="flex items-center gap-1">
-            <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
+            <span className="text-[16px] font-bold tabular-nums tracking-tight" style={{ color: "var(--zn-ink)" }}>
               {fmtGBP(entry.amount)}
             </span>
             {/* Receipt status icon: warning triangle if VAT with no receipt, else hidden */}
@@ -1045,6 +1075,7 @@ function MonthGroup({
   onDelete,
   onAllowabilityChange,
   onVatChange,
+  onCategoryChange,
   onRowClick,
   selectedId,
 }: {
@@ -1053,6 +1084,7 @@ function MonthGroup({
   onDelete:             (id: string) => void;
   onAllowabilityChange: (id: string, v: Allowability) => void;
   onVatChange:          (id: string, vatRate: number, vatAmount: number) => void;
+  onCategoryChange?:    (id: string, cat: string) => void;
   onRowClick?:          (id: string) => void;
   selectedId?:          string | null;
 }) {
@@ -1098,6 +1130,7 @@ function MonthGroup({
               onDelete={onDelete}
               onAllowabilityChange={onAllowabilityChange}
               onVatChange={onVatChange}
+              onCategoryChange={onCategoryChange}
               onRowClick={() => onRowClick?.(e.id)}
             />
           ))}
@@ -1853,7 +1886,7 @@ export function ExpensePageClient() {
             onClick={() => handleReclassifyWithAI(uncategorisedEntries)}
             disabled={classifying}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors flex-shrink-0 disabled:opacity-60"
-            style={{ background: "var(--zn-ink)", color: "#fff" }}
+            style={{ background: "var(--zn-info)", color: "#fff" }}
           >
             <Sparkles className="size-3" />
             {classifying ? "Classifying…" : "Classify with AI"}
@@ -1959,6 +1992,7 @@ export function ExpensePageClient() {
               onDelete={handleDelete}
               onAllowabilityChange={handleAllowabilityChange}
               onVatChange={handleVatChange}
+              onCategoryChange={handleCategoryChange}
               onRowClick={id => setSelectedId(id)}
               selectedId={selectedId}
             />
