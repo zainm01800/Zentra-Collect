@@ -106,14 +106,12 @@ export async function POST(request: NextRequest) {
 
   const client = getOpenAIClient();
   if (!client) {
-    // No API key configured — return "Other / review" so UI falls back gracefully
-    return NextResponse.json({
-      results: items.map((item) => ({
-        id:           item.id,
-        category:     "Other",
-        allowability: "review" as const,
-      })),
-    });
+    // No API key configured — return 503 so the UI can show a helpful message
+    // without corrupting the user's expense entries.
+    return NextResponse.json(
+      { error: "AI classification unavailable — OPENAI_API_KEY is not configured" },
+      { status: 503 },
+    );
   }
 
   const categoriesList = HMRC_CATEGORIES.join(", ");

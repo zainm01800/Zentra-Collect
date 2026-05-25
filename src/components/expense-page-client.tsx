@@ -1690,16 +1690,28 @@ export function ExpensePageClient() {
           })),
         }),
       });
+      if (res.status === 503) {
+        // AI not configured — tell the user without touching their entries
+        alert("AI classification requires an OpenAI API key. Please add OPENAI_API_KEY to your environment variables.");
+        return;
+      }
       if (res.ok) {
         const data = await res.json() as { results: Array<{ id: string; category: string; allowability: "allowable" | "not-allowable" }> };
-        const resultMap = new Map(data.results.map((r) => [r.id, r]));
-        setEntries((prev) =>
-          prev.map((e) => {
-            const aiResult = resultMap.get(e.id);
-            if (!aiResult) return e;
-            return { ...e, category: aiResult.category, allowability: aiResult.allowability };
-          }),
+        // Only apply results that have a definitive allowability (never "review")
+        const resultMap = new Map(
+          data.results
+            .filter((r) => r.allowability === "allowable" || r.allowability === "not-allowable")
+            .map((r) => [r.id, r]),
         );
+        if (resultMap.size > 0) {
+          setEntries((prev) =>
+            prev.map((e) => {
+              const aiResult = resultMap.get(e.id);
+              if (!aiResult) return e;
+              return { ...e, category: aiResult.category, allowability: aiResult.allowability };
+            }),
+          );
+        }
       }
     } catch {
       // Silent — user can try again
