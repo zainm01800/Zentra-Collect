@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, CheckCircle2, Clock, AlertCircle, Trash2, X } from "lucide-react";
+import { Plus, CheckCircle2, Clock, AlertCircle, Trash2, X, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionCsvImport } from "@/components/section-csv-import";
 import type { ImportResult } from "@/components/section-csv-import";
@@ -77,6 +77,49 @@ function saveBills(bills: Bill[]) {
 
 function daysUntil(isoDate: string): number {
   return Math.ceil((new Date(isoDate).getTime() - Date.now()) / 86_400_000);
+}
+
+// ── Bank import helpers ───────────────────────────────────────────────────────
+
+const BANK_STATEMENT_KEY = "zentra.bankStatement.v1";
+
+interface BankTx { date: string; description: string; amount: number; }
+
+function loadBankDebits(): BankTx[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(BANK_STATEMENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as BankTx[];
+    return Array.isArray(parsed) ? parsed.filter((t) => t.amount < 0) : [];
+  } catch { return []; }
+}
+
+function countImportable(debits: BankTx[], existing: Bill[]): number {
+  return debits.filter((tx) =>
+    !existing.some(
+      (b) =>
+        b.dueDate === tx.date &&
+        Math.abs(b.amount - Math.abs(tx.amount)) < 0.01 &&
+        b.supplier.toLowerCase() === tx.description.toLowerCase(),
+    ),
+  ).length;
+}
+
+/** Infer a Bill category from the transaction description. */
+function inferBillCategory(desc: string): string {
+  const d = desc.toLowerCase();
+  if (/rent|rates|office|workspace|wework|regus/.test(d))              return "Rent & rates";
+  if (/electric|gas|water|edf|eon|british gas|utility|utilit/.test(d)) return "Utilities";
+  if (/vodafone|o2|ee |three|bt |virgin|broadband|mobile|phone/.test(d)) return "Utilities";
+  if (/spotify|netflix|adobe|microsoft|google|aws|azure|dropbox|slack|zoom|github|canva|notion|figma|xero|quickbooks|sage/.test(d)) return "Subscriptions";
+  if (/insurance|hiscox|axa|aviva|zurich|allianz/.test(d))             return "Insurance";
+  if (/bank charge|bank fee|overdraft|interest|hsbc|barclays|lloyds|natwest|starling|monzo/.test(d)) return "Bank charges";
+  if (/solicitor|barrister|legal|accountant|consultant/.test(d))        return "Professional services";
+  if (/laptop|computer|hardware|equipment|server/.test(d))              return "Equipment";
+  if (/facebook|google ads|meta ads|linkedin ads|advertising/.test(d))  return "Advertising";
+  if (/contractor|freelance|subcontract/.test(d))                       return "Contractor";
+  return "Other";
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -272,17 +315,186 @@ function AddBillForm({ onAdd, onClose }: AddBillFormProps) {
   );
 }
 
+// ── Bank import dialog ────────────────────────────────────────────────────────
+
+interface BankImportDialogProps {
+  debits:   BankTx[];
+  existing: Bill[];
+  onImport: (bills: Bill[]) => void;
+  onClose:  () => void;
+}
+
+function BankImportDialog({ debits, existing, onImport, onClose }: BankImportDialogProps) {
+  const importable = debits.filter((tx) =>
+    !existing.some(
+      (b) =>
+        b.dueDate === tx.date &&
+        Math.abs(b.amount - Math.abs(tx.amount)) < 0.01 &&
+        b.supplier.toLowerCase() === tx.description.toLowerCase(),
+    ),
+  );
+
+  const [selected,   setSelected]   = useState<Set<number>>(() => new Set(importable.map((_, i) => i)));
+  const [categories, setCategories] = useState<string[]>(() => importable.map((tx) => inferBillCategory(tx.description)));
+
+  function toggle(i: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  }
+
+  function handleImport() {
+    const bills: Bill[] = [];
+    for (const i of selected) {
+      const tx = importable[i];
+      bills.push({
+        id:          crypto.randomUUID(),
+        supplier:    tx.description,
+        description: "",
+        amount:      Math.abs(tx.amount),
+        dueDate:     tx.date,
+        category:    categories[i],
+        status:      "paid",   // already left the account
+        createdAt:   new Date().toISOString(),
+      });
+    }
+    onImport(bills);
+    onClose();
+  }
+
+  if (importable.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+        <div
+          className="rounded-2xl p-6 max-w-sm w-full mx-4 text-center"
+          style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>All caught up</p>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>
+            Every debit in your bank statement is already in Bills.
+          </p>
+          <button onClick={onClose} className="mt-4 text-[12px]" style={{ color: "var(--zn-ink-3)" }}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[80vh] flex flex-col"
+        style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b" style={{ borderColor: "var(--zn-line-soft)" }}>
+          <div>
+            <p className="text-[14px] font-semibold" style={{ color: "var(--zn-ink)" }}>Import from bank statement</p>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+              {importable.length} debit{importable.length !== 1 ? "s" : ""} not yet in Bills · status set to Paid
+            </p>
+          </div>
+          <button onClick={onClose} style={{ color: "var(--zn-ink-3)" }}><X className="size-4" /></button>
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+          {importable.map((tx, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+              style={{
+                background: selected.has(i) ? "var(--zn-info-soft)" : "var(--zn-surface-alt, var(--zn-line-soft))",
+                border: `1px solid ${selected.has(i) ? "color-mix(in srgb, var(--zn-info) 30%, transparent)" : "transparent"}`,
+              }}
+              onClick={() => toggle(i)}
+            >
+              {/* Checkbox */}
+              <div
+                className="mt-0.5 size-4 rounded flex-shrink-0 flex items-center justify-center"
+                style={{
+                  background: selected.has(i) ? "var(--zn-info)" : "transparent",
+                  border: `2px solid ${selected.has(i) ? "var(--zn-info)" : "var(--zn-line)"}`,
+                }}
+              >
+                {selected.has(i) && <CheckCircle2 className="size-3 text-white" />}
+              </div>
+
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[12.5px] font-semibold truncate" style={{ color: "var(--zn-ink)" }}>{tx.description}</p>
+                  <p className="text-[12.5px] font-bold tabular-nums flex-shrink-0" style={{ color: "var(--zn-risk)" }}>
+                    −{GBP(Math.abs(tx.amount))}
+                  </p>
+                </div>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                  {new Date(tx.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+                {/* Category picker — stop row toggle propagation */}
+                <select
+                  value={categories[i]}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const next = [...categories];
+                    next[i] = e.target.value;
+                    setCategories(next);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1.5 rounded-lg px-2 py-1 text-[11px] w-full"
+                  style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line)", color: "var(--zn-ink)" }}
+                >
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-t" style={{ borderColor: "var(--zn-line-soft)" }}>
+          <button
+            type="button"
+            onClick={() => setSelected(selected.size === importable.length ? new Set() : new Set(importable.map((_, i) => i)))}
+            className="text-[12px]"
+            style={{ color: "var(--zn-ink-3)" }}
+          >
+            {selected.size === importable.length ? "Deselect all" : "Select all"}
+          </button>
+          <button
+            type="button"
+            disabled={selected.size === 0}
+            onClick={handleImport}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-semibold disabled:opacity-50"
+            style={{ background: "var(--zn-ink)", color: "var(--background)" }}
+          >
+            Add {selected.size} to Bills
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function BillsClient() {
-  const [bills, setBills]       = useState<Bill[]>([]);
-  const [hydrated, setHydrated] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter]     = useState<"all" | BillStatus>("all");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [bills, setBills]             = useState<Bill[]>([]);
+  const [hydrated, setHydrated]       = useState(false);
+  const [showForm, setShowForm]       = useState(false);
+  const [showBankImport, setShowBankImport] = useState(false);
+  const [bankDebits, setBankDebits]   = useState<BankTx[]>([]);
+  const [filter, setFilter]           = useState<"all" | BillStatus>("all");
+  const [editingId, setEditingId]     = useState<string | null>(null);
 
   useEffect(() => {
-    setBills(loadBills());
+    const loaded = loadBills();
+    setBills(loaded);
+    const debits = loadBankDebits();
+    setBankDebits(debits);
     setHydrated(true);
   }, []);
 
@@ -334,6 +546,11 @@ export function BillsClient() {
     setShowForm(false);
   }
 
+  function handleBankImport(newBills: Bill[]) {
+    if (newBills.length === 0) return;
+    updateBills((prev) => [...newBills, ...prev]);
+  }
+
   function markPaid(id: string) {
     updateBills((prev) => prev.map((b) => b.id === id ? { ...b, status: "paid" } : b));
   }
@@ -379,6 +596,16 @@ export function BillsClient() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
 
+      {/* Bank import dialog */}
+      {showBankImport && (
+        <BankImportDialog
+          debits={bankDebits}
+          existing={bills}
+          onImport={handleBankImport}
+          onClose={() => setShowBankImport(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -388,6 +615,29 @@ export function BillsClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Bank import button — only shown when a statement is loaded */}
+          {bankDebits.length > 0 && (() => {
+            const count = countImportable(bankDebits, bills);
+            return (
+              <button
+                type="button"
+                onClick={() => setShowBankImport(true)}
+                className="relative flex items-center gap-1.5 px-3 py-2 rounded-full text-[12.5px] font-semibold"
+                style={{ background: "var(--zn-info-soft)", color: "var(--zn-info)", border: "1px solid color-mix(in srgb, var(--zn-info) 25%, transparent)" }}
+              >
+                <Landmark className="size-3.5" />
+                Import from bank
+                {count > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 size-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                    style={{ background: "var(--zn-info)", color: "#fff" }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
           <SectionCsvImport
             title="Bills"
             fields={[

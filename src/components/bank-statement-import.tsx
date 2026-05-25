@@ -309,6 +309,11 @@ export function BankStatementImport({ onImported, onCleared }: Props) {
     localStorage.setItem(BANK_STATEMENT_KEY, JSON.stringify(preview));
     if (detectedBank) localStorage.setItem(BANK_STATEMENT_BANK_KEY, detectedBank);
     else localStorage.removeItem(BANK_STATEMENT_BANK_KEY);
+    // Sync active statement to Supabase so it's available on other devices
+    void import("@/lib/sync/workspace-sync").then(({ pushDataType, getLocalSupabaseAccountId }) => {
+      const id = getLocalSupabaseAccountId();
+      if (id) return pushDataType("bank_statement_active", id);
+    }).catch(() => {});
     setSaved(true);
     onImported?.(preview, fileName ?? "statement.csv", detectedBank ?? undefined);
   }

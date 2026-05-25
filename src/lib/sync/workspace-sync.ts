@@ -26,6 +26,7 @@ type DataType =
   | "invoices"
   | "expenses"
   | "bank_statements"
+  | "bank_statement_active"
   | "quotes"
   | "credit_notes"
   | "bills"
@@ -45,7 +46,8 @@ type DataType =
 const LS_KEYS: Record<DataType, string> = {
   invoices:           "zentra.importedInvoices.v1",
   expenses:           "zentra.expenses.v1",
-  bank_statements:    "zentra.bankStatements.v2",
+  bank_statements:         "zentra.bankStatements.v2",
+  bank_statement_active:   "zentra.bankStatement.v1",
   quotes:             "zentra.quotes.v1",
   credit_notes:       "zentra.creditNotes.v1",
   bills:              "zentra.bills.v1",
