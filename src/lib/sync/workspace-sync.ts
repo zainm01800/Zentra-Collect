@@ -98,6 +98,10 @@ function safeParseLS(key: string): unknown {
 function isNonEmpty(payload: unknown): boolean {
   if (Array.isArray(payload)) return payload.length > 0;
   if (payload && typeof payload === "object") return Object.keys(payload).length > 0;
+  // Handle primitive truthy values (e.g. workspace_setup stores "1" → JSON.parse → 1)
+  if (typeof payload === "number" || typeof payload === "boolean" || typeof payload === "string") {
+    return Boolean(payload);
+  }
   return false;
 }
 
@@ -188,6 +192,12 @@ export async function pullAllData(accountId: string): Promise<void> {
     clearAllWorkspaceData();
 
     if (!data?.length) return;
+
+    // If we got ANY rows back the user is an existing account holder — they
+    // must have already completed first-run setup at some point. Mark it now
+    // so the onboarding modal never reappears after re-login, even for users
+    // who completed setup before this sync key was introduced.
+    window.localStorage.setItem(LS_KEYS.workspace_setup, "1");
 
     for (const row of data) {
       const key = LS_KEYS[row.data_type as DataType];
