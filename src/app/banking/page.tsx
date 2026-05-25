@@ -178,7 +178,9 @@ export default async function BankingPage({
         )}
 
         {/* ── Manual CSV import — always available as fallback ─────────── */}
-        <BankStatementImportCard />
+        {/* When Open Banking is connected, the CSV feed is hidden to avoid
+            showing duplicate transactions — only the import button remains. */}
+        <BankStatementImportCard openBankingConnected={!!connection} />
 
     </div>
   );

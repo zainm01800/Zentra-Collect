@@ -131,7 +131,14 @@ function stmtLabel(s: SavedStatement): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function BankStatementImportCard() {
+interface BankStatementImportCardProps {
+  /** When true, a live Open Banking connection is active. The CSV transaction
+   *  list is hidden to avoid duplication — the live feed already shows those
+   *  transactions. The import button remains available for adding extra months. */
+  openBankingConnected?: boolean;
+}
+
+export function BankStatementImportCard({ openBankingConnected = false }: BankStatementImportCardProps) {
   const [statements, setStatements] = useState<SavedStatement[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [hydrated,   setHydrated]   = useState(false);
@@ -203,9 +210,11 @@ export function BankStatementImportCard() {
               Bank statements
             </p>
             <p className="text-[11.5px] truncate" style={{ color: "var(--zn-ink-3)" }}>
-              {hydrated && hasFeed
+              {hydrated && hasFeed && !openBankingConnected
                 ? `${statements.length} of ${limit} imported · ${allTx.length} transactions`
-                : "CSV, Excel, TSV or TXT — auto-detects all major UK banks"}
+                : openBankingConnected
+                  ? "Fallback import — live transactions shown above"
+                  : "CSV, Excel, TSV or TXT — auto-detects all major UK banks"}
             </p>
           </div>
         </div>
@@ -252,7 +261,7 @@ export function BankStatementImportCard() {
       )}
 
       {/* ── Statement chips ───────────────────────────────────────────── */}
-      {hydrated && hasFeed && (
+      {hydrated && hasFeed && !openBankingConnected && (
         <div
           className="px-5 py-3 flex flex-wrap gap-2"
           style={{ borderBottom: "1px solid var(--zn-line-soft)" }}
@@ -293,8 +302,8 @@ export function BankStatementImportCard() {
         </div>
       )}
 
-      {/* ── Aggregated feed ───────────────────────────────────────────── */}
-      {hydrated && hasFeed && (
+      {/* ── Aggregated feed — hidden when Open Banking is connected to avoid duplication */}
+      {hydrated && hasFeed && !openBankingConnected && (
         <div className="px-5 py-5 space-y-4">
 
           {/* Summary strip */}
