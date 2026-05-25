@@ -71,8 +71,8 @@ export default async function BankingPage({
             Bank feed
           </h1>
           <p className="mt-1 text-[14px]" style={{ color: "var(--zn-ink-2)" }}>
-            Import bank statement exports — CSV, Excel, TSV or TXT — and match
-            credits to your outstanding invoices automatically.
+            Connect your bank for automatic daily sync, or import a statement
+            CSV manually — then match credits to outstanding invoices.
           </p>
         </div>
 
@@ -98,10 +98,7 @@ export default async function BankingPage({
           </div>
         )}
 
-        {/* ── Manual CSV import — PRIMARY feed ─────────────────────────── */}
-        <BankStatementImportCard />
-
-        {/* ── Live bank connection (TrueLayer) — secondary / optional ───── */}
+        {/* ── Live bank connection (TrueLayer) — primary when configured ── */}
         {isConfigured && (
           connection ? (
             /* Connected state */
@@ -179,6 +176,9 @@ export default async function BankingPage({
             fetchError={transactions.error}
           />
         )}
+
+        {/* ── Manual CSV import — always available as fallback ─────────── */}
+        <BankStatementImportCard />
 
     </div>
   );
