@@ -1,0 +1,26 @@
+Customer Name,Invoice Number,Invoice Date,Due Date,Amount Outstanding,Original Amount,Customer Email,Status,Payment Reference,Notes,Customer Account Number
+Ashford Digital Ltd,INV-2024-0841,15/01/2026,12/02/2026,12750.00,12750.00,accounts@ashforddigital.co.uk,overdue,,Design and development retainer Q1,ADF-001
+BluePeak Design Studio,INV-2024-0867,22/01/2026,22/03/2026,8900.00,11200.00,finance@bluepeakdesign.com,overdue,,Brand identity project — partial payment received,BPD-004
+Northline Creative Agency,INV-2025-0012,05/02/2026,05/03/2026,6400.00,6400.00,billing@northlinecreative.co.uk,overdue,PO-NC-2209,,NLC-007
+Redfern Architecture LLP,INV-2025-0019,10/02/2026,12/03/2026,11200.00,11200.00,accounts@redfernarchitecture.com,overdue,,Stage 2 planning drawings,RAF-002
+Meridian Consulting Group,INV-2025-0031,18/02/2026,18/04/2026,4350.00,4350.00,ap@meridianconsulting.co.uk,overdue,,Strategic review — April deliverable,MCG-011
+Foxglove Events Ltd,INV-2025-0044,25/02/2026,25/03/2026,3200.00,3200.00,sarah.wright@foxgloveevents.com,overdue,PO-FEL-119,,FEL-003
+Clearwater Solutions,INV-2025-0057,01/03/2026,01/04/2026,9875.00,9875.00,finance@clearwatersolutions.co.uk,overdue,,IT infrastructure rollout Phase 1,CWS-009
+Harrington & Associates,INV-2025-0063,08/03/2026,07/04/2026,2100.00,2100.00,,overdue,,Legal advisory services March,HAS-015
+Delphi Tech Services,INV-2025-0071,15/03/2026,14/04/2026,5600.00,7000.00,accounts@delphitech.co.uk,overdue,,Cloud migration project — 80% milestone,DTS-006
+Summit Property Management,INV-2025-0088,22/03/2026,21/04/2026,18500.00,18500.00,david.marsh@summitproperty.co.uk,overdue,PO-SPM-044,,Annual facilities management contract,SPM-001
+Oakfield Media Group,INV-2025-0094,28/03/2026,27/04/2026,3750.00,3750.00,billing@oakfieldmedia.com,overdue,,Social media management April,OMG-008
+Westbrook Retail Ltd,INV-2025-0101,02/04/2026,02/05/2026,7200.00,7200.00,accounts@westbrookretail.co.uk,overdue,,POS system integration,WRL-022
+Ironbridge Engineering,INV-2025-0108,08/04/2026,08/05/2026,14300.00,14300.00,finance@ironbridgeeng.co.uk,overdue,,Structural survey report — Midlands project,IBE-004
+Thornfield Partners,INV-2025-0115,10/04/2026,09/05/2026,890.00,890.00,accounts@thornfieldpartners.com,overdue,,Monthly retainer April,TFP-031
+Castlegate Logistics,INV-2025-0122,14/04/2026,14/05/2026,22400.00,22400.00,ap@castlegatelogistics.co.uk,current,PO-CGL-208,,Fleet management Q2 — net 30,CGL-002
+Pemberton Law Firm,INV-2025-0129,16/04/2026,16/05/2026,5500.00,5500.00,finance@pembertonlaw.co.uk,current,,Commercial lease review,PLF-017
+Riverview Marketing,INV-2025-0136,18/04/2026,18/05/2026,2950.00,2950.00,hello@riverviewmarketing.co.uk,current,PO-RVM-067,,Campaign management May,RVM-044
+Halcyon Interiors Ltd,INV-2025-0141,20/04/2026,20/05/2026,8100.00,8100.00,accounts@halcyoninteriors.com,current,,Residential project — final stage,HIL-005
+Sterling PR Group,INV-2025-0155,28/01/2026,28/02/2026,4200.00,4200.00,billing@sterlingpr.co.uk,disputed,,Client disputes scope — awaiting resolution,SPG-012
+Broadmoor Accountants,INV-2025-0162,14/12/2025,13/01/2026,6750.00,6750.00,accounts@broadmooraccountants.co.uk,overdue,,Year-end accounts preparation 2025,BAC-003
+Foxglove Events Ltd,INV-2025-0170,20/12/2025,19/01/2026,1800.00,1800.00,sarah.wright@foxgloveevents.com,overdue,,December event coordination,FEL-003
+Ashford Digital Ltd,INV-2025-0178,08/01/2026,07/02/2026,3400.00,3400.00,accounts@ashforddigital.co.uk,promised,,Promised payment 20 May — spoken to James,ADF-001
+Meridian Consulting Group,INV-2025-0183,15/01/2026,14/02/2026,6100.00,6100.00,ap@meridianconsulting.co.uk,overdue,,Q4 strategy consulting,MCG-011
+Delphi Tech Services,INV-2025-0191,10/11/2025,10/12/2025,9200.00,9200.00,accounts@delphitech.co.uk,overdue,,Annual support contract renewal,DTS-006
+Clearwater Solutions,INV-2024-0799,15/09/2025,15/10/2025,4500.00,4500.00,finance@clearwatersolutions.co.uk,overdue,,Legacy system decommission,CWS-009
