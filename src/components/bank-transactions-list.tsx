@@ -206,15 +206,17 @@ export function BankTransactionsList({
     return transactions.filter((tx) => txMonthKey(tx.timestamp) === selectedMonth);
   }, [transactions, selectedMonth]);
 
-  // Summary figures for the visible set
-  const totalIn  = useMemo(() => visibleTx.filter((t) => t.transaction_type === "CREDIT").reduce((s, t) => s + t.amount, 0), [visibleTx]);
-  const totalOut = useMemo(() => visibleTx.filter((t) => t.transaction_type === "DEBIT").reduce((s, t) => s + t.amount, 0), [visibleTx]);
+  // Summary figures for the visible set.
+  // TrueLayer returns DEBIT amounts as negative numbers (e.g. -20.25).
+  // Always use Math.abs() so money-out is positive and the net calculation is correct.
+  const totalIn  = useMemo(() => visibleTx.filter((t) => t.transaction_type === "CREDIT").reduce((s, t) => s + Math.abs(t.amount), 0), [visibleTx]);
+  const totalOut = useMemo(() => visibleTx.filter((t) => t.transaction_type === "DEBIT").reduce((s, t) => s + Math.abs(t.amount), 0), [visibleTx]);
   const netTotal = totalIn - totalOut;
 
   function handleTagAsIncome(tx: TLTransaction) {
     tagAsIncome({
       transactionId: tx.transaction_id,
-      amount:        tx.amount,
+      amount:        Math.abs(tx.amount),
       date:          tx.timestamp,
       description:   (tx.description ?? "").slice(0, 200),
       category:      "services",  // default — UI for changing comes later
@@ -240,7 +242,7 @@ export function BankTransactionsList({
     try {
       const result = await writeBackFromBankFeedAction({
         invoiceId:  match.invoice.id,
-        amountPaid: match.transaction.amount,
+        amountPaid: Math.abs(match.transaction.amount),
         paidDate:   match.transaction.timestamp.slice(0, 10),
         reference:  match.transaction.description?.slice(0, 60),
       });
@@ -402,7 +404,7 @@ export function BankTransactionsList({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[13.5px] font-semibold" style={{ color: "var(--zn-ink)" }}>
-                        {fmtGBP(m.transaction.amount)} received
+                        {fmtGBP(Math.abs(m.transaction.amount))} received
                       </p>
                       <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--zn-ink-3)" }}>
                         {m.transaction.description}
@@ -557,7 +559,7 @@ export function BankTransactionsList({
                     setSelectedTxId(isSelected ? null : tx.transaction_id);
                   }
                 }}
-                aria-label={`${tx.description} — ${tx.transaction_type === "CREDIT" ? "+" : "−"}${tx.amount} on ${fmtDate(tx.timestamp)}`}
+                aria-label={`${tx.description} — ${tx.transaction_type === "CREDIT" ? "+" : "−"}${fmtGBP(Math.abs(tx.amount))} on ${fmtDate(tx.timestamp)}`}
                 aria-expanded={isSelected}
                 style={{
                   borderTop: idx === 0 ? "none" : "1px solid var(--zn-line-soft)",
@@ -630,7 +632,7 @@ export function BankTransactionsList({
                     color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)",
                   }}
                 >
-                  {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
+                  {isCredit ? "+" : "−"}{fmtGBP(Math.abs(tx.amount))}
                 </p>
               </div>
             );
@@ -675,7 +677,7 @@ export function BankTransactionsList({
                 className="text-[22px] font-bold tabular-nums"
                 style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
               >
-                {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
+                {isCredit ? "+" : "−"}{fmtGBP(Math.abs(tx.amount))}
               </p>
 
               <div className="flex flex-col gap-2 text-[12.5px]">

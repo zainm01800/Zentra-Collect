@@ -30,7 +30,7 @@ export async function saveImportBatchAction(
       .from('zentra_account_members')
       .select('account_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
       
     if (!member) throw new Error("No account found");
     const accountId = member.account_id;
@@ -43,7 +43,7 @@ export async function saveImportBatchAction(
         .select('id')
         .eq('account_id', accountId)
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (existingBusiness) {
         businessId = existingBusiness.id;

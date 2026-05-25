@@ -134,15 +134,13 @@ export default async function BankingPage({
                     <span className="size-1.5 rounded-full" style={{ background: "var(--zn-safe)" }} />
                     Connected
                   </span>
-                  <form action="/api/banking/connect" method="GET">
-                    <button
-                      type="submit"
-                      className="text-[11.5px] font-medium"
-                      style={{ color: "var(--zn-ink-3)" }}
-                    >
-                      Reconnect
-                    </button>
-                  </form>
+                  <a
+                    href="/api/banking/connect"
+                    className="text-[11.5px] font-medium"
+                    style={{ color: "var(--zn-ink-3)" }}
+                  >
+                    Reconnect
+                  </a>
                 </div>
               </div>
             </div>
