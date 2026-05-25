@@ -135,6 +135,7 @@ export function BankStatementImportCard() {
   const [statements, setStatements] = useState<SavedStatement[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [hydrated,   setHydrated]   = useState(false);
+  const [selectedTxIdx, setSelectedTxIdx] = useState<number | null>(null);
 
   // Load on mount (after hydration)
   useEffect(() => {
@@ -339,39 +340,75 @@ export function BankStatementImportCard() {
           {/* Transaction list */}
           <div className="rounded-[10px] overflow-hidden" style={{ border: "1px solid var(--zn-line-soft)" }}>
             {allTx.map((tx, i) => {
-              const isCredit = tx.amount > 0;
+              const isCredit  = tx.amount > 0;
+              const isSelected = selectedTxIdx === i;
               return (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-4 py-2.5"
-                  style={{
-                    borderTop:  i > 0 ? "1px solid var(--zn-line-soft)" : "none",
-                    background: "var(--zn-surface)",
-                  }}
-                >
-                  <span
-                    className="size-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: isCredit ? "var(--zn-safe-soft)" : "var(--zn-surface-2)" }}
+                <div key={i}>
+                  {/* Row */}
+                  <div
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors"
+                    style={{
+                      borderTop:  i > 0 ? "1px solid var(--zn-line-soft)" : "none",
+                      background: isSelected ? "var(--zn-surface-2)" : "var(--zn-surface)",
+                    }}
+                    onClick={() => setSelectedTxIdx(isSelected ? null : i)}
                   >
-                    {isCredit
-                      ? <ArrowDownLeft className="size-3.5" style={{ color: "var(--zn-safe)" }} />
-                      : <ArrowUpRight  className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
-                    }
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                      {tx.description}
-                    </p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
-                      {fmtDate(tx.date)}
+                    <span
+                      className="size-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: isCredit ? "var(--zn-safe-soft)" : "var(--zn-surface-2)" }}
+                    >
+                      {isCredit
+                        ? <ArrowDownLeft className="size-3.5" style={{ color: "var(--zn-safe)" }} />
+                        : <ArrowUpRight  className="size-3.5" style={{ color: "var(--zn-ink-3)" }} />
+                      }
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
+                        {tx.description}
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
+                        {fmtDate(tx.date)}
+                      </p>
+                    </div>
+                    <p
+                      className="text-[13px] font-semibold tabular-nums flex-shrink-0 w-24 text-right"
+                      style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
+                    >
+                      {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
                     </p>
                   </div>
-                  <p
-                    className="text-[13px] font-semibold tabular-nums flex-shrink-0 w-24 text-right"
-                    style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}
-                  >
-                    {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
-                  </p>
+
+                  {/* Inline detail panel */}
+                  {isSelected && (
+                    <div
+                      className="px-4 py-3 text-[12px] flex flex-col gap-1.5"
+                      style={{
+                        background: "var(--zn-surface-2)",
+                        borderTop: "1px solid var(--zn-line-soft)",
+                      }}
+                    >
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--zn-ink-3)" }}>Description</span>
+                        <span className="font-medium text-right ml-4 break-all" style={{ color: "var(--zn-ink)" }}>{tx.description}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--zn-ink-3)" }}>Date</span>
+                        <span className="font-medium" style={{ color: "var(--zn-ink)" }}>{fmtDate(tx.date)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--zn-ink-3)" }}>Amount</span>
+                        <span className="font-semibold tabular-nums" style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink)" }}>
+                          {isCredit ? "+" : "−"}{fmtGBP(tx.amount)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--zn-ink-3)" }}>Type</span>
+                        <span className="font-medium" style={{ color: isCredit ? "var(--zn-safe)" : "var(--zn-ink-3)" }}>
+                          {isCredit ? "Credit" : "Debit"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
