@@ -533,9 +533,12 @@ export function BankTransactionsList({
           </p>
         )}
 
-        <div className="flex gap-4 items-start">
+        {/* On xl+ screens the list and detail panel sit side-by-side.
+            On anything smaller the panel renders below the list at full width
+            so the list is never squeezed. */}
+        <div className="flex flex-col xl:flex-row gap-4 xl:items-start">
         <div
-          className="rounded-[12px] overflow-hidden flex-1 min-w-0"
+          className="rounded-[12px] overflow-hidden flex-1 min-w-0 w-full"
           style={{ border: visibleTx.length > 0 ? "1px solid var(--zn-line-soft)" : "none" }}
         >
           {visibleTx.map((tx, idx) => {
@@ -646,7 +649,7 @@ export function BankTransactionsList({
           const isCredit = tx.transaction_type === "CREDIT";
           return (
             <div
-              className="w-72 flex-shrink-0 rounded-[12px] p-4 flex flex-col gap-3"
+              className="w-full xl:w-72 xl:flex-shrink-0 rounded-[12px] p-4 flex flex-col gap-3"
               style={{
                 background: "var(--zn-surface)",
                 border: "1px solid var(--zn-line-soft)",
