@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, FileUp, Plug, Plus } from "lucide-react";
 import { saveOnboardingBusinessNameAction } from "@/actions/account";
+import { pushDataType, getLocalSupabaseAccountId } from "@/lib/sync/workspace-sync";
 
 const WORKSPACE_KEY = "zn:workspace:v1";
 const LEGACY_KEY    = "zn:onboarded:v1";
@@ -64,6 +65,13 @@ export function FirstRunOnboarding() {
     window.localStorage.setItem(WORKSPACE_KEY, "1");
     // Keep businessName persisted (already set in advanceToStep2)
     setShow(false);
+
+    // Sync the onboarding completion flag to Supabase so that re-login on the
+    // same or a different device doesn't re-show the first-run modal.
+    const accountId = getLocalSupabaseAccountId();
+    if (accountId) {
+      void pushDataType("workspace_setup", accountId).catch(() => undefined);
+    }
 
     const destination =
       startPath === "csv"         ? "/import"

@@ -65,6 +65,7 @@ import {
   type CustomNavSection,
 } from "@/lib/nav-customization";
 import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase/browser";
+import { clearAllWorkspaceData } from "@/lib/sync/workspace-sync";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
 import type { Invoice } from "@/types/cashpilot";
@@ -1112,11 +1113,16 @@ function SidebarAccountBadge() {
                             { bg: "var(--zn-surface)",   fg: "var(--zn-ink)",  markBg: "var(--zn-ink)"  };
 
   async function handleSignOut() {
+    // Wipe all workspace data so the next user on this device starts clean.
+    // Must run before signOut in case the signOut call fails — we still want
+    // the data gone from localStorage.
+    clearAllWorkspaceData();
+    window.localStorage.removeItem(demoUserStorageKey);
+
     if (hasSupabaseBrowserConfig()) {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
     }
-    window.localStorage.removeItem(demoUserStorageKey);
     router.push("/login");
   }
 
