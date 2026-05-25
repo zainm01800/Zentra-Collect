@@ -83,8 +83,8 @@ Allowed categories (pick the closest):
 ${categoriesList}
 
 Rules:
-- Mark "not-allowable" for clearly personal spend: groceries, takeaways, clothing, entertainment, gaming, streaming, gyms, holidays.
-- Mark "allowable" with the best matching category for business spend: software, hosting, professional services, travel for work, office supplies, etc.
+- Mark "not-allowable" for clearly personal spend: groceries, takeaways, clothing, entertainment, gaming, streaming, gyms, holidays. For these, set category to a plain English label describing what it is (e.g. "Groceries", "Takeaway food", "Personal clothing", "Gym membership", "Streaming subscription") — do NOT use the HMRC business categories above.
+- Mark "allowable" with the best matching HMRC category from the list above for business spend: software, hosting, professional services, travel for work, office supplies, etc.
 - For ambiguous items (restaurants that could be client meals, equipment with unclear use), mark "allowable" with category "Other".
 - Use UK HMRC s34 ITTOIA 2005 — expenses must be wholly and exclusively for trade.
 
@@ -92,7 +92,7 @@ Transactions to classify (JSON array):
 ${JSON.stringify(items.map((i) => ({ id: i.id, description: i.description, amount: i.amount })))}
 
 Respond with ONLY a JSON array (no markdown, no explanation) matching this schema:
-[{ "id": "<same id>", "category": "<category from list>", "allowability": "allowable" | "not-allowable" }]`;
+[{ "id": "<same id>", "category": "<HMRC category from list, or plain-English personal label for not-allowable>", "allowability": "allowable" | "not-allowable" }]`;
 }
 
 // ── Gemini classifier ─────────────────────────────────────────────────────────
@@ -157,11 +157,17 @@ async function classifyWithOpenAI(items: InputItem[], apiKey: string): Promise<O
 
 function sanitise(parsed: OutputItem[]): OutputItem[] {
   const validCategories = new Set<string>(HMRC_CATEGORIES);
-  return parsed.map((r) => ({
-    id:           r.id,
-    category:     validCategories.has(r.category) ? r.category : "Other",
-    allowability: r.allowability === "not-allowable" ? "not-allowable" : "allowable",
-  }));
+  return parsed.map((r) => {
+    const allowability = r.allowability === "not-allowable" ? "not-allowable" : "allowable";
+    // For allowable items, force category to a known HMRC category (or "Other").
+    // For not-allowable items, keep the AI's raw label (e.g. "Groceries", "Personal clothing")
+    // so users can see why it was rejected — the HMRC list is business-only.
+    const category =
+      allowability === "not-allowable"
+        ? (r.category?.trim() || "Personal / non-business")
+        : (validCategories.has(r.category) ? r.category : "Other");
+    return { id: r.id, category, allowability };
+  });
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────────
