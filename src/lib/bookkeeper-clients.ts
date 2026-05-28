@@ -88,9 +88,10 @@ export function readActiveClientId(): string {
   return window.localStorage.getItem(ACTIVE_CLIENT_KEY) ?? "all";
 }
 
-/** Persist the active client ID. */
+/** Persist the active client ID and notify any same-tab listeners. */
 export function writeActiveClientId(id: string): void {
   window.localStorage.setItem(ACTIVE_CLIENT_KEY, id);
+  window.dispatchEvent(new CustomEvent("zentra:activeclient", { detail: id }));
 }
 
 /** Read invoices for a specific client. */

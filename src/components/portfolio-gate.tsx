@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload, BarChart3, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Upload, BarChart3, AlertCircle, CheckCircle2, Clock, Link2 } from "lucide-react";
 import { useLocalAccount } from "@/lib/billing/use-local-account";
 import {
   demoBookkeeperClients,
@@ -14,8 +15,10 @@ import {
   readBookkeeperClients,
   readClientInvoices,
   readClientSummary,
+  writeActiveClientId,
   type BookkeeperClient,
 } from "@/lib/bookkeeper-clients";
+import { createIntakeToken } from "@/actions/intake";
 import type { Invoice } from "@/types/zentra";
 import type { ImportSummary } from "@/lib/import/zentra-import";
 
@@ -355,8 +358,11 @@ function LivePortfolio() {
 
 // ── Live bookkeeper portfolio — multi-client grid from localStorage ───────────
 function LiveBookkeeperPortfolio() {
+  const router = useRouter();
   const [clients, setClients]   = useState<BookkeeperClient[]>([]);
   const [loaded, setLoaded]     = useState(false);
+  // Per-card intake link state: clientId → "idle" | "loading" | "copied"
+  const [intakeState, setIntakeState] = useState<Record<string, "idle" | "loading" | "copied">>({});
 
   // Each client entry augmented with computed stats
   type ClientWithStats = BookkeeperClient & {
@@ -425,6 +431,25 @@ function LiveBookkeeperPortfolio() {
     totalOpen:       clientStats.reduce((s, c) => s + c.openCount, 0),
     totalExceptions: clientStats.reduce((s, c) => s + c.exceptions, 0),
   }), [clientStats]);
+
+  async function handleGetLink(clientId: string, clientName: string) {
+    setIntakeState((prev) => ({ ...prev, [clientId]: "loading" }));
+    try {
+      const result = await createIntakeToken(clientId, clientName);
+      if (result.url) {
+        await navigator.clipboard.writeText(result.url);
+        setIntakeState((prev) => ({ ...prev, [clientId]: "copied" }));
+        setTimeout(() => setIntakeState((prev) => ({ ...prev, [clientId]: "idle" })), 3000);
+      }
+    } catch {
+      setIntakeState((prev) => ({ ...prev, [clientId]: "idle" }));
+    }
+  }
+
+  function openClient(clientId: string, destination = "/today") {
+    writeActiveClientId(clientId);
+    router.push(destination);
+  }
 
   if (!loaded) {
     return (
@@ -541,8 +566,17 @@ function LiveBookkeeperPortfolio() {
             client.risk === "high" ? "zn-risk-high" :
             client.risk === "med"  ? "zn-risk-med"  : "zn-risk-low";
 
+          const linkState = intakeState[client.id] ?? "idle";
+
           return (
-            <div key={client.id} className="zn-card p-[18px]">
+            <div
+              key={client.id}
+              className="zn-card p-[18px] cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => openClient(client.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openClient(client.id); }}
+            >
               <div className="flex items-start justify-between gap-3 mb-3.5">
                 <div className="flex items-start gap-3 min-w-0">
                   <span
@@ -602,18 +636,40 @@ function LiveBookkeeperPortfolio() {
                 ))}
               </div>
 
-              {client.invoiceCount === 0 ? (
-                <Link
-                  href="/import"
-                  className="zn-pill zn-pill-ghost w-full justify-center"
+              {/* Card actions — stop propagation so clicking these doesn't
+                  also trigger the outer div's onClick (double navigation). */}
+              <div className="flex items-center gap-2">
+                {client.invoiceCount === 0 ? (
+                  <button
+                    type="button"
+                    className="zn-pill zn-pill-ghost flex-1 justify-center"
+                    onClick={(e) => { e.stopPropagation(); openClient(client.id, "/import"); }}
+                  >
+                    <Upload className="size-3.5" /> Import data
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="zn-pill zn-pill-ghost flex-1 justify-center"
+                    onClick={(e) => { e.stopPropagation(); openClient(client.id, "/chase-today"); }}
+                  >
+                    Open chase plan <ArrowRight className="size-3.5" />
+                  </button>
+                )}
+
+                {/* Get intake link — generates a shareable upload URL for the client */}
+                <button
+                  type="button"
+                  title="Copy a shareable upload link for this client"
+                  className="zn-pill zn-pill-ghost flex-shrink-0 gap-1.5"
+                  style={{ height: 32, padding: "0 10px", fontSize: 11.5 }}
+                  disabled={linkState === "loading"}
+                  onClick={(e) => { e.stopPropagation(); void handleGetLink(client.id, client.name); }}
                 >
-                  <Upload className="size-3.5" /> Import data
-                </Link>
-              ) : (
-                <Link href="/chase-today" className="zn-pill zn-pill-ghost w-full justify-center">
-                  Open chase plan <ArrowRight className="size-3.5" />
-                </Link>
-              )}
+                  <Link2 className="size-3.5" />
+                  {linkState === "copied" ? "Copied!" : linkState === "loading" ? "…" : "Get link"}
+                </button>
+              </div>
             </div>
           );
         })}

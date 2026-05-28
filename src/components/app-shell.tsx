@@ -68,6 +68,7 @@ import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/sup
 import { clearAllWorkspaceData } from "@/lib/sync/workspace-sync";
 import { demoCashpilotInvoices as demoInvoices } from "@/lib/demo-data/zentra-demo-data";
 import { importedInvoicesStorageKey } from "@/lib/import/zentra-import";
+import { readActiveClientId } from "@/lib/bookkeeper-clients";
 import type { Invoice } from "@/types/cashpilot";
 
 const demoInvoiceStateStorageKey = "zentra.demoInvoiceState.v1";
@@ -437,6 +438,19 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("zentra:workspaceprefs", onPrefs);
   }, []);
 
+  // Active client — track which client workspace is selected.
+  // When "all" is selected (portfolio overview mode) we hide Banking & Books
+  // because those are per-client features; the data doesn't mix across clients.
+  const [activeClientId, setActiveClientId] = useState<string>("all");
+  useEffect(() => {
+    setActiveClientId(readActiveClientId());
+    function onClientChange(e: Event) {
+      setActiveClientId((e as CustomEvent<string>).detail);
+    }
+    window.addEventListener("zentra:activeclient", onClientChange);
+    return () => window.removeEventListener("zentra:activeclient", onClientChange);
+  }, []);
+
   // Build the visible finance items (banking + books) from enabled modules
   const visibleFinanceItems = useMemo<NavItem[]>(() => {
     if (!workspacePrefs) return [];
@@ -558,8 +572,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             />
           )}
 
+          {/* Banking & Books — hidden in "All clients" portfolio mode because
+              bank feed / expenses / tax are per-client features. Show a
+              subtle nudge instead so bookkeepers know how to access them. */}
+          {activeClientId === "all" && showPortfolio && visibleFinanceItems.length > 0 && (
+            <div
+              className="mb-[14px] rounded-lg px-2.5 py-2 text-[11.5px] leading-snug"
+              style={{ background: "var(--zn-surface)", color: "var(--zn-ink-3)", border: "1px solid var(--zn-line-soft)" }}
+            >
+              Select a client to access Banking &amp; Books
+            </div>
+          )}
+
           {/* Banking — fixed section, always its own heading */}
-          {visibleFinanceItems.some((i) => i.href === "/banking") && (
+          {visibleFinanceItems.some((i) => i.href === "/banking") && activeClientId !== "all" && (
             <CollapsibleSection
               label="Banking"
               sectionKey="banking"
@@ -573,7 +599,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Books — user-customisable sections */}
-          {visibleFinanceItems.some((i) => i.href !== "/banking") && !editingNav && customSections.map((section) => {
+          {visibleFinanceItems.some((i) => i.href !== "/banking") && activeClientId !== "all" && !editingNav && customSections.map((section) => {
             const sectionItems = section.items
               .map((href) => financeNav.find((i) => i.href === href))
               .filter((item): item is NavItem => item !== undefined)
@@ -597,7 +623,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           })}
 
           {/* Edit mode — click-based reorder (↑↓) and move between sections */}
-          {visibleFinanceItems.some((i) => i.href !== "/banking") && editingNav && (
+          {visibleFinanceItems.some((i) => i.href !== "/banking") && activeClientId !== "all" && editingNav && (
             <div className="mb-[14px]">
               {customSections.map((section) => {
                 const sectionItems = section.items
