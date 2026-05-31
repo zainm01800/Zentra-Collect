@@ -18,7 +18,8 @@ import {
   writeActiveClientId,
   type BookkeeperClient,
 } from "@/lib/bookkeeper-clients";
-import { createIntakeToken } from "@/actions/intake";
+import { createIntakeToken, getPendingIntakeUploads, type PendingUpload } from "@/actions/intake";
+import { IntakeReceivedBadge } from "@/components/intake-received-badge";
 import type { Invoice } from "@/types/zentra";
 import type { ImportSummary } from "@/lib/import/zentra-import";
 
@@ -366,6 +367,21 @@ function LiveBookkeeperPortfolio() {
   // Holds a generated URL we couldn't auto-copy (clipboard blocked) so the
   // bookkeeper can still grab it manually.
   const [intakeUrl, setIntakeUrl] = useState<Record<string, string>>({});
+  // Pending client uploads grouped by clientId (files clients sent via intake links).
+  const [pendingUploads, setPendingUploads] = useState<Record<string, PendingUpload[]>>({});
+
+  async function refreshPendingUploads() {
+    try {
+      const { uploads } = await getPendingIntakeUploads();
+      const grouped: Record<string, PendingUpload[]> = {};
+      for (const u of uploads) {
+        (grouped[u.clientId] ??= []).push(u);
+      }
+      setPendingUploads(grouped);
+    } catch {
+      // Non-fatal — the rest of the portfolio still renders.
+    }
+  }
 
   // Each client entry augmented with computed stats
   type ClientWithStats = BookkeeperClient & {
@@ -411,6 +427,8 @@ function LiveBookkeeperPortfolio() {
     });
     setClientStats(withStats);
     setLoaded(true);
+    // Fetch files clients have sent via their intake links (server-side).
+    void refreshPendingUploads();
   }, []);
 
   // Sort by the user's chosen key so bookkeepers can triage 10+ clients
@@ -617,6 +635,11 @@ function LiveBookkeeperPortfolio() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <IntakeReceivedBadge
+                    clientName={client.name}
+                    uploads={pendingUploads[client.id] ?? []}
+                    onChange={refreshPendingUploads}
+                  />
                   <span className={`zn-risk-chip ${riskClass}`}>
                     <span className="zn-risk-dot" />
                     {riskLabel}

@@ -1,20 +1,44 @@
 import Link from "next/link";
-import { Calculator, ArrowRight } from "lucide-react";
+import { Calculator, FileText, Mail, TrendingUp, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Tools",
-  description: "Free tools for UK credit control — late payment interest calculator and more.",
+  description: "Free tools for UK credit control — statutory interest calculator, late-payment letter generator, chase email writer, and DSO calculator.",
 };
 
+// Surfaces every free tool that exists under /free-tools so in-app users see
+// the full set (previously this page listed only one, while four more lived
+// at /free-tools/* reachable only from the marketing nav).
 const TOOLS = [
   {
-    href: "/tools/late-payment-interest",
+    href: "/free-tools/statutory-interest",
     icon: Calculator,
-    title: "Late payment interest calculator",
+    title: "Statutory interest calculator",
     desc: "Calculate UK statutory interest (BoE base + 8%) and fixed compensation under the Late Payment of Commercial Debts Act 1998.",
     badge: "B2B only",
+  },
+  {
+    href: "/free-tools/late-payment-letter",
+    icon: FileText,
+    title: "Late payment letter generator",
+    desc: "Generate a formal late-payment demand letter citing the 1998 Act, with the interest figure pre-calculated. Copy-paste ready.",
+    badge: null,
+  },
+  {
+    href: "/free-tools/chase-email",
+    icon: Mail,
+    title: "Chase email writer",
+    desc: "Pick a tone (friendly, neutral, firm, final) and get a copy-pasteable draft email, with statutory interest wording optional.",
+    badge: null,
+  },
+  {
+    href: "/free-tools/dso",
+    icon: TrendingUp,
+    title: "DSO calculator",
+    desc: "Paste a few invoices and see your average Days Sales Outstanding, benchmarked against UK SMB averages.",
+    badge: null,
   },
 ];
 
