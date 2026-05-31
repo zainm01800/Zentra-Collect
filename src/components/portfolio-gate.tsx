@@ -361,8 +361,11 @@ function LiveBookkeeperPortfolio() {
   const router = useRouter();
   const [clients, setClients]   = useState<BookkeeperClient[]>([]);
   const [loaded, setLoaded]     = useState(false);
-  // Per-card intake link state: clientId → "idle" | "loading" | "copied"
-  const [intakeState, setIntakeState] = useState<Record<string, "idle" | "loading" | "copied">>({});
+  // Per-card intake link state: clientId → "idle" | "loading" | "copied" | "error"
+  const [intakeState, setIntakeState] = useState<Record<string, "idle" | "loading" | "copied" | "error">>({});
+  // Holds a generated URL we couldn't auto-copy (clipboard blocked) so the
+  // bookkeeper can still grab it manually.
+  const [intakeUrl, setIntakeUrl] = useState<Record<string, string>>({});
 
   // Each client entry augmented with computed stats
   type ClientWithStats = BookkeeperClient & {
@@ -436,13 +439,29 @@ function LiveBookkeeperPortfolio() {
     setIntakeState((prev) => ({ ...prev, [clientId]: "loading" }));
     try {
       const result = await createIntakeToken(clientId, clientName);
-      if (result.url) {
-        await navigator.clipboard.writeText(result.url);
-        setIntakeState((prev) => ({ ...prev, [clientId]: "copied" }));
-        setTimeout(() => setIntakeState((prev) => ({ ...prev, [clientId]: "idle" })), 3000);
+
+      // Server returned an error (e.g. not configured / DB issue) or no URL —
+      // surface it instead of hanging on the loading state.
+      if (!result.url) {
+        console.error("[handleGetLink] no url:", result.error);
+        setIntakeState((prev) => ({ ...prev, [clientId]: "error" }));
+        setTimeout(() => setIntakeState((prev) => ({ ...prev, [clientId]: "idle" })), 4000);
+        return;
       }
-    } catch {
-      setIntakeState((prev) => ({ ...prev, [clientId]: "idle" }));
+
+      // Try to auto-copy. Clipboard can be blocked (permissions / insecure
+      // context) — if so, still expose the URL so it isn't lost.
+      try {
+        await navigator.clipboard.writeText(result.url);
+      } catch {
+        setIntakeUrl((prev) => ({ ...prev, [clientId]: result.url! }));
+      }
+      setIntakeState((prev) => ({ ...prev, [clientId]: "copied" }));
+      setTimeout(() => setIntakeState((prev) => ({ ...prev, [clientId]: "idle" })), 4000);
+    } catch (err) {
+      console.error("[handleGetLink] failed:", err);
+      setIntakeState((prev) => ({ ...prev, [clientId]: "error" }));
+      setTimeout(() => setIntakeState((prev) => ({ ...prev, [clientId]: "idle" })), 4000);
     }
   }
 
@@ -662,14 +681,33 @@ function LiveBookkeeperPortfolio() {
                   type="button"
                   title="Copy a shareable upload link for this client"
                   className="zn-pill zn-pill-ghost flex-shrink-0 gap-1.5"
-                  style={{ height: 32, padding: "0 10px", fontSize: 11.5 }}
+                  style={{
+                    height: 32,
+                    padding: "0 10px",
+                    fontSize: 11.5,
+                    color: linkState === "error" ? "var(--zn-risk)" : undefined,
+                  }}
                   disabled={linkState === "loading"}
                   onClick={(e) => { e.stopPropagation(); void handleGetLink(client.id, client.name); }}
                 >
                   <Link2 className="size-3.5" />
-                  {linkState === "copied" ? "Copied!" : linkState === "loading" ? "…" : "Get link"}
+                  {linkState === "copied" ? "Copied!"
+                    : linkState === "loading" ? "…"
+                    : linkState === "error" ? "Failed — retry"
+                    : "Get link"}
                 </button>
               </div>
+
+              {/* Fallback: clipboard was blocked — show the URL so it isn't lost */}
+              {intakeUrl[client.id] && (
+                <div
+                  className="mt-2.5 rounded-lg p-2 text-[11px] break-all select-all"
+                  style={{ background: "var(--zn-surface-2)", border: "1px solid var(--zn-line-soft)", color: "var(--zn-ink-2)" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {intakeUrl[client.id]}
+                </div>
+              )}
             </div>
           );
         })}
