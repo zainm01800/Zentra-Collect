@@ -286,6 +286,17 @@ export interface Invoice {
   importedRowNumber: number;
   queueStatus?: QueueStatus;
   promotedAt?: string;
+  /**
+   * Draft invoices are saved but not yet "issued": they are excluded from the
+   * chase plan, aged debt, tax/VAT, and all dashboards. They appear only in the
+   * Invoices hub (with a Draft badge) until finalised. readInvoices() filters
+   * them out by default; pass { includeDrafts: true } to see them.
+   */
+  isDraft?: boolean;
+  /** VAT rate applied to the whole invoice when created via the form (0/5/20). */
+  vatRate?: number;
+  /** Total VAT amount across all line items (output VAT for the VAT return). */
+  vatAmount?: number;
 }
 
 export interface ImportMapping {

@@ -53,6 +53,8 @@ export function NewInvoiceForm() {
   const [dueDate, setDueDate]             = useState(defaultDueDate);
   const [lines, setLines]                 = useState<LineItem[]>([newLine()]);
   const [notes, setNotes]                 = useState("");
+  // VAT rate applied to the whole invoice. 0 = not VAT-registered (default).
+  const [vatRate, setVatRate]             = useState(0);
 
   // Business / sender — pulled from localStorage settings if present
   const [businessName, setBusinessName]   = useState(() => {
@@ -70,10 +72,16 @@ export function NewInvoiceForm() {
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const total = useMemo(
+  // Net (pre-VAT) subtotal, the VAT amount, and the gross total owed.
+  const netTotal = useMemo(
     () => lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
     [lines],
   );
+  const vatTotal = useMemo(
+    () => +(netTotal * (vatRate / 100)).toFixed(2),
+    [netTotal, vatRate],
+  );
+  const total = useMemo(() => +(netTotal + vatTotal).toFixed(2), [netTotal, vatTotal]);
 
   function updateLine(id: string, field: keyof LineItem, value: string) {
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
@@ -82,8 +90,8 @@ export function NewInvoiceForm() {
     setLines((ls) => (ls.length === 1 ? ls : ls.filter((l) => l.id !== id)));
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(e: React.FormEvent | null, asDraft = false) {
+    e?.preventDefault();
     if (!customerName.trim() || total <= 0) {
       setState("error");
       setErrorMessage("Customer name and at least one line item are required.");
@@ -110,27 +118,35 @@ export function NewInvoiceForm() {
       invoiceNumber:     invoiceNumber.trim(),
       invoiceDate:       issueDate,
       dueDate,
+      // amount is the GROSS total (net + VAT) — what the customer owes.
       amount:            total,
       amountOutstanding: total,
       currency:          "GBP",
-      status:            new Date(dueDate).getTime() < Date.now() ? "overdue" : "due_soon",
-      daysOverdue:       Math.max(0, Math.floor((Date.now() - new Date(dueDate).getTime()) / DAY_MS)),
+      // Drafts are parked as not_due and excluded from the chase plan until issued.
+      status:            asDraft
+                           ? "not_due"
+                           : new Date(dueDate).getTime() < Date.now() ? "overdue" : "due_soon",
+      daysOverdue:       asDraft ? 0 : Math.max(0, Math.floor((Date.now() - new Date(dueDate).getTime()) / DAY_MS)),
       previousChaseCount: 0,
       relationshipType:  "regular customer",
       lineItems:         lines.map((l, idx) => {
-        const amount = parseFloat(l.amount) || 0;
+        const amount    = parseFloat(l.amount) || 0;
+        const lineVat   = +(amount * (vatRate / 100)).toFixed(2);
         return {
           id:          `${id}-line-${idx}`,
           description: l.description.trim() || `Line ${idx + 1}`,
           quantity:    1,
           unitPrice:   amount,
           amount,
+          ...(vatRate > 0 ? { vatRate, vatAmount: lineVat } : {}),
         };
       }),
       activityHistory:   [],
       sourceBatchId:     `manual-${todayIso()}`,
       importedRowNumber: 1,
       customerNotes:     notes.trim() || undefined,
+      ...(vatRate > 0 ? { vatRate, vatAmount: vatTotal } : {}),
+      ...(asDraft ? { isDraft: true } : {}),
     };
 
     // Save via the unified store so P&L, Tax, Aged Debt update immediately
@@ -140,6 +156,14 @@ export function NewInvoiceForm() {
       console.error("[new-invoice] store write failed:", err);
       setState("error");
       setErrorMessage("Couldn't save the invoice locally. Free up space and try again.");
+      return;
+    }
+
+    // Drafts are not issued yet — no payment link, simpler confirmation.
+    if (asDraft) {
+      setCreatedInvoice(invoice);
+      setShareUrl("");
+      setState("done");
       return;
     }
 
@@ -197,17 +221,49 @@ export function NewInvoiceForm() {
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em]"
              style={{ color: "var(--zn-safe)" }}>
-            Invoice created
+            {createdInvoice.isDraft ? "Draft saved" : "Invoice created"}
           </p>
           <h2 className="mt-1 text-[20px] font-semibold" style={{ color: "var(--zn-ink)" }}>
             {createdInvoice.invoiceNumber} · {fmtGBP(createdInvoice.amount)}
           </h2>
           <p className="mt-1 text-[13px]" style={{ color: "var(--zn-ink-2)" }}>
-            Saved to your chase plan. Send the customer the link below to pay.
+            {createdInvoice.isDraft
+              ? "Saved as a draft — it won't be chased. Finalise it from the Invoices hub when you're ready to send."
+              : "Saved to your chase plan. Send the customer the link below to pay."}
           </p>
         </div>
 
-        {shareUrl ? (
+        {createdInvoice.isDraft ? (
+          <div className="flex gap-3 flex-wrap">
+            <Link
+              href="/invoices"
+              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-semibold"
+              style={{ background: "var(--zn-ink)", color: "var(--zn-bg)" }}
+            >
+              Go to Invoices <ArrowRight className="size-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setState("idle");
+                setShareUrl("");
+                setCreatedInvoice(null);
+                setCustomerName("");
+                setCustomerEmail("");
+                setInvoiceNumber(autoInvoiceNumber());
+                setIssueDate(todayIso());
+                setDueDate(defaultDueDate());
+                setLines([newLine()]);
+                setNotes("");
+                setVatRate(0);
+              }}
+              className="text-[13px] font-medium underline"
+              style={{ color: "var(--zn-ink-2)" }}
+            >
+              Create another
+            </button>
+          </div>
+        ) : shareUrl ? (
           <div
             className="rounded-2xl p-5"
             style={{ background: "var(--zn-surface)", border: "1px solid var(--zn-line-soft)" }}
@@ -282,6 +338,7 @@ export function NewInvoiceForm() {
               setDueDate(defaultDueDate());
               setLines([newLine()]);
               setNotes("");
+              setVatRate(0);
             }}
             className="text-[13px] font-medium underline"
             style={{ color: "var(--zn-ink-2)" }}
@@ -374,12 +431,47 @@ export function NewInvoiceForm() {
           </button>
         </div>
 
-        <div className="mt-4 flex items-baseline justify-between pt-3 border-t"
+        {/* VAT rate selector — off by default for non-registered traders */}
+        <div className="mt-4 flex items-center justify-between gap-3 pt-3 border-t"
              style={{ borderColor: "var(--zn-line-soft)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink-2)" }}>Total</span>
-          <span className="text-[22px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
-            {fmtGBP(total)}
-          </span>
+          <label className="text-[12px] font-medium" style={{ color: "var(--zn-ink-2)" }}>
+            VAT
+          </label>
+          <select
+            value={vatRate}
+            onChange={(e) => setVatRate(Number(e.target.value))}
+            className="rounded-lg px-2.5 py-1.5 text-[13px] border"
+            style={{ borderColor: "var(--zn-line)", background: "var(--zn-surface)", color: "var(--zn-ink)" }}
+          >
+            <option value={0}>No VAT (not registered)</option>
+            <option value={20}>Standard 20%</option>
+            <option value={5}>Reduced 5%</option>
+          </select>
+        </div>
+
+        {/* Totals breakdown — shows net + VAT only when a positive rate is set */}
+        <div className="mt-3">
+          {vatRate > 0 && (
+            <>
+              <div className="flex items-baseline justify-between py-0.5">
+                <span className="text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>Subtotal</span>
+                <span className="text-[13px] tabular-nums" style={{ color: "var(--zn-ink-2)" }}>{fmtGBP(netTotal)}</span>
+              </div>
+              <div className="flex items-baseline justify-between py-0.5">
+                <span className="text-[12.5px]" style={{ color: "var(--zn-ink-3)" }}>VAT ({vatRate}%)</span>
+                <span className="text-[13px] tabular-nums" style={{ color: "var(--zn-ink-2)" }}>{fmtGBP(vatTotal)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex items-baseline justify-between pt-2 mt-1 border-t"
+               style={{ borderColor: "var(--zn-line-soft)" }}>
+            <span className="text-[13px] font-semibold" style={{ color: "var(--zn-ink-2)" }}>
+              {vatRate > 0 ? "Total (incl. VAT)" : "Total"}
+            </span>
+            <span className="text-[22px] font-semibold tabular-nums" style={{ color: "var(--zn-ink)" }}>
+              {fmtGBP(total)}
+            </span>
+          </div>
         </div>
       </Section>
 
@@ -410,6 +502,15 @@ export function NewInvoiceForm() {
         >
           Cancel
         </Link>
+        <button
+          type="button"
+          onClick={() => submit(null, true)}
+          disabled={state === "saving"}
+          className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13.5px] font-medium border disabled:opacity-50"
+          style={{ borderColor: "var(--zn-line)", color: "var(--zn-ink-2)" }}
+        >
+          {state === "saving" ? "Saving…" : "Save as draft"}
+        </button>
         <button
           type="submit"
           disabled={state === "saving"}

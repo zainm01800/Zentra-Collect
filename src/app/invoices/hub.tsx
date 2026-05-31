@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpFromLine, Plus, Search, Landmark } from "lucide-react";
 import { NewInvoiceForm } from "@/app/invoices/new/form";
-import { readInvoices, subscribeToInvoiceChanges } from "@/lib/invoice-store";
+import { readInvoices, patchInvoice, subscribeToInvoiceChanges } from "@/lib/invoice-store";
 import { RecurringInvoices } from "@/components/recurring-invoices";
 import type { Invoice as ZentraInvoice } from "@/types/zentra";
 
@@ -41,14 +41,29 @@ function fmtDate(iso?: string): string {
 }
 
 function statusBucket(inv: ZentraInvoice): Tab {
+  // Explicit drafts (saved via "Save as draft") take priority — they are never
+  // counted as open/paid receivables.
+  if (inv.isDraft) return "drafts";
   if (inv.status === "paid" || inv.amountOutstanding <= 0) return "paid";
-  // Drafts aren't a formal status in the schema yet, but anything in
-  // queueStatus === "draft" or with no invoice number is a stub.
+  // Legacy/stub drafts: queueStatus === "draft" or a DRAFT- number.
   if (inv.queueStatus === "draft" as ZentraInvoice["queueStatus"]
       || !inv.invoiceNumber || inv.invoiceNumber.startsWith("DRAFT-")) {
     return "drafts";
   }
   return "open";
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Promote a draft to a live, chaseable invoice. */
+function finaliseDraft(inv: ZentraInvoice) {
+  const due = inv.dueDate ? new Date(inv.dueDate).getTime() : Date.now();
+  const overdue = due < Date.now();
+  patchInvoice(inv.id, {
+    isDraft: false,
+    status: overdue ? "overdue" : "due_soon",
+    daysOverdue: overdue ? Math.max(0, Math.floor((Date.now() - due) / DAY_MS)) : 0,
+  });
 }
 
 interface InvoicesHubProps {
@@ -64,8 +79,10 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
   const [creating, setCreating] = useState(Boolean(openCreate));
 
   useEffect(() => {
-    setInvoices(readInvoices() as ZentraInvoice[]);
-    return subscribeToInvoiceChanges(() => setInvoices(readInvoices() as ZentraInvoice[]));
+    // The hub is the one place drafts should be visible.
+    const load = () => setInvoices(readInvoices({ includeDrafts: true }) as ZentraInvoice[]);
+    load();
+    return subscribeToInvoiceChanges(load);
   }, []);
 
   const groups = useMemo(() => {
@@ -233,15 +250,13 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
           <div className="divide-y" style={{ borderColor: "var(--zn-line-soft)" }}>
             {filtered.map((inv) => {
               const overdue = (inv.daysOverdue ?? 0) > 0;
-              return (
-                <Link
-                  key={inv.id}
-                  href={`/chase-today?customer=${encodeURIComponent(inv.customerName)}`}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_80px] gap-2 sm:gap-3 px-4 py-3 hover:bg-[var(--zn-surface-2)] transition-colors"
-                >
+              const isDraft = statusBucket(inv) === "drafts";
+
+              const rowInner = (
+                <>
                   <div className="min-w-0">
                     <p className="text-[13.5px] font-medium truncate" style={{ color: "var(--zn-ink)" }}>
-                      {inv.customerName}
+                      {inv.customerName || "—"}
                     </p>
                     <p className="text-[11.5px] font-mono mt-0.5" style={{ color: "var(--zn-ink-3)" }}>
                       {inv.invoiceNumber}
@@ -249,7 +264,7 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
                   </div>
                   <div className="text-[12.5px]" style={{ color: overdue ? "var(--zn-risk)" : "var(--zn-ink-2)" }}>
                     {fmtDate(inv.dueDate)}
-                    {overdue && <span className="block text-[11px] font-semibold">{inv.daysOverdue}d overdue</span>}
+                    {overdue && !isDraft && <span className="block text-[11px] font-semibold">{inv.daysOverdue}d overdue</span>}
                   </div>
                   <div className="text-right text-[13px] font-medium tabular-nums" style={{ color: "var(--zn-ink)" }}>
                     {fmtGBP(inv.amountOutstanding > 0 ? inv.amountOutstanding : inv.amount)}
@@ -258,25 +273,58 @@ export function InvoicesHub({ initialTab, openCreate }: InvoicesHubProps) {
                     <span
                       className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold uppercase tracking-wide"
                       style={{
-                        background: tab === "paid"
-                          ? "var(--zn-safe-soft)"
-                          : tab === "drafts"
-                            ? "var(--zn-bg-2)"
+                        background: isDraft
+                          ? "var(--zn-bg-2)"
+                          : tab === "paid"
+                            ? "var(--zn-safe-soft)"
                             : overdue
                               ? "var(--zn-risk-soft)"
                               : "var(--zn-warn-soft)",
-                        color: tab === "paid"
-                          ? "var(--zn-safe)"
-                          : tab === "drafts"
-                            ? "var(--zn-ink-3)"
+                        color: isDraft
+                          ? "var(--zn-ink-3)"
+                          : tab === "paid"
+                            ? "var(--zn-safe)"
                             : overdue
                               ? "var(--zn-risk)"
                               : "var(--zn-warn)",
                       }}
                     >
-                      {tab === "paid" ? "Paid" : tab === "drafts" ? "Draft" : overdue ? "Overdue" : "Open"}
+                      {isDraft ? "Draft" : tab === "paid" ? "Paid" : overdue ? "Overdue" : "Open"}
                     </span>
                   </div>
+                </>
+              );
+
+              // Drafts can't be chased — offer a Finalise action instead of a chase link.
+              if (isDraft) {
+                return (
+                  <div
+                    key={inv.id}
+                    className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_80px] gap-2 sm:gap-3 px-4 py-3"
+                  >
+                    {rowInner}
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => finaliseDraft(inv)}
+                        className="text-[12px] font-semibold underline"
+                        style={{ color: "var(--zn-ink-2)" }}
+                        title="Issue this invoice so it appears in the chase plan"
+                      >
+                        Finalise
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={inv.id}
+                  href={`/chase-today?customer=${encodeURIComponent(inv.customerName)}`}
+                  className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_120px_80px] gap-2 sm:gap-3 px-4 py-3 hover:bg-[var(--zn-surface-2)] transition-colors"
+                >
+                  {rowInner}
                   <div className="text-right text-[12px]" style={{ color: "var(--zn-ink-3)" }}>
                     Open →
                   </div>

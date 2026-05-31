@@ -46,10 +46,12 @@ export function resolveStorageKey(): string {
 // ── Read ──────────────────────────────────────────────────────────────────────
 
 /**
- * Read all invoices for the current user/workspace.
+ * Read EVERY invoice for the current workspace, including drafts.
+ * Internal store mutations (patch/create/write-back) must use this so they
+ * never drop drafts. The Invoices hub also uses it to display drafts.
  * Safe to call during SSR (returns []).
  */
-export function readInvoices(): Invoice[] {
+export function readAllInvoices(): Invoice[] {
   if (typeof window === "undefined") return [];
   const account = readLocalAccount();
   const isDemo = account?.planId === "demo";
@@ -67,6 +69,20 @@ export function readInvoices(): Invoice[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Read invoices for the current user/workspace.
+ *
+ * By default this EXCLUDES drafts so the chase plan, aged debt, tax/VAT, and
+ * every dashboard treat only issued invoices as real receivables. Pass
+ * { includeDrafts: true } (the Invoices hub) to also get drafts.
+ * Safe to call during SSR (returns []).
+ */
+export function readInvoices(opts?: { includeDrafts?: boolean }): Invoice[] {
+  const all = readAllInvoices();
+  if (opts?.includeDrafts) return all;
+  return all.filter((inv) => !inv.isDraft);
 }
 
 // ── Write ─────────────────────────────────────────────────────────────────────
@@ -101,7 +117,8 @@ export function writeInvoices(invoices: Invoice[]): void {
  * everything else is preserved. Dispatches INVOICE_CHANGE_EVENT after write.
  */
 export function patchInvoice(id: string, patch: Partial<Invoice>): void {
-  const invoices = readInvoices();
+  // Use readAllInvoices so a patch never silently drops draft rows.
+  const invoices = readAllInvoices();
   const updated = invoices.map((inv) =>
     inv.id === id ? { ...inv, ...patch } : inv,
   );
@@ -113,7 +130,7 @@ export function patchInvoice(id: string, patch: Partial<Invoice>): void {
  * and the new-invoice drawer so the chase queue sees it immediately.
  */
 export function createInvoice(invoice: Invoice): void {
-  const invoices = readInvoices();
+  const invoices = readAllInvoices();
   writeInvoices([invoice, ...invoices]);
 }
 
