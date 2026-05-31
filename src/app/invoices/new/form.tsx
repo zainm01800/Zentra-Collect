@@ -317,35 +317,39 @@ export function NewInvoiceForm() {
           </div>
         )}
 
-        <div className="flex gap-3 flex-wrap">
-          <Link
-            href="/chase-today"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium underline"
-            style={{ color: "var(--zn-ink-2)" }}
-          >
-            View in chase plan <ArrowRight className="size-3.5" />
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setState("idle");
-              setShareUrl("");
-              setCreatedInvoice(null);
-              setCustomerName("");
-              setCustomerEmail("");
-              setInvoiceNumber(autoInvoiceNumber());
-              setIssueDate(todayIso());
-              setDueDate(defaultDueDate());
-              setLines([newLine()]);
-              setNotes("");
-              setVatRate(0);
-            }}
-            className="text-[13px] font-medium underline"
-            style={{ color: "var(--zn-ink-2)" }}
-          >
-            Create another
-          </button>
-        </div>
+        {/* Chase-plan footer only for issued invoices — drafts have their own
+            actions above and are never in the chase plan. */}
+        {!createdInvoice.isDraft && (
+          <div className="flex gap-3 flex-wrap">
+            <Link
+              href="/chase-today"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium underline"
+              style={{ color: "var(--zn-ink-2)" }}
+            >
+              View in chase plan <ArrowRight className="size-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setState("idle");
+                setShareUrl("");
+                setCreatedInvoice(null);
+                setCustomerName("");
+                setCustomerEmail("");
+                setInvoiceNumber(autoInvoiceNumber());
+                setIssueDate(todayIso());
+                setDueDate(defaultDueDate());
+                setLines([newLine()]);
+                setNotes("");
+                setVatRate(0);
+              }}
+              className="text-[13px] font-medium underline"
+              style={{ color: "var(--zn-ink-2)" }}
+            >
+              Create another
+            </button>
+          </div>
+        )}
       </div>
     );
   }
