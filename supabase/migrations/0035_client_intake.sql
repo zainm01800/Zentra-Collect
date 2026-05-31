@@ -16,7 +16,11 @@ CREATE TABLE IF NOT EXISTS public.zentra_intake_tokens (
   client_id       text        NOT NULL,
   client_name     text        NOT NULL,
   bookkeeper_name text,
-  token           text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'base64url'),
+  -- URL-safe token. NOTE: PostgreSQL's encode() only supports 'base64' |
+  -- 'hex' | 'escape' (NOT 'base64url'), so we build URL-safe base64 by
+  -- substituting +/ → -_ and stripping = padding.
+  token           text        NOT NULL UNIQUE DEFAULT replace(replace(replace(
+                                encode(gen_random_bytes(24), 'base64'), '+', '-'), '/', '_'), '=', ''),
   expires_at      timestamptz NOT NULL DEFAULT now() + interval '30 days',
   created_at      timestamptz NOT NULL DEFAULT now()
 );

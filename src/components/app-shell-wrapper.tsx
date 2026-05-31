@@ -19,6 +19,7 @@ const PUBLIC_PREFIXES = [
   "/free-tools",
   "/tools",
   "/pay",
+  "/intake",
   "/trust",
   "/help",
   "/trader-waitlist",
