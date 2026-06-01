@@ -14,7 +14,7 @@ import {
   type BetaRequest,
   type WouldPay,
 } from "@/lib/beta/store";
-import { createSupabaseServerClient, hasSupabaseServerConfig } from "@/lib/supabase/server";
+import { getSupabaseAdminClient, hasSupabaseAdminConfig } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 
 type RequestBody = Omit<BetaRequest, "id" | "submittedAt">;
@@ -165,9 +165,12 @@ export async function POST(request: Request) {
 
   const normalisedEmail = body.email.trim().toLowerCase();
 
-  if (hasSupabaseServerConfig()) {
+  // Use the service-role client: zentra_beta_access_requests is a write-only
+  // public inbox locked down by RLS (migration 0037), so the public can't read
+  // other people's requests. The admin client bypasses RLS for dedup + insert.
+  if (hasSupabaseAdminConfig()) {
     try {
-      const supabase = await createSupabaseServerClient();
+      const supabase = getSupabaseAdminClient();
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: existing } = await supabase
         .from("zentra_beta_access_requests")
@@ -192,9 +195,9 @@ export async function POST(request: Request) {
 
   let entryId = `beta-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-  if (hasSupabaseServerConfig()) {
+  if (hasSupabaseAdminConfig()) {
     try {
-      const supabase = await createSupabaseServerClient();
+      const supabase = getSupabaseAdminClient();
       const { data, error } = await supabase.from('zentra_beta_access_requests').insert({
         name: body.name.trim(),
         email: body.email.trim().toLowerCase(),
