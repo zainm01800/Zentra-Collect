@@ -15,7 +15,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const VALID_UPLOAD_TYPES = new Set(["invoices", "bank_statement", "receipts", "other"]);
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB original file
+// Stored payload cap. Base64 data URLs inflate ~33%, so a 5 MB file is ~6.7 MB
+// of text — allow some headroom. This bounds what an attacker with a valid
+// token can actually persist, regardless of the client-claimed fileSizeBytes.
+const MAX_RAW_CHARS = 8 * 1024 * 1024;
 
 export async function POST(
   req: NextRequest,
@@ -47,7 +51,12 @@ export async function POST(
     return NextResponse.json({ error: "fileName and rawContent are required" }, { status: 400 });
   }
 
-  if (fileSizeBytes > MAX_SIZE_BYTES) {
+  // Bound the ACTUAL payload we will store. fileSizeBytes is client-supplied
+  // (and may be missing/spoofed), so it can't be the real guard.
+  if (rawContent.length > MAX_RAW_CHARS) {
+    return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 413 });
+  }
+  if (typeof fileSizeBytes === "number" && fileSizeBytes > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 413 });
   }
 

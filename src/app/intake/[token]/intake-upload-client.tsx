@@ -87,8 +87,8 @@ export function IntakeUploadClient({
 
     for (const { type, file } of pendingFiles) {
       try {
-        // Read file content as text (CSVs) or base64 (images)
-        const rawContent = await readFileAsText(file);
+        // Read file content as text (CSVs) or base64 (images, PDFs, xlsx)
+        const rawContent = await readFileAsContent(file);
 
         const res = await fetch(`/api/intake/${token}/upload`, {
           method:  "POST",
@@ -292,18 +292,20 @@ export function IntakeUploadClient({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function readFileAsText(file: File): Promise<string> {
+function readFileAsContent(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    // For images / PDFs, read as base64 dataURL; for text files, read as text
-    if (file.type.startsWith("image/") || file.type === "application/pdf") {
-      reader.onload  = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Could not read file"));
-      reader.readAsDataURL(file);
-    } else {
-      reader.onload  = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Could not read file"));
+    reader.onload  = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Could not read file"));
+    // Only read as UTF-8 text when the file really is text (CSV/TSV/TXT).
+    // Everything else — images, PDFs, and crucially binary spreadsheets
+    // (.xlsx/.xls) — is read as a base64 data URL so it isn't corrupted.
+    const name = file.name.toLowerCase();
+    const isText = file.type.startsWith("text/") || /\.(csv|tsv|txt)$/.test(name);
+    if (isText) {
       reader.readAsText(file, "utf-8");
+    } else {
+      reader.readAsDataURL(file);
     }
   });
 }
